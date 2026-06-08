@@ -1,6 +1,6 @@
-# agency-local-serp-os — three-lane mobile SERP estate tracker
+# full-agency-local-serp-os — leia
 
-Tracks how much of the buyer's MOBILE SERP a client owns/controls/influences across
+Tracks how much of the client's MOBILE SERP, abd total market share a client owns/controls/influences across
 three DataForSEO lanes, normalized into one schema and scored by ownership-weighted slot share.
 
 ## Lanes (integrations/dataforseo/endpoints.yaml)
