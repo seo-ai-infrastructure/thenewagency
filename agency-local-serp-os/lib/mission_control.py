@@ -456,6 +456,82 @@ def search_intelligence(root, client=None):
 
 
 # ---------------- AI Search tab ----------------
+def _crawl_telemetry(root, client, records):
+    """REAL telemetry for the Active-Threat-Intel strip: the live Firecrawl AEO crawl
+    (bots probed/allowed/blocked, markdown purity, content size, entity clarity, win-rate)
+    plus competitor pressure derived from real SERP-saturation goal attainment."""
+    crawl = _latest_crawl(root, client)
+    cr = (crawl or {}).get("crawlability") or {}
+    ev = (crawl or {}).get("evaluation") or {}
+    bots = cr.get("bots") or []
+    mp = cr.get("markdown_purity") or {}
+    ec = cr.get("entity_clarity") or {}
+    _pct = sat.summary(records)["pct_meeting_goal"] if records else None
+    pressure = "HIGH" if (_pct is not None and _pct < 0.2) else ("MED" if (_pct is not None and _pct < 0.5) else "LOW")
+    return {
+        "trace": (crawl or {}).get("run_id"), "generated_at": (crawl or {}).get("generated_at"),
+        "geo": "Fort Lauderdale, FL", "bots_probed": len(bots),
+        "bots_allowed": sum(1 for b in bots if b.get("accessible")),
+        "bots_blocked": sum(1 for b in bots if b.get("blocked_by_robots")),
+        "markdown_purity_pct": round((mp.get("purity") or 0) * 100),
+        "content_kb": round((mp.get("total_chars") or 0) / 1024, 1),
+        "entities_found": ec.get("found"), "entities_total": ec.get("total"),
+        "llms_txt": bool(cr.get("llms_txt_present")),
+        "win_rate_pct": round(ev["win_rate"] * 100) if ev.get("win_rate") is not None else None,
+        "competitor_pressure": pressure, "bots": bots,
+    }
+
+
+def _threat_intel(root, client, records):
+    """Real-data backing for the AI-Search tab's 'Active Threat Intel' section. Three sourced
+    blocks (the fabricated agent-step/network/DOM/screenshot charts are gone):
+      crawl_telemetry  — live Firecrawl AEO crawl + SERP saturation (the strip).
+      review_sentiment — per-competitor negative-review counts from the live review watchdog
+                         (curated fallback when no watchdog report exists, e.g. in tests).
+      ranking_threats  — competitor domains ranked by how many SERP slots they hold across the
+                         tracked keywords (live DataForSEO), with keyword reach + avg rank.
+    """
+    report = _latest_review_report(root)
+    review_sentiment, rs_src = [], "static_demo"
+    if report and report.get("competitors"):
+        for biz, e in report["competitors"].items():
+            top = (e.get("top_themes") or [None])[0]
+            review_sentiment.append({"competitor": biz, "negatives": e.get("n_negative") or 0,
+                                     "avg_rating": e.get("avg_rating"),
+                                     "top_theme": (top.replace("_", " ") if top else None)})
+        review_sentiment.sort(key=lambda x: -(x["negatives"] or 0))
+        rs_src = "live_reviews:" + (report.get("run_id") or "")
+    else:
+        review_sentiment = [
+            {"competitor": "Quality Air Conditioning Company", "negatives": 11, "avg_rating": 4.8, "top_theme": None},
+            {"competitor": "Air Magic", "negatives": 5, "avg_rating": 4.9, "top_theme": None},
+            {"competitor": "Air Anytime", "negatives": 4, "avg_rating": 4.9, "top_theme": None},
+        ]
+    # Real ranking threats = rival businesses holding SERP slots across the tracked keywords.
+    # The SERP surfaces far more local HVAC firms than the configured competitor list, so any
+    # non-owned, non-aggregator, non-platform domain that ranks counts as a de-facto threat.
+    SKIP = {"google.com", "www.google.com", "maps.google.com", ""}
+    dom_slots, dom_kw, dom_ranks = Counter(), {}, {}
+    for r in records:
+        if r.get("ownership_class") not in ("competitor", "unknown"):
+            continue
+        d = (r.get("domain") or "").lower()
+        if not d or d in SKIP:
+            continue
+        dom_slots[d] += 1
+        dom_kw.setdefault(d, set()).add(r.get("keyword"))
+        if r.get("rank_absolute") is not None:
+            dom_ranks.setdefault(d, []).append(r["rank_absolute"])
+    ranking_threats = [
+        {"domain": d, "slots": n, "keywords": len(dom_kw.get(d, [])),
+         "avg_rank": round(sum(dom_ranks[d]) / len(dom_ranks[d]), 1) if dom_ranks.get(d) else None,
+         "threat_level": ("apex" if n >= 10 else "high" if n >= 6 else "med")}
+        for d, n in dom_slots.most_common(8)]
+    return {"crawl_telemetry": _crawl_telemetry(root, client, records),
+            "review_sentiment": review_sentiment, "review_sentiment_source": rs_src,
+            "ranking_threats": ranking_threats}
+
+
 def ai_search(root, client=None):
     root = pathlib.Path(root)
     client, clients = _resolve_client(root, client)
@@ -486,6 +562,7 @@ def ai_search(root, client=None):
         "queries": queries,
         "cited_competitors_leaderboard": [{"domain": d, "count": c} for d, c in comp.most_common(10)],
         "cited_sources_leaderboard": [{"domain": d, "count": c} for d, c in src.most_common(10)],
+        "threat_intel": _threat_intel(root, client, records),
     }
 
 
@@ -658,31 +735,8 @@ def competition_intell(root, client=None):
             issue_angles = live_angles
         live_src = report.get("run_id")
 
-    # REAL crawl telemetry for the "Active Threat Intel" strip (from the live Firecrawl AEO crawl
-    # + real SERP saturation) — replaces the hardcoded agent-steps/network/DOM placeholders.
-    crawl = _latest_crawl(root, client)
-    cr = (crawl or {}).get("crawlability") or {}
-    ev = (crawl or {}).get("evaluation") or {}
-    bots = cr.get("bots") or []
-    mp = cr.get("markdown_purity") or {}
-    ec = cr.get("entity_clarity") or {}
-    _recs = latest_tracker_records(root)
-    _pct = sat.summary(_recs)["pct_meeting_goal"] if _recs else None
-    pressure = "HIGH" if (_pct is not None and _pct < 0.2) else ("MED" if (_pct is not None and _pct < 0.5) else "LOW")
-    crawl_telemetry = {
-        "trace": (crawl or {}).get("run_id"),
-        "generated_at": (crawl or {}).get("generated_at"),
-        "geo": "Fort Lauderdale, FL",
-        "bots_probed": len(bots),
-        "bots_allowed": sum(1 for b in bots if b.get("accessible")),
-        "bots_blocked": sum(1 for b in bots if b.get("blocked_by_robots")),
-        "markdown_purity_pct": round((mp.get("purity") or 0) * 100),
-        "content_kb": round((mp.get("total_chars") or 0) / 1024, 1),
-        "entities_found": ec.get("found"), "entities_total": ec.get("total"),
-        "llms_txt": bool(cr.get("llms_txt_present")),
-        "win_rate_pct": round(ev["win_rate"] * 100) if ev.get("win_rate") is not None else None,
-        "competitor_pressure": pressure, "bots": bots,
-    }
+    # REAL crawl telemetry for the strip (shared helper: live Firecrawl AEO crawl + SERP saturation).
+    crawl_telemetry = _crawl_telemetry(root, client, latest_tracker_records(root))
 
     total_velocity = sum(c["sample_reviews_365"] for c in competitors)
     total_reviews = sum(c["profile_reviews"] for c in competitors)
