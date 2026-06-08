@@ -107,6 +107,19 @@ def test_handles_string_subitems_and_refs_from_live_data():
     assert slots and slots[0]["feature_type"] == "people_also_ask"
 
 
+def test_video_pack_matched_by_channel_source_not_url():
+    # A video-pack item's URL is a bare watch?v= link (no channel handle), but DataForSEO carries
+    # the channel name in `source`. The client's owned YouTube channel must still be detected so
+    # its video presence counts toward SERP saturation. (regression: client was on the SERP 3x —
+    # AI Overview + organic + video — but the video pack was scored 'unknown'.)
+    assets = {"owned": ["houseacrepair.com"], "controlled": ["House HVAC Repair"], "influenced": []}
+    video = {"type": "video", "items": [
+        {"source": "House HVAC Repair", "title": "AC Coil Cost", "url": "https://www.youtube.com/watch?v=abc"},
+        {"source": "PartsHnC", "title": "Coil Cost", "url": "https://www.youtube.com/watch?v=xyz"}]}
+    s = sf.classify([video], "organic_mobile", assets, ["cool air"])[0]
+    assert s["feature_type"] == "organic_video" and s["ownership_class"] == "controlled"
+
+
 def test_controlled_and_influenced_tiers():
     assert sf.classify([_item("organic", domain="mybiz.gbp")], "organic_mobile",
                        ASSETS, COMP)[0]["ownership_class"] == "controlled"

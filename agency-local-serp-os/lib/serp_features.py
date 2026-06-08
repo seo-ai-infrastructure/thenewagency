@@ -50,10 +50,13 @@ def _refs(item):
     return out
 
 def _haystack(item):
-    parts = [item.get("url") or "", item.get("domain") or ""]
+    # `source` carries the publisher/channel name (e.g. a video's YouTube channel "House HVAC
+    # Repair"), which is how the client appears in video/news packs where the URL is a bare
+    # watch?v= link with no channel handle — so ownership tokens can match it.
+    parts = [item.get("url") or "", item.get("domain") or "", item.get("source") or ""]
     for el in (item.get("items") or []):                # live data: sub-items may be plain strings
         if isinstance(el, dict):
-            parts += [el.get("url") or "", el.get("domain") or ""]
+            parts += [el.get("url") or "", el.get("domain") or "", el.get("source") or ""]
         elif isinstance(el, str):
             parts.append(el)
     parts += _refs(item)
@@ -105,7 +108,10 @@ def classify(items, lane, assets, competitors, place_id=None, aggregators=None):
             surface = "discussions_and_forums_element"
         oc = _classify_ownership(hay, assets, comp, place_id, surface, agg)
         refs = _refs(it)
-        client_cited = bool(refs) and any(any(t in r for t in cited_tokens) for r in refs)
+        # how many of the cited sources are the CLIENT's — an AI Overview can cite the client more
+        # than once, and each citation is a distinct on-SERP appearance for the takeover count.
+        client_cites = [r for r in refs if any(t in r for t in cited_tokens)]
+        client_cited = bool(client_cites)
         cited_comp = [r for r in refs if any(c in r for c in comp)]
         # AI surfaces aren't "owned" by appearing — score them on CITATION instead.
         if surface in ("ai_overview", "ai_mode_response"):
@@ -120,6 +126,7 @@ def classify(items, lane, assets, competitors, place_id=None, aggregators=None):
             "ownership_class": oc,
             "client_mentioned": any(t in hay for t in owned_all),
             "client_cited": client_cited,
+            "client_citation_count": len(client_cites),
             "cited_sources": refs,
             "cited_competitors": cited_comp,
         }

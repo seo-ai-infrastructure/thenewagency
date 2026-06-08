@@ -70,6 +70,29 @@ def test_summary_rolls_up_goal_attainment():
     assert [s["keyword"] for s in out["below_goal"]] == ["lose"]
 
 
+def test_ai_overview_cited_twice_counts_as_two_appearances():
+    # The takeover count reads the page as the operator does: an AI Overview that cites the client
+    # twice + an organic listing = 3 appearances, even though it's only 2 distinct feature types.
+    recs = [{"ownership_class": "influenced", "feature_type": "ai_overview", "client_citation_count": 2,
+             "keyword": "ac coil repair cost", "location_name": "Fort Lauderdale, FL", "os": "android",
+             "query_class": "organic_mobile", "lead_value": "high"},
+            {"ownership_class": "owned", "feature_type": "organic", "url": "https://houseacrepair.com/",
+             "keyword": "ac coil repair cost", "location_name": "Fort Lauderdale, FL", "os": "android",
+             "query_class": "organic_mobile", "lead_value": "high"}]
+    s = ss.saturate_serp(recs)
+    assert s["presence_count"] == 3            # AIO(2 citations) + organic(1)
+    assert s["distinct_features_held"] == 2     # but only 2 distinct surfaces
+
+
+def test_same_listing_in_two_lanes_counts_once():
+    # a local_pack returned by BOTH the local_finder and organic lanes is one placement, not two.
+    recs = [{"ownership_class": "controlled", "feature_type": "local_pack", "url": "maps.google/cid=1",
+             "keyword": "ac repair", "location_name": "FTL", "os": "ios", "query_class": ln, "lead_value": "high"}
+            for ln in ("local_finder", "organic_mobile")]
+    s = ss.saturate_serp(recs)
+    assert s["presence_count"] == 1
+
+
 def test_goal_is_env_overridable():
     import os
     os.environ["SATURATION_GOAL_MIN"] = "6"

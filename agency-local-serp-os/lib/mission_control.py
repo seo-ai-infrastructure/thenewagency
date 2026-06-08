@@ -125,7 +125,8 @@ def saturation_block(records, prev_records=None, top=12):
     lanes = sorted({r.get("query_class") for r in records if r.get("query_class")})
     by_lane = {ln: _lane_rollup([r for r in records if r.get("query_class") == ln]) for ln in lanes}
     queue = [{"keyword": x["keyword"], "location": x["location"], "os": x["os"],
-              "query_class": x["query_class"], "lead_value": x.get("lead_value"),
+              "query_class": x["query_class"], "lanes": x.get("lanes", []),
+              "lane_breakdown": x.get("lane_breakdown", {}), "lead_value": x.get("lead_value"),
               "presence_count": x["presence_count"], "goal_min": x["goal_min"],
               "gap_to_goal": x["gap_to_goal"], "features_held": x["features_held"],
               "features_unclaimed": x["features_unclaimed"],

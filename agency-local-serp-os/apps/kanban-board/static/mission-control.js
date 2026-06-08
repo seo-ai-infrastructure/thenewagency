@@ -96,7 +96,7 @@
 
     const s = d.saturation || {}, pct = Math.round((s.pct_meeting_goal || 0) * 100);
     $("mc-goal-big").innerHTML = `${fmt(s.n_meeting_goal)}<small>/${fmt(s.n_serps)} SERPs</small>`;
-    $("mc-goal-sub").textContent = `appear ${fmt(s.goal_min)}–${fmt(s.goal_stretch)}+ times · avg ${fmt(s.avg_presence)} placements/SERP`;
+    $("mc-goal-sub").textContent = `appear ${fmt(s.goal_min)}–${fmt(s.goal_stretch)}+ times on the same SERP · avg ${fmt(s.avg_presence)} appearances/page (lanes unioned, AI citations counted)`;
     $("mc-goal-bar").style.width = pct + "%";
     $("mc-gauge").innerHTML = ""; gauge($("mc-gauge"), pct, "#34d399");
     const bl = s.by_lane || {};
@@ -107,9 +107,9 @@
     const dl = s.delta || {};
     $("mc-kpis").innerHTML = [
       { l: "SERPs at goal", v: `${fmt(s.n_meeting_goal)}<small>/${fmt(s.n_serps)}</small>`, d: dl.n_meeting_goal },
-      { l: "Avg placements / SERP", v: fmt(s.avg_presence), d: dl.avg_presence },
+      { l: "Avg appearances / page", v: fmt(s.avg_presence), d: dl.avg_presence },
       { l: "% meeting 4–6+", v: pct + "%", d: dl.pct_meeting_goal },
-      { l: "Tracked SERPs", v: fmt(s.n_serps), d: null },
+      { l: "Real SERPs tracked", v: fmt(s.n_serps), d: null },
     ].map(k => `<div class="kpi"><div class="k-label">${esc(k.l)}</div><div class="k-val">${k.v}</div>${deltaChip(k.d, "up")}</div>`).join("");
 
     const cards = d.source_cards || [];

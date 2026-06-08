@@ -33,7 +33,63 @@ def terms_for(keyword_source):
     for k in keyword_source.split("."): node = node[k]
     return node
 
+_AI_ABSENCE = {"feature_type": "ai_mode_response", "ownership_class": "unknown",
+               "client_mentioned": False, "client_cited": False, "rank_absolute": None,
+               "rank_group": None, "title": None, "url": None, "domain": None,
+               "cited_sources": [], "cited_competitors": []}
+
+
+def reclassify(run_id):
+    """Re-run the classifier over an existing run's CACHED raw payloads — no API spend. Rewrites
+    history/<run_id>.jsonl with the current classifier + owned-assets, so config/classifier fixes
+    are reflected on the dashboard without re-billing DataForSEO. Raw payloads echo our `tag`
+    (client|run|lane|term_id|loc_id|os) and `data.keyword`, making the mapping exact."""
+    raw_dir = HERE / "raw" / run_id
+    if not raw_dir.exists():
+        sys.exit(f"no cached raw payloads for {run_id}")
+    place_id = ASSETS.get("gbp_place_id")
+    lane_api = {api["parse_as"]: name for name, api in ENDPOINTS.items()}
+    lead_by_id = {}
+    for src in (TERMS.get("rank_tracking") or {}).values():
+        for t in (src or []):
+            if isinstance(t, dict) and t.get("id"):
+                lead_by_id[t["id"]] = t.get("lead_value", "unknown")
+    loc_name = {l["id"]: l["name"] for l in LOCS["locations"]}
+    out = HERE / "history" / f"{run_id}.jsonl"
+    n = 0
+    with out.open("w") as fh:
+        for f in sorted(raw_dir.glob("*.json")):
+            payload = json.loads(f.read_text(encoding="utf-8"))
+            data = ((payload.get("tasks") or [{}])[0]).get("data") or {}
+            parts = (data.get("tag") or "").split("|")
+            if len(parts) != 6:
+                continue
+            _, _, lane, term_id, loc_id, os_type = parts
+            items = dfs.extract_items(payload)
+            ai_available = not (lane == "ai_mode" and not items)
+            slots = classify(items, lane, ASSETS, COMPS, place_id) or ([_AI_ABSENCE] if lane == "ai_mode" else [])
+            for s in slots:
+                rec = {"schema_version": "3", "run_id": run_id, "client_id": CFG["client_id"],
+                       "api_source": lane_api.get(lane, lane), "query_class": lane,
+                       "keyword": data.get("keyword"), "keyword_id": term_id,
+                       "lead_value": lead_by_id.get(term_id, "unknown"),
+                       "location_name": loc_name.get(loc_id, loc_id), "device": CFG["device"],
+                       "os": os_type, "ai_surface_available": ai_available, **s}
+                schema.validate(rec, schema.SNAPSHOT)
+                fh.write(json.dumps(rec) + "\n"); n += 1
+    LOG.info(f"reclassified {run_id}: {n} records -> {out.name}", extra={"run_id": run_id, "n_records": n})
+    print(f"reclassified {run_id}: {n} records -> history/{out.name}")
+
+
 def main():
+    if "--reclassify" in sys.argv:
+        i = sys.argv.index("--reclassify")
+        arg = sys.argv[i + 1] if i + 1 < len(sys.argv) else "latest"
+        runs = sorted(p.name for p in (HERE / "raw").glob("mobile_serp_*") if p.is_dir())
+        targets = runs if arg == "all" else (runs[-1:] if arg == "latest" else [arg])
+        for t in targets:
+            reclassify(t)
+        return
     dry = "--dry-run" in sys.argv
     started = datetime.datetime.now(datetime.timezone.utc).isoformat()
     run_id = "mobile_serp_" + datetime.datetime.now(datetime.timezone.utc).strftime("%Y%m%dT%H%M%SZ")
