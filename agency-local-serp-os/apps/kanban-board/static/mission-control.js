@@ -81,7 +81,7 @@
             <div class="legend-row"><span><i style="background:#34d399"></i>owned</span><span><i style="background:#38bdf8"></i>controlled</span><span><i style="background:#fbbf24"></i>influenced</span><span><i style="background:#f87171"></i>competitor</span><span><i style="background:#1b2531"></i>not present</span></div></div>
           <div class="panel"><h3>Cross-source action skyline <span class="h-accent"></span></h3><div class="sky" id="mc-sky"></div></div>
         </div>
-        <div class="mc-grid" style="margin-top:13px">
+        <div class="mc-grid even" style="margin-top:13px">
           <div class="panel"><h3>Takeover leaderboard — appearances per keyword <span class="h-accent"></span></h3>
             <div id="mc-leaderboard" style="height:260px;"></div></div>
           <div class="panel"><h3>SERP-feature share of voice <span class="h-accent"></span></h3>

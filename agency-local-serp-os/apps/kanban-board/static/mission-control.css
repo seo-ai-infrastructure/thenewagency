@@ -119,3 +119,35 @@
 .ci-bench b{color:var(--ink);font-weight:600;text-align:right}
 .ci-method{font-size:11px;color:var(--dim);font-family:'JetBrains Mono',monospace;margin-top:4px}
 .geo-dot:hover{transform: translate(-50%, -50%) scale(1.22)!important; box-shadow: 0 0 12px rgba(255,255,255,0.7); z-index: 10;}
+
+/* ---------------- Phase 4: visual / UX polish ---------------- */
+/* Interactive lift on cards (hover only — no chart animation, safe for screenshots) */
+.panel{transition:border-color .15s ease, box-shadow .15s ease}
+.panel:hover{border-color:#2b3a4d;box-shadow:0 4px 18px -10px rgba(0,0,0,.6)}
+.panel:hover>h3 .h-accent{background:#2b3a4d}
+.kpi,.src,.lane{transition:border-color .15s ease, background .15s ease}
+.kpi:hover,.src:hover,.lane:hover{border-color:#2b3a4d}
+.act{transition:border-color .15s ease, background .15s ease}
+.act:hover{background:#10161f}
+.mc-table tbody tr{transition:background .12s ease}
+
+/* Tabular figures so numeric columns/KPIs align cleanly */
+.kpi .k-val,.src .s-val,.mc-goal .big,.lane .l-val,.mc-table td{font-variant-numeric:tabular-nums}
+
+/* Thin dark scrollbars in scrollable regions (Chromium + Firefox) */
+.sky,.mc-wrap{scrollbar-width:thin;scrollbar-color:#27323f transparent}
+.sky::-webkit-scrollbar{width:8px;height:8px}
+.sky::-webkit-scrollbar-thumb{background:#27323f;border-radius:8px}
+.sky::-webkit-scrollbar-thumb:hover{background:#33414f}
+.sky::-webkit-scrollbar-track{background:transparent}
+
+/* Clearer empty states */
+.mc-empty{text-align:center;padding:18px 6px;border:1px dashed var(--line);border-radius:9px;background:rgba(255,255,255,.012)}
+
+/* Balanced two-up grid for the analytics rows */
+.mc-grid.even{grid-template-columns:1fr 1fr}
+@media(max-width:980px){.mc-grid.even{grid-template-columns:1fr}}
+
+/* Subtle status accent on the live/ok source chips */
+.mc-chip.ok{box-shadow:inset 0 0 0 1px rgba(52,211,153,.08)}
+.pill{white-space:nowrap}
