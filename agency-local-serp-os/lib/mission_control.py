@@ -560,8 +560,15 @@ def aeo(root, client=None):
 
 
 # ---------------- Competition Intell tab ----------------
+def _latest_review_report(root):
+    """Newest competitor-review-watchdog history doc (live mined Google reviews), or None."""
+    d = pathlib.Path(root) / "automations" / "competitor-review-watchdog" / "history"
+    files = sorted(d.glob("*.json")) if d.exists() else []
+    return _load_json(files[-1]) if files else None
+
+
 def competition_intell(root, client=None):
-    """Demo competitive-intelligence payload for House AC Repair.
+    """Competitive-intelligence payload for House AC Repair.
 
     The figures come from the June 7, 2026 Outscraper review export the operator supplied:
     250 sampled Google reviews each for Air Magic, Quality Air Conditioning Company, and
@@ -600,6 +607,57 @@ def competition_intell(root, client=None):
          "angle": "Install coordination through inspection and final handoff.",
          "severity": "low", "signal": "Installation complaints cite follow-through, permits, or final closeout."},
     ]
+    # --- LIVE overlay: when the competitor-review-watchdog has run, replace the hardcoded complaint
+    #     angles with REAL mined themes and attach per-competitor top_complaints. Falls back to the
+    #     curated figures above when no report exists (e.g. in tests). Revenue stays directional.
+    report = _latest_review_report(root)
+    live_src = None
+    if report and report.get("competitors"):
+        from lib.review_mining import THEMES
+        live = report["competitors"]
+
+        def _match(cur):
+            for biz, e in live.items():
+                bl = biz.lower()
+                if cur["short_name"].lower() in bl or cur["name"].lower() in bl or bl in cur["name"].lower():
+                    return e
+            return None
+
+        agg = {}
+        for c in competitors:
+            e = _match(c)
+            if not e:
+                continue
+            c["negative_reviews"] = e.get("n_negative", c.get("negative_reviews"))
+            c["avg_negative_rating"] = e.get("avg_rating")
+            c["top_complaints"] = [{"theme": t, "count": e["themes"].get(t, 0),
+                                    "counter_hook": THEMES.get(t, (None, ""))[1]}
+                                   for t in e.get("top_themes", [])[:5]]
+            for t in e.get("top_themes", []):
+                agg[t] = agg.get(t, 0) + e["themes"].get(t, 0)
+
+        THEME_ISSUE = {"hidden_fees": "Pricing / surprise charges", "overpriced": "Pricing / surprise charges",
+                       "poor_workmanship": "Poor diagnosis / repeated breakdowns",
+                       "misdiagnosis": "Poor diagnosis / repeated breakdowns",
+                       "unresponsive": "Communication delays", "no_show_late": "Emergency calls not resolved same day",
+                       "upsell_pressure": "Pushed to replace, not repair", "rude_unprofessional": "Unprofessional techs",
+                       "warranty_issues": "Warranty not honored"}
+        SEV = {"hidden_fees": "high", "overpriced": "high", "poor_workmanship": "high", "misdiagnosis": "high",
+               "no_show_late": "med", "unresponsive": "med", "upsell_pressure": "med",
+               "rude_unprofessional": "low", "warranty_issues": "low"}
+        live_angles, seen = [], set()
+        for t, cnt in sorted(agg.items(), key=lambda x: -x[1]):
+            issue = THEME_ISSUE.get(t, t.replace("_", " ").title())
+            if issue in seen:
+                continue
+            seen.add(issue)
+            live_angles.append({"issue": issue, "angle": THEMES.get(t, (None, ""))[1],
+                                "severity": SEV.get(t, "med"),
+                                "signal": f"{cnt} negative competitor review(s) cite {t.replace('_', ' ')}."})
+        if live_angles:
+            issue_angles = live_angles
+        live_src = report.get("run_id")
+
     total_velocity = sum(c["sample_reviews_365"] for c in competitors)
     total_reviews = sum(c["profile_reviews"] for c in competitors)
     return {
@@ -607,11 +665,14 @@ def competition_intell(root, client=None):
         "client": client,
         "clients": clients,
         "title": "House AC Repair Real-Time Feedback",
-        "demo_note": "Directional demo estimate, not verified revenue.",
-        "sample": {"source": "Outscraper Google reviews export",
-                   "sampled_reviews": sum(250 for _ in competitors),
+        "demo_note": ("Live Google-review mining; revenue ranges still directional."
+                      if live_src else "Directional demo estimate, not verified revenue."),
+        "data_source": ("live_reviews:" + live_src) if live_src else "static_demo",
+        "sample": {"source": "Outscraper Google reviews (live mining)" if live_src else "Outscraper Google reviews export",
+                   "sampled_reviews": (report.get("n_reviews") if live_src else sum(250 for _ in competitors)),
                    "window_days": 365,
-                   "job_reviews_status": "Correct competitor job/review scrape pending"},
+                   "job_reviews_status": (f"live: {report.get('n_negative', 0)} negatives mined"
+                                          if live_src else "Correct competitor job/review scrape pending")},
         "summary": {
             "competitors": len(competitors),
             "profile_reviews": total_reviews,

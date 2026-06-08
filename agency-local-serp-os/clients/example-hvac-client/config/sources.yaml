@@ -1,9 +1,9 @@
 version: 1
 # Which property/site/project each search-data source should pull for this client.
 gsc:
-  site_url: "https://houseacrepair.com/"     # exact GSC property (URL-prefix) or "sc-domain:houseacrepair.com"
+  site_url: "sc-domain:houseacrepair.com"    # Domain property (verified: SA has siteFullUser here)
 ga4:
-  property_id: "REPLACE_GA4_NUMERIC_ID"      # GA4 Admin -> Property Settings -> Property ID (numeric)
+  property_id: "513224934"                   # houseacrepair.com GA4 property (SA-verified via Admin API)
 bing:
   site_url: "https://houseacrepair.com/"     # verified Bing Webmaster site
 clarity:

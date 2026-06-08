@@ -1,8 +1,3 @@
-# Full Autonomous Local — leia
-
-Tracks how much of the client's MOBILE SERP, abd total market share a client owns/controls/influences across
-three DataForSEO lanes, normalized into one schema and scored by ownership-weighted slot share.
-
 # Agency OS — Autonomous Local SEO Ecosystem
 
 Agency OS is a multi-tenant SaaS platform that merges Local SEO tracking (DataForSEO), an interactive Kanban Command Center, and Autonomous Browser Agents (CloakBrowser) into a single scalable cloud infrastructure. 
@@ -70,19 +65,39 @@ python run_all_dry.py            # tracker (fixtures) -> estate scoring, end to 
 # live: set DATAFORSEO_LOGIN/PASSWORD in env, fill clients/<id>/facts, drop --dry-run
 ```
 
-## Layout
+## 🛠 Deployment & Execution
+
+### 1. The Cloud SaaS (Vercel)
+To deploy the dashboard and API to the public internet:
+```bash
+npx vercel --prod
 ```
-lib/           serp_features.py (classifier), estate_scoring.py    (shared, imported)
-integrations/dataforseo/  endpoints.yaml (lanes+cadence+cost), client.py (raw archive)
-shared_schemas/serp_feature_snapshot.schema.json                  (v3, validated)
-automations/local-mobile-serp-feature-tracker/  run.py, fixtures/, history/, raw/, state/
-automations/serp-estate-scoring/                 run.py, history/
-clients/<id>/facts/  targeted-search-terms.yaml (3-lane), owned-assets.yaml (tiers),
-                     competition.yaml, locations.yaml
+Once deployed, users MUST log in via the Supabase Auth modal. The Vercel API validates the JWT token before serving any client data.
+
+### 2. The Cloud Worker (Celery/Redis)
+Vercel serverless functions timeout after 10-60 seconds. Therefore, when a client clicks "Approve" on a task, Vercel pushes a job to Redis. 
+Run the background worker on a separate server (or locally) to process these AI tasks:
+```bash
+python worker.py
 ```
 
-## Known tuning points (deliberately left to you)
-- Ownership matching is substring-based on your asset tokens — tighten YouTube/Reddit
-  tokens to exact channel/author URLs to avoid lookalike false positives.
-- Estate weights (ownership class, lead_value) live in lib/estate_scoring.py — tune.
-- gbp.py/gsc.py-style live calls need your keys; dry-run uses fixtures and calls no API.
+### 3. The CloakBrowser Agent Pool
+When the worker processes an automation, it drops a JSON payload into `automations/cloakbrowser-runner/inbox/`. 
+Your Dockerized CloakBrowser Manager continuously watches this folder. When a file drops, it wakes up the specific persistent browser profile (e.g. `example-hvac-client-cb-agent`) and executes the task autonomously (e.g. Hijacking a PAA on Reddit).
+
+## 📊 Core Subsystems
+- **DataForSEO Tracks:** Local Finder, Organic Mobile, and AI Mode. 
+- **PAA Velocity Trap (`lib/paa_velocity.py`):** Scans historical search data to automatically detect rising competitor keywords and issues "hijack" work orders.
+- **Deep Dive "God Mode":** An interactive UI (`mission-control.js`) that visualizes Proximity Decay, Revenue Pipeline loss, and Reputation Shock (CTR exponential decay).
+
+## 📂 Repository Layout
+```text
+api/index.py                        # Vercel Serverless Entrypoint (Flask)
+apps/kanban-board/static/           # SaaS Frontend (HTML/JS/CSS)
+automations/cloakbrowser-runner/    # Agent Orchestrator & Poller
+clients/<id>/browser/               # Client profiles.yaml & workflows.yaml
+lib/db.py                           # Supabase Postgres bridge
+lib/tasks.py                        # Celery Application & Task definitions
+scripts/migrate_to_supabase.py      # Migration tool from local JSON to Supabase
+worker.py                           # Celery Worker Entrypoint
+```
