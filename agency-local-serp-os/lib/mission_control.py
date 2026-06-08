@@ -588,52 +588,17 @@ def aeo(root, client=None):
     citation = aeo_recs.citation_conquest(records, client) if (records and client) else []
     aggregator = aeo_recs.aggregator_conquest(records, client) if (records and client) else []
     crawl = _latest_crawl(root, client) if client else None
-    
-    # Gaps Fallback
-    if not citation and not aggregator:
-        citation = [
-            {"gap": {"keyword": "ac repair fort lauderdale"}, "subsystem": "Citation", "suggested_action": "Add Yelp citation with matching NAP info", "kind": "Yelp Match"},
-            {"gap": {"keyword": "emergency hvac repair"}, "subsystem": "Citation", "suggested_action": "Submit listing to Angi to capture voice share", "kind": "Angi Match"},
-            {"gap": {"keyword": "duct cleaning florida"}, "subsystem": "Citation", "suggested_action": "Verify GBP listing details on YellowPages", "kind": "YellowPages Match"}
-        ]
-        aggregator = [
-            {"gap": {"keyword": "duct cleaning fl"}, "subsystem": "Aggregator", "suggested_action": "Submit location details to Neustar Localeze database", "kind": "Neustar"},
-            {"gap": {"keyword": "heat pump installers"}, "subsystem": "Aggregator", "suggested_action": "Update profile in Factual / Foursquare listings", "kind": "Foursquare"}
-        ]
-        
-    # Crawl Fallback
-    crawlability = (crawl or {}).get("crawlability")
-    evaluation = (crawl or {}).get("evaluation")
-    crawl_run = (crawl or {}).get("run_id") or "run_mock_aeo_102"
-    crawl_generated_at = (crawl or {}).get("generated_at") or _now().isoformat()
-    
-    if (not crawlability or not evaluation) and client != "c1":
-        crawlability = {
-            "markdown_purity": {"purity": 0.92},
-            "entity_clarity": {"clarity": 0.88},
-            "llms_txt_present": True,
-            "bots": [
-                {"bot": "GPTBot", "accessible": True, "blocked_by_robots": False},
-                {"bot": "ClaudeBot", "accessible": True, "blocked_by_robots": False},
-                {"bot": "Google-Extended", "accessible": True, "blocked_by_robots": False}
-            ]
-        }
-        evaluation = {
-            "win_rate": 0.75,
-            "client_coverage": 0.80,
-            "wins": 3,
-            "competitors": {"Quality Air": 0.60, "Air Magic": 0.50, "Air Anytime": 0.30},
-            "missing_entities": ["Heat Pump Warranty details", "NATE Certified technicians credentials"]
-        }
-        
+    # No demo fallbacks: the conquest queue comes from real tracker gaps, and crawlability/
+    # evaluation come from the real ai-crawl-simulator run. When a crawl hasn't run, these are
+    # None and the frontend shows an explicit "run the crawl simulator" empty state.
     return {
         "generated": _now().isoformat(), "client": client, "clients": clients,
         "conquest_queue": {"citation": citation, "aggregator": aggregator,
                            "n": len(citation) + len(aggregator)},
-        "crawlability": crawlability,
-        "evaluation": evaluation,
-        "crawl_run": crawl_run,
-        "crawl_generated_at": crawl_generated_at,
+        "crawlability": (crawl or {}).get("crawlability"),
+        "evaluation": (crawl or {}).get("evaluation"),
+        "crawl_run": (crawl or {}).get("run_id"),
+        "crawl_generated_at": (crawl or {}).get("generated_at"),
     }
 
 
@@ -764,11 +729,10 @@ def competition_intell(root, client=None):
         "competitors": competitors,
         "issue_angles": issue_angles,
         "hiring_signals": {
-            "status": "warn",
-            "current_export": "Quality Air Conditioning (Fort Lauderdale) actively hiring HVAC Service Tech ($30-$40/hr) and Lead Installer ($25-$35/hr). Employee reviews average 2.7/5 stars with reports of excessive micromanagement and stressful culture, though coworkers and PTO are praised.",
-            "tracked_when_available": ["Rating 2.7/5", "Management 2.1", "HVAC Tech $30-$40/hr",
-                                       "Lead Installer $25-$35/hr", "Micromanagement",
-                                       "Overworked/Underpaid", "PTO/Sick Days", "English Required"]},
+            "status": "pending",
+            "current_export": "Hiring / employer-review signals are not collected by this stack yet — no data is shown rather than estimated.",
+            "tracked_when_available": ["open roles", "role type", "pay bands", "posting velocity",
+                                       "employee-review rating", "expansion / capacity clues"]},
         "benchmarks": [
             {"label": "Florida HVAC replacement benchmark", "value": "$7.5k typical replacement job"},
             {"label": "Repair / maintenance mix", "value": "Lower-ticket recurring work"},
