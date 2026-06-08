@@ -232,18 +232,18 @@
         <div class="panel" style="margin-top:16px; border-color:#38bdf833;">
           <h3 style="color:#38bdf8;"><i class="fas fa-shield-alt" style="margin-right:6px;"></i> Active Threat Intel: houseacrepair.com <span class="h-accent"></span></h3>
           <div class="mc-controls" style="margin: 10px 0 14px;">
-            <span class="mc-chip ok">Agent trace: HVAC_FTL_2026_06_07</span>
-            <span class="mc-chip">Fort Lauderdale, FL (Primary GEO)</span>
+            <span class="mc-chip ok" id="ti-trace">crawl: —</span>
+            <span class="mc-chip" id="ti-geo">Fort Lauderdale, FL (Primary GEO)</span>
             <span class="mc-chip">Analysis window: last 30 days</span>
-            <span class="mc-chip warn">Competitor pressure: HIGH</span>
+            <span class="mc-chip warn" id="ti-pressure">Competitor pressure: —</span>
           </div>
-          
+
           <div class="mc-kpis" style="margin-bottom:14px; grid-template-columns: repeat(5, 1fr);">
-            <div class="kpi"><div class="k-label">Agent steps</div><div class="k-val" style="font-size:22px;">32</div></div>
-            <div class="kpi"><div class="k-label">Network requests</div><div class="k-val" style="font-size:22px;">187</div></div>
-            <div class="kpi"><div class="k-label">Failed requests</div><div class="k-val" style="font-size:22px; color:#fca5a5;">14</div></div>
-            <div class="kpi"><div class="k-label">Skip reasons</div><div class="k-val" style="font-size:22px;">9</div></div>
-            <div class="kpi"><div class="k-label">Avg DOM size</div><div class="k-val" style="font-size:22px;">62.4KB</div></div>
+            <div class="kpi"><div class="k-label">AI bots probed</div><div class="k-val" style="font-size:22px;" id="ti-bots">—</div></div>
+            <div class="kpi"><div class="k-label">Bots allowed</div><div class="k-val" style="font-size:22px;" id="ti-allowed">—</div></div>
+            <div class="kpi"><div class="k-label">Bots blocked</div><div class="k-val" style="font-size:22px; color:#fca5a5;" id="ti-blocked">—</div></div>
+            <div class="kpi"><div class="k-label">Entities found</div><div class="k-val" style="font-size:22px;" id="ti-entities">—</div></div>
+            <div class="kpi"><div class="k-label">Content size</div><div class="k-val" style="font-size:22px;" id="ti-size">—</div></div>
           </div>
 
           <div style="display:grid; grid-template-columns: 1fr 1fr; gap:13px; margin-bottom:13px;">
@@ -571,6 +571,16 @@
     const sample = d.sample || {}, summary = d.summary || {}, comps = d.competitors || [];
     $("ci-source").textContent = `${sample.source || "review export"} / ${sample.sampled_reviews || 0} rows`;
     $("ci-demo").textContent = d.demo_note || "directional demo";
+    // Active Threat Intel strip — REAL crawl telemetry from the live Firecrawl AEO crawl + SERP saturation
+    const t = d.crawl_telemetry || {};
+    const _set = (id, v) => { const el = $(id); if (el) el.textContent = v; };
+    _set("ti-trace", "crawl: " + (t.trace || "not run"));
+    _set("ti-pressure", "Competitor pressure: " + (t.competitor_pressure || "—"));
+    _set("ti-bots", t.bots_probed ?? "—");
+    _set("ti-allowed", t.bots_allowed ?? "—");
+    _set("ti-blocked", t.bots_blocked ?? "—");
+    _set("ti-entities", (t.entities_found != null ? `${t.entities_found}/${t.entities_total}` : "—"));
+    _set("ti-size", (t.content_kb != null ? `${t.content_kb}KB` : "—"));
     $("ci-kpis").innerHTML = [
       ["Competitors", summary.competitors],
       ["Profile reviews", compactNum(summary.profile_reviews)],

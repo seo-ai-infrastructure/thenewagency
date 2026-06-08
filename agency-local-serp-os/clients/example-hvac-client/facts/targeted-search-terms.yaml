@@ -1,8 +1,13 @@
 version: 2
+# The 5 demo keywords are tracked across ALL THREE DataForSEO mobile lanes
+# (local_finder, organic_mobile, ai_mode).
+_keywords: &kw
+  - { id: ac_coil_repair_cost_ftl, keyword: "ac coil repair cost fort lauderdale", service_line: coil_repair, lead_value: high }
+  - { id: ac_repair_cost_ftl,      keyword: "ac repair cost fort lauderdale",      service_line: ac_repair,   lead_value: high }
+  - { id: ftl_hvac_repair,         keyword: "fort lauderdale hvac repair",         service_line: hvac_repair, lead_value: high }
+  - { id: ac_servicing_near_me,    keyword: "ac servicing near me",                service_line: ac_maintenance, lead_value: high }
+  - { id: house_ac_repair,         keyword: "house ac repair",                     service_line: brand,       lead_value: high }
 rank_tracking:
-  local_finder_terms:
-    - { id: ac_repair_ftl, keyword: "ac repair fort lauderdale fl", service_line: ac_repair, lead_value: high }
-  organic_mobile_terms:
-    - { id: coil_cost_ftl, keyword: "ac evaporator coil repair cost fort lauderdale fl", service_line: coil_repair, lead_value: medium_high }
-  ai_mode_conversational_queries:
-    - { id: who_call_coil_ftl, keyword: "who should I call for evaporator coil replacement in Fort Lauderdale", service_line: coil_repair, lead_value: medium_high }
+  local_finder_terms: *kw
+  organic_mobile_terms: *kw
+  ai_mode_conversational_queries: *kw

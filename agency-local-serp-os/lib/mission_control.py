@@ -148,15 +148,15 @@ def saturation_block(records, prev_records=None, top=12):
 
 
 def ownership_matrix(records, top=40):
-    """keyword x feature grid. Cell = strongest ownership_class the client holds for that
-    (keyword, feature) on its SERP; a feature absent from a SERP simply has no cell."""
+    """keyword x feature grid: ONE row per keyword (collapsing OS + lanes), so the heatmap shows the
+    client's TOTAL SERP footprint for each keyword across every surface. Cell = strongest ownership
+    the client holds for that (keyword, feature) anywhere; a feature never held simply has no cell."""
     groups = defaultdict(list)
     for r in records:
-        groups[(r["keyword"], r.get("location_name", ""), r.get("os", ""),
-                r.get("query_class", ""))].append(r)
+        groups[(r["keyword"], r.get("location_name", ""))].append(r)
     features = sorted({r["feature_type"] for r in records if r.get("feature_type")})
     rows = []
-    for (kw, loc, os_, qc), recs in groups.items():
+    for (kw, loc), recs in groups.items():
         cells = {}
         for r in recs:
             ft, oc = r.get("feature_type"), r.get("ownership_class", "unknown")
@@ -167,9 +167,9 @@ def ownership_matrix(records, top=40):
         # distinct FEATURES held (not slots) — named distinctly so it isn't confused with
         # serp_saturation's slot-based presence_count.
         present = sum(1 for oc in cells.values() if oc in PRESENT)
-        rows.append({"keyword": kw, "location": loc, "os": os_, "query_class": qc,
-                     "cells": cells, "distinct_features_present": present})
-    rows.sort(key=lambda x: (x["distinct_features_present"], x["keyword"]))   # worst-saturated first
+        rows.append({"keyword": kw, "location": loc, "cells": cells,
+                     "distinct_features_present": present})
+    rows.sort(key=lambda x: (-x["distinct_features_present"], x["keyword"]))   # most-owned first
     return {"features": features, "rows": rows[:top]}
 
 
@@ -658,9 +658,36 @@ def competition_intell(root, client=None):
             issue_angles = live_angles
         live_src = report.get("run_id")
 
+    # REAL crawl telemetry for the "Active Threat Intel" strip (from the live Firecrawl AEO crawl
+    # + real SERP saturation) — replaces the hardcoded agent-steps/network/DOM placeholders.
+    crawl = _latest_crawl(root, client)
+    cr = (crawl or {}).get("crawlability") or {}
+    ev = (crawl or {}).get("evaluation") or {}
+    bots = cr.get("bots") or []
+    mp = cr.get("markdown_purity") or {}
+    ec = cr.get("entity_clarity") or {}
+    _recs = latest_tracker_records(root)
+    _pct = sat.summary(_recs)["pct_meeting_goal"] if _recs else None
+    pressure = "HIGH" if (_pct is not None and _pct < 0.2) else ("MED" if (_pct is not None and _pct < 0.5) else "LOW")
+    crawl_telemetry = {
+        "trace": (crawl or {}).get("run_id"),
+        "generated_at": (crawl or {}).get("generated_at"),
+        "geo": "Fort Lauderdale, FL",
+        "bots_probed": len(bots),
+        "bots_allowed": sum(1 for b in bots if b.get("accessible")),
+        "bots_blocked": sum(1 for b in bots if b.get("blocked_by_robots")),
+        "markdown_purity_pct": round((mp.get("purity") or 0) * 100),
+        "content_kb": round((mp.get("total_chars") or 0) / 1024, 1),
+        "entities_found": ec.get("found"), "entities_total": ec.get("total"),
+        "llms_txt": bool(cr.get("llms_txt_present")),
+        "win_rate_pct": round(ev["win_rate"] * 100) if ev.get("win_rate") is not None else None,
+        "competitor_pressure": pressure, "bots": bots,
+    }
+
     total_velocity = sum(c["sample_reviews_365"] for c in competitors)
     total_reviews = sum(c["profile_reviews"] for c in competitors)
     return {
+        "crawl_telemetry": crawl_telemetry,
         "generated": _now().isoformat(),
         "client": client,
         "clients": clients,
