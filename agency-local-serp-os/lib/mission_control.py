@@ -816,124 +816,111 @@ def command_center(root, client=None):
     }
 
 
-def threat_intelligence(root, client=None):
-    """Demo Threat Intelligence payload for local competitors.
+def _bare(d):
+    d = (d or "").lower()
+    return d[4:] if d.startswith("www.") else d
 
-    Fills the active threat dashboard panels including GBP Taxonomy Diff Engine,
-    Offer Arbitrage Matrix, Fake Review Assassin (redress actions), and AI Overview
-    vs Local Pack Divergence Matrix, using mock data tailored for House AC Repair.
-    """
+
+def _client_domain(root, client):
+    """The client's primary owned domain from facts/owned-assets.yaml (None if unavailable)."""
+    try:
+        import yaml
+        p = pathlib.Path(root) / "clients" / str(client) / "facts" / "owned-assets.yaml"
+        owned = (yaml.safe_load(p.read_text()) or {}).get("owned") or []
+        return owned[0] if owned else None
+    except Exception:
+        return None
+
+
+def _divergence_matrix(records, client_domain, top=6):
+    """REAL 'who owns Maps vs who owns AI' quadrant, from the live tracker:
+    map_dominance = a domain's share of local-pack/finder slots; ai_dominance = its share of
+    AI-surface citations. Both normalized 0..1 against the leader. No hardcoded coordinates."""
+    MAP = {"local_pack", "local_finder"}
+    AI = {"ai_overview", "ai_mode_response"}
+    SKIP = {"google.com", "maps.google.com", ""}
+    map_c, ai_c = Counter(), Counter()
+    for r in records:
+        if r.get("feature_type") in MAP:
+            d = _bare(r.get("domain"))
+            if d not in SKIP:
+                map_c[d] += 1
+        if r.get("feature_type") in AI:
+            for s in (r.get("cited_sources") or []):
+                d = _bare(s)
+                if d not in SKIP:
+                    ai_c[d] += 1
+    if not map_c and not ai_c:
+        return []
+    map_max = max(map_c.values(), default=1) or 1
+    ai_max = max(ai_c.values(), default=1) or 1
+    cd = _bare(client_domain or "")
+    ranked = [d for d, _ in (map_c + ai_c).most_common()]
+    order = ([cd] if (cd and (cd in map_c or cd in ai_c)) else []) + [d for d in ranked if d != cd]
+    out = []
+    for d in order[:top]:
+        md = round(map_c.get(d, 0) / map_max, 2)
+        ad = round(ai_c.get(d, 0) / ai_max, 2)
+        quad = ("Apex threat" if md >= 0.5 and ad >= 0.5 else
+                "AI upstart" if ad >= 0.5 else
+                "Maps dinosaur" if md >= 0.5 else "Emerging")
+        out.append({"name": "You" if d == cd else d, "domain": d,
+                    "map_dominance": md, "ai_dominance": ad,
+                    "quadrant": quad, "is_client": d == cd})
+    return out
+
+
+def threat_intelligence(root, client=None):
+    """Threat Intelligence tab — REAL competitive data only (no simulation):
+      divergence_matrix : per-rival Maps-vs-AI dominance from the live SERP tracker.
+      ranking_threats   : rival domains by SERP slot count (shared _threat_intel).
+      review_sentiment  : per-competitor negatives mined by the review watchdog.
+      marketing_angles  : counter-hooks derived from the watchdog's real negative themes.
+      benchmarks        : external HVAC economics references (clearly external, sourced).
+    The fabricated panels — fake-review assassin, offer order book, GBP taxonomy timeline,
+    GBP freshness, review-velocity correlation, geo-grid heatmap, Indeed hiring matcher — are
+    GONE; they required data the stack does not collect."""
     root = pathlib.Path(root)
     client, clients = _resolve_client(root, client)
-    
-    gbp_timeline = [
-        {"date": "2026-06-07", "competitor": "Quality Air", "type": "Added Service",
-         "item": "Heat Pump Repair", "badge": "Opportunity", "color": "green", "gap": True,
-         "details": "Client lacks Heat Pump Repair in owned-assets.yaml; high-value gap."},
-        {"date": "2026-06-05", "competitor": "Air Magic", "type": "Removed Category",
-         "item": "Emergency HVAC", "badge": "Retreat", "color": "red", "gap": False,
-         "details": "Competitor removed primary category, indicating strategic retreat."},
-        {"date": "2026-06-02", "competitor": "Air Anytime", "type": "Added Service",
-         "item": "Duct Cleaning", "badge": "Opportunity", "color": "green", "gap": True,
-         "details": "Air Anytime added custom service Duct Cleaning with price $149."},
-        {"date": "2026-05-28", "competitor": "Quality Air", "type": "Added Service",
-         "item": "Indoor Air Quality", "badge": "Neutral", "color": "flat", "gap": False,
-         "details": "Client already lists Indoor Air Quality. No immediate action needed."}
-    ]
+    records = latest_tracker_records(root)
+    ti = _threat_intel(root, client, records)
+    divergence = _divergence_matrix(records, _client_domain(root, client) or "houseacrepair.com")
 
-    offers = [
-        {"competitor": "Air Magic", "offer": "Furnace Tune-up Special", "price": "$59", "source": "GBP Post", "detected": "2026-06-06"},
-        {"competitor": "Quality Air", "offer": "AC Installation $250 Off", "price": "$250 Off", "source": "Homepage Scrape", "detected": "2026-06-05"},
-        {"competitor": "Air Anytime", "offer": "10% Senior / Vet Discount", "price": "10% Off", "source": "GBP Post", "detected": "2026-06-04"},
-        {"competitor": "Quality Air", "offer": "Free Service Call with Repair", "price": "Free", "source": "Angi Deal", "detected": "2026-05-30"},
-        {"competitor": "Air Magic", "offer": "Emergency A/C Diagnosis", "price": "$79", "source": "Homepage Scrape", "detected": "2026-05-29"}
-    ]
+    report = _latest_review_report(root)
+    marketing_angles = []
+    if report and report.get("competitors"):
+        from lib.review_mining import THEMES
+        agg = {}
+        for e in report["competitors"].values():
+            for t in e.get("top_themes", []):
+                agg[t] = agg.get(t, 0) + (e.get("themes") or {}).get(t, 0)
+        for t, cnt in sorted(agg.items(), key=lambda x: -x[1])[:6]:
+            marketing_angles.append({"issue": t.replace("_", " ").title(),
+                                     "angle": THEMES.get(t, (None, ""))[1],
+                                     "signal": f"{cnt} negative competitor review(s) cite this"})
 
-    review_integrity = {
-        "competitors": [
-            {"name": "Quality Air", "score": 24, "status": "red", "details": "Highly Suspicious: Volume spike of 22 reviews in 48h, 90% new accounts."},
-            {"name": "Air Magic", "score": 85, "status": "green", "details": "Clean: Normal organic review growth, reviews from established reviewers."},
-            {"name": "Air Anytime", "score": 58, "status": "yellow", "details": "Caution: Slight volume acceleration, sentiment uniformity high (all 5-star)."}
-        ],
-        "spikes": [
-            {"date": "2026-06-06", "competitor": "Quality Air", "volume": 22, "rating_variance": 0.08, "new_accounts_pct": 90, "severity": "high",
-             "redress_payload": {
-                 "task": "submit_redress_form",
-                 "competitor_name": "Quality Air Conditioning Company",
-                 "place_id": "ChIJQualityAirLoc",
-                 "evidence": "Spike of 22 reviews in 48 hours, all 5-star, 90% from brand-new Google accounts.",
-                 "payload_url": "https://support.google.com/business/contact/feedback_reviews"
-             }}
-        ]
-    }
-
-    divergence_matrix = {
-        "client_name": client or "Example Client",
-        "competitors": [
-            {"name": "Quality Air", "map_dominance": 0.85, "ai_dominance": 0.90, "quadrant": "Apex Threat", "details": "Apex Threat: Dominates both search channels. Priority counter-campaign needed."},
-            {"name": "Air Magic", "map_dominance": 0.20, "ai_dominance": 0.80, "quadrant": "Upstart", "details": "Upstart: Strong semantic authority/AI citation, but weak proximity/local finder rankings."},
-            {"name": "Air Anytime", "map_dominance": 0.75, "ai_dominance": 0.25, "quadrant": "Dinosaur", "details": "Dinosaur: Strong proximity/maps, but weak AI search footprint. Vulnerable to AEO disruption."},
-            {"name": "Client (You)", "map_dominance": 0.55, "ai_dominance": 0.60, "quadrant": "Apex Threat", "details": "You: Solid mid-market position, growing in both maps and AI Overview citations."}
-        ]
-    }
-
-    geo_grid = {
-        "title": "Local Grid Rank Heatmap (5x5)",
-        "center": "Fort Lauderdale, FL",
-        "client_rankings": [
-            [1, 2, 5, 8, 12],
-            [2, 1, 3, 11, 15],
-            [3, 2, 1, 4, 9],
-            [6, 7, 5, 2, 3],
-            [14, 18, 11, 4, 1]
-        ]
-    }
-
-    review_correlation = [
-        {"competitor": "Quality Air", "correlation": 0.82, "velocity_365": 138, "avg_rank_change": "+1.4 positions", "note": "High correlation: review velocity strongly drives maps positions."},
-        {"competitor": "Air Magic", "correlation": 0.71, "velocity_365": 111, "avg_rank_change": "+0.8 positions", "note": "Moderate correlation: review volume supports AI citations and maps."},
-        {"competitor": "Air Anytime", "correlation": 0.45, "velocity_365": 68, "avg_rank_change": "-0.2 positions", "note": "Low correlation: review velocity has stagnated, ranking slightly declining."}
-    ]
-
-    freshness = {
-        "last_post_date": "2026-06-07",
-        "competitor_freshness": [
-            {"competitor": "Quality Air", "last_post_days": 2, "status": "fresh"},
-            {"competitor": "Air Magic", "last_post_days": 18, "status": "stale"},
-            {"competitor": "Air Anytime", "last_post_days": 45, "status": "critical"}
-        ]
-    }
-
-    hiring_intel_notes = {
-        "indeed_status": "Indeed file mismatch (100 NY/NJ healthcare job postings detected). Corrected competitor Indeed scrape is pending.",
-        "pending_signals": ["open roles", "role type", "posting velocity", "locations", "pay bands", "employee complaints", "expansion or capacity growth clues"],
-        "benchmarks": [
-            {"label": "Florida HVAC replacement benchmark", "val": "~$7.5k typical replacement job", "src": "BuildCost Florida HVAC", "url": "https://buildcost.io/projects/hvac/florida"},
-            {"label": "Repair / maintenance ticket economics", "val": "$450-$900 blended HVAC ticket", "src": "Housecall Pro HVAC Economics", "url": "https://www.housecallpro.com/wp-content/uploads/2026/03/032026-HCP-Trades-Quarterly-Pulse_HVAC-Repair-Economics.pdf"},
-            {"label": "HVAC Business Benchmarks 2026", "val": "Conversion rates / margins / profit", "src": "BAADigi benchmarks", "url": "https://www.baadigi.com/blog/hvac-business-benchmarks-2026-revenue-profit-margins-conversion-rates"}
-        ],
-        "marketing_angles": [
-            {"issue": "Pricing / surprise charges", "angle": "“Upfront estimates before work starts.”"},
-            {"issue": "Poor diagnosis / repeated breakdowns", "angle": "“Fix-it-right diagnostics, not guesswork.”"},
-            {"issue": "Communication delays", "angle": "“Clear arrival windows and status updates.”"},
-            {"issue": "Emergency calls not resolved same day", "angle": "“Emergency AC help when the house is heating up.”"},
-            {"issue": "Install follow-through / inspection / permit headaches", "angle": "“Install coordination through inspection and final handoff.”"}
-        ]
-    }
-
+    apex = sum(1 for d in divergence if d["quadrant"] == "Apex threat" and not d["is_client"])
     return {
-        "generated": _now().isoformat(),
-        "client": client,
-        "clients": clients,
-        "title": "Threat Intelligence Dashboard",
-        "demo_note": "Interactive threat-intel simulation engine",
-        "gbp_timeline": gbp_timeline,
-        "offers": offers,
-        "review_integrity": review_integrity,
-        "divergence_matrix": divergence_matrix,
-        "geo_grid": geo_grid,
-        "review_correlation": review_correlation,
-        "freshness": freshness,
-        "hiring_intel_notes": hiring_intel_notes
+        "generated": _now().isoformat(), "client": client, "clients": clients,
+        "title": "Threat Intelligence",
+        "data_source": ti["review_sentiment_source"],
+        "crawl_telemetry": ti["crawl_telemetry"],
+        "divergence_matrix": divergence,
+        "ranking_threats": ti["ranking_threats"],
+        "review_sentiment": ti["review_sentiment"],
+        "marketing_angles": marketing_angles,
+        "kpis": {"rivals_tracked": len(ti["ranking_threats"]),
+                 "negatives_mined": (report or {}).get("n_negative"),
+                 "apex_threats": apex,
+                 "reviews_sampled": (report or {}).get("n_reviews")},
+        "benchmarks": [
+            {"label": "Florida HVAC replacement benchmark", "val": "~$7.5k typical replacement job",
+             "src": "BuildCost Florida HVAC", "url": "https://buildcost.io/projects/hvac/florida"},
+            {"label": "Repair / maintenance ticket economics", "val": "$450-$900 blended HVAC ticket",
+             "src": "Housecall Pro HVAC Economics", "url": "https://www.housecallpro.com/"},
+            {"label": "HVAC Business Benchmarks 2026", "val": "Conversion / margins / profit",
+             "src": "BAADigi benchmarks",
+             "url": "https://www.baadigi.com/blog/hvac-business-benchmarks-2026-revenue-profit-margins-conversion-rates"},
+        ],
     }
 
