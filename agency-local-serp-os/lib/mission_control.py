@@ -741,6 +741,73 @@ def competition_intell(root, client=None):
     }
 
 
+# ---------------- analytics (real-data, from the SERP tracker) ----------------
+def _analytics(root, records):
+    """Command-Center analytics, all derived from the live SERP tracker:
+      feature_sov          — ownership split per SERP feature (client/competitor/aggregator/unmatched)
+      takeover_leaderboard — per-keyword best appearance count + goal status
+      opportunities        — biggest takeover gaps weighted by lead value (the prioritized list)
+      trend                — run-over-run % meeting goal + avg appearances across recent history
+    """
+    PRES = {"owned", "controlled", "influenced"}
+    LV = {"high": 3, "med": 2, "medium": 2, "low": 1}
+
+    sov = {}
+    for r in records:
+        ft = r.get("feature_type")
+        if not ft:
+            continue
+        b = sov.setdefault(ft, {"feature": ft, "client": 0, "competitor": 0,
+                                "aggregator": 0, "unmatched": 0, "total": 0})
+        oc = r.get("ownership_class")
+        b["total"] += 1
+        if oc in PRES:
+            b["client"] += 1
+        elif oc == "competitor":
+            b["competitor"] += 1
+        elif oc == "aggregator":
+            b["aggregator"] += 1
+        else:
+            b["unmatched"] += 1
+    feature_sov = sorted(sov.values(), key=lambda x: (-x["total"], x["feature"]))
+    for b in feature_sov:
+        b["client_share"] = round(b["client"] / b["total"], 3) if b["total"] else 0.0
+
+    serps = sat.saturation(records)
+    by_kw = {}
+    for s in serps:
+        kw = s["keyword"]
+        cur = by_kw.get(kw)
+        if cur is None or s["presence_count"] > cur["appearances"]:
+            by_kw[kw] = {"keyword": kw, "appearances": s["presence_count"],
+                         "meets_goal": s["meets_goal"], "features": s["features_held"],
+                         "lead_value": s.get("lead_value"), "goal_min": s["goal_min"]}
+    leaderboard = sorted(by_kw.values(), key=lambda x: (-x["appearances"], x["keyword"]))
+
+    opps = []
+    for s in serps:
+        if s["meets_goal"]:
+            continue
+        score = s["gap_to_goal"] * LV.get((s.get("lead_value") or "").lower(), 1)
+        opps.append({"keyword": s["keyword"], "os": s["os"], "gap": s["gap_to_goal"],
+                     "appearances": s["presence_count"], "lead_value": s.get("lead_value"),
+                     "unclaimed": s["features_unclaimed"][:5], "score": score})
+    opps.sort(key=lambda x: -x["score"])
+
+    trend = []
+    for f in _history_files(root)[-8:]:
+        recs = _records_from(f)
+        if not recs:
+            continue
+        ss = sat.summary(recs)
+        trend.append({"run": f.stem.replace("mobile_serp_", ""),
+                      "pct_meeting_goal": ss["pct_meeting_goal"],
+                      "avg_presence": ss["avg_presence"], "n_serps": ss["n_serps"]})
+
+    return {"feature_sov": feature_sov, "takeover_leaderboard": leaderboard,
+            "opportunities": opps[:8], "trend": trend}
+
+
 # ---------------- assembly ----------------
 def _resolve_client(root, client):
     """Resolve a (possibly crafted/unknown) client to a real one — never used to build paths blindly."""
@@ -775,6 +842,7 @@ def command_center(root, client=None):
         "ownership_matrix": ownership_matrix(records),
         "source_cards": source_cards(client, signals, sources, prev_signals),
         "action_skyline": action_skyline(saturation, signals),
+        "analytics": _analytics(root, records),
         "freshness": freshness(root, sig_date, last_run),
         "cost": cost_block(root, last_run),
     }

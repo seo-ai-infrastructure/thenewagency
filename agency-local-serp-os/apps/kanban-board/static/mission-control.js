@@ -81,6 +81,18 @@
             <div class="legend-row"><span><i style="background:#34d399"></i>owned</span><span><i style="background:#38bdf8"></i>controlled</span><span><i style="background:#fbbf24"></i>influenced</span><span><i style="background:#f87171"></i>competitor</span><span><i style="background:#1b2531"></i>not present</span></div></div>
           <div class="panel"><h3>Cross-source action skyline <span class="h-accent"></span></h3><div class="sky" id="mc-sky"></div></div>
         </div>
+        <div class="mc-grid" style="margin-top:13px">
+          <div class="panel"><h3>Takeover leaderboard — appearances per keyword <span class="h-accent"></span></h3>
+            <div id="mc-leaderboard" style="height:260px;"></div></div>
+          <div class="panel"><h3>SERP-feature share of voice <span class="h-accent"></span></h3>
+            <div id="mc-sov" style="height:260px;"></div></div>
+        </div>
+        <div class="mc-grid" style="margin-top:13px">
+          <div class="panel"><h3>Takeover trend — run over run <span class="h-accent"></span></h3>
+            <div id="mc-trend" style="height:240px;"></div></div>
+          <div class="panel"><h3>Top opportunities — biggest gaps × lead value <span class="h-accent"></span></h3>
+            <div id="mc-opps"></div></div>
+        </div>
       </div>`;
     $("mc-client").onchange = e => window.mcSetClient(e.target.value);
   };
@@ -150,6 +162,79 @@
       <div class="a-top"><span class="a-title">${esc(a.title)}</span><span class="a-metric">${esc(a.metric)}</span></div>
       <div class="a-detail">${esc(a.detail)}</div><div class="a-src">${esc(a.source)}</div></div>`).join("")
       : `<div class="mc-empty">Nothing urgent — every tracked SERP is at goal.</div>`;
+
+    // ---- Real-data analytics (from the SERP tracker) ----
+    const an = d.analytics || {};
+
+    // Takeover leaderboard — appearances per keyword (green = at goal)
+    const lb = an.takeover_leaderboard || [], lbEl = $("mc-leaderboard");
+    if (HAS_APEX() && lb.length && lbEl) {
+      const ch = new ApexCharts(lbEl, {
+        chart: { type: "bar", height: 260, background: "transparent", toolbar: { show: false } },
+        theme: { mode: "dark" },
+        series: [{ name: "Appearances", data: lb.map(r => r.appearances) }],
+        plotOptions: { bar: { horizontal: true, borderRadius: 4, distributed: true, barHeight: "62%" } },
+        colors: lb.map(r => r.meets_goal ? "#34d399" : "#f87171"),
+        xaxis: { categories: lb.map(r => r.keyword.length > 26 ? r.keyword.slice(0, 25) + "…" : r.keyword), labels: { style: { colors: "#7d8a9a", fontSize: "10px" } } },
+        yaxis: { labels: { style: { colors: "#7d8a9a", fontSize: "10px" } } },
+        dataLabels: { enabled: true, style: { colors: ["#0d1117"] } },
+        grid: { borderColor: "#222c39" }, legend: { show: false },
+        annotations: { xaxis: [{ x: (lb[0] && lb[0].goal_min) || 2, borderColor: "#1f6feb", strokeDashArray: 3, label: { text: "goal", style: { color: "#7d8a9a", background: "#11171f" } } }] },
+        tooltip: { theme: "dark", y: { formatter: (v, o) => { const r = lb[o.dataPointIndex] || {}; return v + " appearances" + (r.meets_goal ? " · goal met" : "") + (r.features && r.features.length ? " · " + r.features.join(", ") : ""); } } }
+      });
+      ch.render(); MC.charts.mc_leaderboard = ch;
+    } else if (lbEl) lbEl.innerHTML = `<div class="mc-empty">No tracker data yet.</div>`;
+
+    // SERP-feature share of voice — who owns each feature (100% stacked)
+    const sov = (an.feature_sov || []).slice(0, 10), sovEl = $("mc-sov");
+    if (HAS_APEX() && sov.length && sovEl) {
+      const ch = new ApexCharts(sovEl, {
+        chart: { type: "bar", height: 260, stacked: true, stackType: "100%", background: "transparent", toolbar: { show: false } },
+        theme: { mode: "dark" },
+        series: [
+          { name: "You", data: sov.map(b => b.client) },
+          { name: "Competitor", data: sov.map(b => b.competitor) },
+          { name: "Aggregator", data: sov.map(b => b.aggregator) },
+          { name: "Unmatched", data: sov.map(b => b.unmatched) },
+        ],
+        colors: ["#34d399", "#f87171", "#a78bfa", "#3a4656"],
+        plotOptions: { bar: { horizontal: true, barHeight: "72%" } },
+        xaxis: { categories: sov.map(b => b.feature), labels: { style: { colors: "#7d8a9a", fontSize: "9px" } } },
+        yaxis: { labels: { style: { colors: "#7d8a9a", fontSize: "10px" } } },
+        legend: { position: "top", labels: { colors: "#7d8a9a" } },
+        grid: { borderColor: "#222c39" }, dataLabels: { enabled: false },
+        tooltip: { theme: "dark" }
+      });
+      ch.render(); MC.charts.mc_sov = ch;
+    } else if (sovEl) sovEl.innerHTML = `<div class="mc-empty">No feature data yet.</div>`;
+
+    // Takeover trend — run over run
+    const tr = an.trend || [], trEl = $("mc-trend");
+    if (HAS_APEX() && tr.length > 1 && trEl) {
+      const ch = new ApexCharts(trEl, {
+        chart: { type: "line", height: 240, background: "transparent", toolbar: { show: false } },
+        theme: { mode: "dark" },
+        series: [
+          { name: "% meeting goal", data: tr.map(t => Math.round((t.pct_meeting_goal || 0) * 100)) },
+          { name: "avg appearances", data: tr.map(t => t.avg_presence) },
+        ],
+        colors: ["#34d399", "#38bdf8"], stroke: { width: 2.5, curve: "smooth" }, markers: { size: 3 },
+        xaxis: { categories: tr.map(t => t.run.slice(0, 8)), labels: { style: { colors: "#7d8a9a", fontSize: "9px" }, rotate: -30 } },
+        yaxis: { labels: { style: { colors: "#7d8a9a" }, formatter: v => Math.round(v) } },
+        legend: { labels: { colors: "#7d8a9a" } }, grid: { borderColor: "#222c39" },
+        tooltip: { theme: "dark" }
+      });
+      ch.render(); MC.charts.mc_trend = ch;
+    } else if (trEl) trEl.innerHTML = `<div class="mc-empty">Need ≥2 tracker runs for a trend.</div>`;
+
+    // Top opportunities — biggest gaps weighted by lead value
+    const opps = an.opportunities || [];
+    $("mc-opps").innerHTML = opps.length ? opps.map(o => `
+      <div class="act ${o.gap >= 2 ? "high" : "med"}">
+        <div class="a-top"><span class="a-title">${esc(o.keyword)} <span style="color:var(--dim);font-size:10px">(${esc(o.os)})</span></span><span class="a-metric">gap ${o.gap} · ${esc(o.lead_value || "—")}</span></div>
+        <div class="a-detail">holds ${o.appearances} — claim: ${esc((o.unclaimed || []).join(", ") || "extend placements")}</div>
+        <div class="a-src">priority score ${o.score}</div></div>`).join("")
+      : `<div class="mc-empty">Every tracked SERP is at goal 🎉</div>`;
   };
 
   /* ============================ SEARCH INTELLIGENCE ============================ */
