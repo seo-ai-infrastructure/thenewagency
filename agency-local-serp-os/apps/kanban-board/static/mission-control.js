@@ -81,6 +81,18 @@
             <div class="legend-row"><span><i style="background:#34d399"></i>owned</span><span><i style="background:#38bdf8"></i>controlled</span><span><i style="background:#fbbf24"></i>influenced</span><span><i style="background:#f87171"></i>competitor</span><span><i style="background:#1b2531"></i>not present</span></div></div>
           <div class="panel"><h3>Cross-source action skyline <span class="h-accent"></span></h3><div class="sky" id="mc-sky"></div></div>
         </div>
+        <div class="mc-grid even" style="margin-top:13px">
+          <div class="panel"><h3>Takeover leaderboard — appearances per keyword <span class="h-accent"></span></h3>
+            <div id="mc-leaderboard" style="height:260px;"></div></div>
+          <div class="panel"><h3>SERP-feature share of voice <span class="h-accent"></span></h3>
+            <div id="mc-sov" style="height:260px;"></div></div>
+        </div>
+        <div class="mc-grid" style="margin-top:13px">
+          <div class="panel"><h3>Takeover trend — run over run <span class="h-accent"></span></h3>
+            <div id="mc-trend" style="height:240px;"></div></div>
+          <div class="panel"><h3>Top opportunities — biggest gaps × lead value <span class="h-accent"></span></h3>
+            <div id="mc-opps"></div></div>
+        </div>
       </div>`;
     $("mc-client").onchange = e => window.mcSetClient(e.target.value);
   };
@@ -96,7 +108,7 @@
 
     const s = d.saturation || {}, pct = Math.round((s.pct_meeting_goal || 0) * 100);
     $("mc-goal-big").innerHTML = `${fmt(s.n_meeting_goal)}<small>/${fmt(s.n_serps)} SERPs</small>`;
-    $("mc-goal-sub").textContent = `appear ${fmt(s.goal_min)}–${fmt(s.goal_stretch)}+ times · avg ${fmt(s.avg_presence)} placements/SERP`;
+    $("mc-goal-sub").textContent = `appear ${fmt(s.goal_min)}–${fmt(s.goal_stretch)}+ times on the same SERP · avg ${fmt(s.avg_presence)} appearances/page (lanes unioned, AI citations counted)`;
     $("mc-goal-bar").style.width = pct + "%";
     $("mc-gauge").innerHTML = ""; gauge($("mc-gauge"), pct, "#34d399");
     const bl = s.by_lane || {};
@@ -107,9 +119,9 @@
     const dl = s.delta || {};
     $("mc-kpis").innerHTML = [
       { l: "SERPs at goal", v: `${fmt(s.n_meeting_goal)}<small>/${fmt(s.n_serps)}</small>`, d: dl.n_meeting_goal },
-      { l: "Avg placements / SERP", v: fmt(s.avg_presence), d: dl.avg_presence },
-      { l: "% meeting 4–6+", v: pct + "%", d: dl.pct_meeting_goal },
-      { l: "Tracked SERPs", v: fmt(s.n_serps), d: null },
+      { l: "Avg appearances / page", v: fmt(s.avg_presence), d: dl.avg_presence },
+      { l: `% meeting ${fmt(s.goal_min)}+`, v: pct + "%", d: dl.pct_meeting_goal },
+      { l: "Real SERPs tracked", v: fmt(s.n_serps), d: null },
     ].map(k => `<div class="kpi"><div class="k-label">${esc(k.l)}</div><div class="k-val">${k.v}</div>${deltaChip(k.d, "up")}</div>`).join("");
 
     const cards = d.source_cards || [];
@@ -150,6 +162,79 @@
       <div class="a-top"><span class="a-title">${esc(a.title)}</span><span class="a-metric">${esc(a.metric)}</span></div>
       <div class="a-detail">${esc(a.detail)}</div><div class="a-src">${esc(a.source)}</div></div>`).join("")
       : `<div class="mc-empty">Nothing urgent — every tracked SERP is at goal.</div>`;
+
+    // ---- Real-data analytics (from the SERP tracker) ----
+    const an = d.analytics || {};
+
+    // Takeover leaderboard — appearances per keyword (green = at goal)
+    const lb = an.takeover_leaderboard || [], lbEl = $("mc-leaderboard");
+    if (HAS_APEX() && lb.length && lbEl) {
+      const ch = new ApexCharts(lbEl, {
+        chart: { type: "bar", height: 260, background: "transparent", toolbar: { show: false } },
+        theme: { mode: "dark" },
+        series: [{ name: "Appearances", data: lb.map(r => r.appearances) }],
+        plotOptions: { bar: { horizontal: true, borderRadius: 4, distributed: true, barHeight: "62%" } },
+        colors: lb.map(r => r.meets_goal ? "#34d399" : "#f87171"),
+        xaxis: { categories: lb.map(r => r.keyword.length > 26 ? r.keyword.slice(0, 25) + "…" : r.keyword), labels: { style: { colors: "#7d8a9a", fontSize: "10px" } } },
+        yaxis: { labels: { style: { colors: "#7d8a9a", fontSize: "10px" } } },
+        dataLabels: { enabled: true, style: { colors: ["#0d1117"] } },
+        grid: { borderColor: "#222c39" }, legend: { show: false },
+        annotations: { xaxis: [{ x: (lb[0] && lb[0].goal_min) || 2, borderColor: "#1f6feb", strokeDashArray: 3, label: { text: "goal", style: { color: "#7d8a9a", background: "#11171f" } } }] },
+        tooltip: { theme: "dark", y: { formatter: (v, o) => { const r = lb[o.dataPointIndex] || {}; return v + " appearances" + (r.meets_goal ? " · goal met" : "") + (r.features && r.features.length ? " · " + r.features.join(", ") : ""); } } }
+      });
+      ch.render(); MC.charts.mc_leaderboard = ch;
+    } else if (lbEl) lbEl.innerHTML = `<div class="mc-empty">No tracker data yet.</div>`;
+
+    // SERP-feature share of voice — who owns each feature (100% stacked)
+    const sov = (an.feature_sov || []).slice(0, 10), sovEl = $("mc-sov");
+    if (HAS_APEX() && sov.length && sovEl) {
+      const ch = new ApexCharts(sovEl, {
+        chart: { type: "bar", height: 260, stacked: true, stackType: "100%", background: "transparent", toolbar: { show: false } },
+        theme: { mode: "dark" },
+        series: [
+          { name: "You", data: sov.map(b => b.client) },
+          { name: "Competitor", data: sov.map(b => b.competitor) },
+          { name: "Aggregator", data: sov.map(b => b.aggregator) },
+          { name: "Unmatched", data: sov.map(b => b.unmatched) },
+        ],
+        colors: ["#34d399", "#f87171", "#a78bfa", "#3a4656"],
+        plotOptions: { bar: { horizontal: true, barHeight: "72%" } },
+        xaxis: { categories: sov.map(b => b.feature), labels: { style: { colors: "#7d8a9a", fontSize: "9px" } } },
+        yaxis: { labels: { style: { colors: "#7d8a9a", fontSize: "10px" } } },
+        legend: { position: "top", labels: { colors: "#7d8a9a" } },
+        grid: { borderColor: "#222c39" }, dataLabels: { enabled: false },
+        tooltip: { theme: "dark" }
+      });
+      ch.render(); MC.charts.mc_sov = ch;
+    } else if (sovEl) sovEl.innerHTML = `<div class="mc-empty">No feature data yet.</div>`;
+
+    // Takeover trend — run over run
+    const tr = an.trend || [], trEl = $("mc-trend");
+    if (HAS_APEX() && tr.length > 1 && trEl) {
+      const ch = new ApexCharts(trEl, {
+        chart: { type: "line", height: 240, background: "transparent", toolbar: { show: false } },
+        theme: { mode: "dark" },
+        series: [
+          { name: "% meeting goal", data: tr.map(t => Math.round((t.pct_meeting_goal || 0) * 100)) },
+          { name: "avg appearances", data: tr.map(t => t.avg_presence) },
+        ],
+        colors: ["#34d399", "#38bdf8"], stroke: { width: 2.5, curve: "smooth" }, markers: { size: 3 },
+        xaxis: { categories: tr.map(t => t.run.slice(0, 8)), labels: { style: { colors: "#7d8a9a", fontSize: "9px" }, rotate: -30 } },
+        yaxis: { labels: { style: { colors: "#7d8a9a" }, formatter: v => Math.round(v) } },
+        legend: { labels: { colors: "#7d8a9a" } }, grid: { borderColor: "#222c39" },
+        tooltip: { theme: "dark" }
+      });
+      ch.render(); MC.charts.mc_trend = ch;
+    } else if (trEl) trEl.innerHTML = `<div class="mc-empty">Need ≥2 tracker runs for a trend.</div>`;
+
+    // Top opportunities — biggest gaps weighted by lead value
+    const opps = an.opportunities || [];
+    $("mc-opps").innerHTML = opps.length ? opps.map(o => `
+      <div class="act ${o.gap >= 2 ? "high" : "med"}">
+        <div class="a-top"><span class="a-title">${esc(o.keyword)} <span style="color:var(--dim);font-size:10px">(${esc(o.os)})</span></span><span class="a-metric">gap ${o.gap} · ${esc(o.lead_value || "—")}</span></div>
+        <div class="a-detail">holds ${o.appearances} — claim: ${esc((o.unclaimed || []).join(", ") || "extend placements")}</div>
+        <div class="a-src">priority score ${o.score}</div></div>`).join("")
+      : `<div class="mc-empty">Every tracked SERP is at goal 🎉</div>`;
   };
 
   /* ============================ SEARCH INTELLIGENCE ============================ */
@@ -222,8 +307,7 @@
               <div class="mc-goal" style="flex:1"><div class="big" id="ai-big">—</div>
                 <div class="sub">of tracked AI queries cite you (AI Overviews + AI Mode)</div></div></div></div>
           <div class="panel"><h3>Who's winning the AI surface <span class="h-accent"></span></h3>
-            <div class="ai-cols"><div><div class="sub-h">Competitors cited</div><div id="ai-comp"></div></div>
-              <div><div class="sub-h">Sources cited</div><div id="ai-src"></div></div></div></div>
+            <div><div class="sub-h">Sources cited</div><div id="ai-src"></div></div></div>
         </div>
         <div class="panel" style="margin-top:13px"><h3>AI queries — uncited first (the action list) <span class="h-accent"></span></h3>
           <div id="ai-queries"></div></div>
@@ -273,12 +357,11 @@
     const pct = Math.round((d.citation_share || 0) * 100);
     $("ai-big").innerHTML = `${fmt(d.n_cited)}<small>/${fmt(d.n_queries)} AI queries</small>`;
     $("ai-gauge").innerHTML = ""; gauge($("ai-gauge"), pct, "#a78bfa");
-    $("ai-comp").innerHTML = leaderboard(d.cited_competitors_leaderboard);
     $("ai-src").innerHTML = leaderboard(d.cited_sources_leaderboard);
-    $("ai-queries").innerHTML = table(["Keyword", "Lane", "Cite you", "Competitors cited", "Sources"],
+    $("ai-queries").innerHTML = table(["Keyword", "Lane", "Cite you", "Sources"],
       (d.queries || []).map(q => [esc(q.keyword), esc(q.query_class),
         q.client_cited ? `<span class="pill ok">yes</span>` : `<span class="pill bad">no</span>`,
-        esc((q.cited_competitors || []).join(", ") || "—"), esc((q.cited_sources || []).join(", ") || "—")]));
+        esc((q.cited_sources || []).join(", ") || "—")]));
 
     // ---- Active Threat Intel: REAL data only (strip + pressure table + review sentiment) ----
     const ti = d.threat_intel || {};
@@ -509,25 +592,23 @@
       <div class="mc-wrap">
         <div class="mc-controls"><span class="mc-title" id="ti-title">Threat Intelligence</span>
           <select id="ti-client" class="mc-sel"></select><span class="mc-spacer"></span>
-          <span id="ti-source" class="mc-chip ok">Threat intelligence monitor active</span>
-          <span id="ti-demo" class="mc-chip warn">directional threat-intel simulation</span></div>
+          <span id="ti-source" class="mc-chip ok">live competitive data</span></div>
         <div class="mc-kpis" id="ti-kpis"></div>
-        <div class="ci-chart-grid">
-          <div class="panel"><h3>AIO vs Map Divergence Matrix <span class="h-accent"></span></h3><div id="ti-divergence" class="ci-chart"></div></div>
-          <div class="panel"><h3>Fake Review Assassin Risk <span class="h-accent"></span></h3><div id="ti-assassin" class="ci-chart"></div></div>
-          <div class="panel"><h3>Local Grid Heatmap (5x5) <span class="h-accent"></span></h3><div id="ti-heatmap" class="ci-chart"></div></div>
+        <div class="mc-hero">
+          <div class="panel"><h3>AIO vs Map Pack divergence — who owns which channel <span class="h-accent"></span></h3>
+            <div id="ti-divergence" style="height:300px;"></div>
+            <div class="sub" style="margin-top:6px">Map dominance = share of local-pack/finder slots · AI dominance = share of AI-surface citations · live SERP tracker.</div></div>
+          <div class="panel"><h3>Competitor review sentiment <span class="h-accent"></span></h3>
+            <div id="ti-sentiment" style="height:300px;"></div>
+            <div class="sub" style="margin-top:6px">Negative reviews mined per competitor (live review watchdog).</div></div>
         </div>
-        <div class="mc-grid">
-          <div class="panel"><h3>GBP Taxonomy Diff Timeline <span class="h-accent"></span></h3><div class="sky" id="ti-diffs"></div></div>
-          <div class="panel"><h3>Offer Order Book <span class="h-accent"></span></h3><div id="ti-offers"></div></div>
-        </div>
-        <div class="mc-grid">
-          <div class="panel"><h3>Competitor GBP Freshness <span class="h-accent"></span></h3><div id="ti-freshness"></div></div>
-          <div class="panel"><h3>Rank Correlation &amp; Velocity <span class="h-accent"></span></h3><div id="ti-correlation"></div></div>
-        </div>
-        <div class="panel" style="margin-top:13px">
-          <h3>Competitive Intel, Hiring Signals &amp; Benchmarks <span class="h-accent"></span></h3>
-          <div id="ti-signals-notes"></div>
+        <div class="panel" style="margin-top:13px"><h3>Ranking threats — rival domains by SERP slots <span class="h-accent"></span></h3>
+          <div id="ti-threats"></div></div>
+        <div class="mc-grid" style="margin-top:13px">
+          <div class="panel"><h3>Negative-review marketing angles <span class="h-accent"></span></h3>
+            <div id="ti-angles"></div></div>
+          <div class="panel"><h3>HVAC benchmarks <span style="font-size:10px;color:var(--dim);font-weight:400;">(external)</span> <span class="h-accent"></span></h3>
+            <div id="ti-benchmarks"></div></div>
         </div>
       </div>`;
     $("ti-client").onchange = e => window.mcSetClient(e.target.value);
@@ -536,211 +617,78 @@
   RENDER.ti = function (d) {
     clientSelect("ti-client", d.clients, d.client);
     $("ti-title").textContent = d.title || "Threat Intelligence";
-    const comps = d.divergence_matrix.competitors || [];
-    const timeline = d.gbp_timeline || [];
-    const offers = d.offers || [];
-    const review_integrity = d.review_integrity || { competitors: [], spikes: [] };
-    const geo_grid = d.geo_grid || { client_rankings: [] };
-    const review_correlation = d.review_correlation || [];
-    const freshness = d.freshness || { competitor_freshness: [] };
+    const src = $("ti-source");
+    if (src) { const live = (d.data_source || "").startsWith("live"); src.textContent = live ? "live competitive data" : "no live review data"; src.className = "mc-chip " + (live ? "ok" : ""); }
 
-    // KPIs row
-    const alertCount = review_integrity.competitors.filter(c => c.status === "red").length;
-    const gapCount = timeline.filter(t => t.gap).length;
+    const k = d.kpis || {};
     $("ti-kpis").innerHTML = [
-      ["Competitors Monitored", comps.length - 1], // exclude client
-      ["High-Value Gaps", gapCount],
-      ["Integrity Alerts", alertCount],
-      ["Scan Status", "Active / Weekly"]
-    ].map(([l, v]) => `<div class="kpi"><div class="k-label">${esc(l)}</div><div class="k-val">${esc(v)}</div></div>`).join("");
+      ["Rivals tracked", k.rivals_tracked],
+      ["Negative reviews mined", k.negatives_mined],
+      ["Reviews sampled", k.reviews_sampled],
+      ["Apex threats", k.apex_threats],
+    ].map(([l, v]) => `<div class="kpi"><div class="k-label">${esc(l)}</div><div class="k-val">${fmt(v)}</div></div>`).join("");
 
-    // DIVERGENCE CHART
-    if (!HAS_APEX()) {
-      ciFallbackChart("ti-divergence", ["Competitor", "Map Dom", "AI Dom"], comps.map(c => [esc(c.name), c.map_dominance, c.ai_dominance]));
-    } else {
-      const chDivergence = new ApexCharts($("ti-divergence"), {
-        chart: { type: "scatter", height: 248, background: "transparent", toolbar: { show: false } },
+    // AIO vs Map divergence — REAL (from the live tracker)
+    const comps = d.divergence_matrix || [];
+    const dv = $("ti-divergence");
+    if (HAS_APEX() && comps.length && dv) {
+      const ch = new ApexCharts(dv, {
+        chart: { type: "scatter", height: 300, background: "transparent", toolbar: { show: false } },
         theme: { mode: "dark" },
-        series: comps.map(c => ({
-          name: c.name,
-          data: [[c.map_dominance, c.ai_dominance]]
-        })),
-        colors: ["#fbbf24", "#38bdf8", "#f87171", "#34d399"],
-        xaxis: { min: 0, max: 1.0, tickAmount: 4, labels: { style: { colors: "#7d8a9a" } }, title: { text: "Map Dominance", style: { color: "#7d8a9a", fontSize: "10px" } } },
-        yaxis: { min: 0, max: 1.0, tickAmount: 4, labels: { style: { colors: "#7d8a9a" } }, title: { text: "AI Dominance", style: { color: "#7d8a9a", fontSize: "10px" } } },
+        series: comps.map(c => ({ name: c.name, data: [[c.map_dominance, c.ai_dominance]] })),
+        colors: comps.map(c => c.is_client ? "#34d399" : "#f87171"),
+        markers: { size: comps.map(c => c.is_client ? 9 : 6) },
+        xaxis: { min: 0, max: 1, tickAmount: 5, title: { text: "Map pack dominance", style: { color: "#7d8a9a", fontSize: "11px" } }, labels: { style: { colors: "#7d8a9a" } } },
+        yaxis: { min: 0, max: 1, tickAmount: 5, title: { text: "AI citation dominance", style: { color: "#7d8a9a", fontSize: "11px" } }, labels: { style: { colors: "#7d8a9a" } } },
         grid: { borderColor: "#222c39" },
         legend: { position: "bottom", labels: { colors: "#7d8a9a" } },
-        annotations: {
-          xaxis: [{ x: 0.5, borderColor: "#1f6feb", strokeDashArray: 3, label: { text: "Map Threshold", style: { color: "#7d8a9a", background: "#11171f" } } }],
-          yaxis: [{ y: 0.5, borderColor: "#1f6feb", strokeDashArray: 3, label: { text: "AI Threshold", style: { color: "#7d8a9a", background: "#11171f" } } }]
-        },
-        tooltip: { theme: "dark", custom: function({ series, seriesIndex, dataPointIndex, w }) {
-          const comp = comps[seriesIndex];
-          return `<div style="padding: 8px; background: #161d27; border: 1px solid #222c39;">
-            <b>${esc(comp.name)}</b><br/>
-            Map Dominance: ${comp.map_dominance}<br/>
-            AI Dominance: ${comp.ai_dominance}<br/>
-            <i>${esc(comp.details)}</i>
-          </div>`;
-        }}
+        annotations: { xaxis: [{ x: 0.5, borderColor: "#1f6feb", strokeDashArray: 3 }], yaxis: [{ y: 0.5, borderColor: "#1f6feb", strokeDashArray: 3 }] },
+        tooltip: { theme: "dark", custom: ({ seriesIndex }) => { const c = comps[seriesIndex] || {}; return `<div style="padding:8px;background:#161d27;border:1px solid #222c39;"><b>${esc(c.name)}</b><br/>Map ${c.map_dominance} · AI ${c.ai_dominance}<br/><i>${esc(c.quadrant)}</i></div>`; } }
       });
-      chDivergence.render();
-      MC.charts.ti_divergence = chDivergence;
-    }
+      ch.render(); MC.charts.ti_divergence = ch;
+    } else if (dv) dv.innerHTML = `<div class="mc-empty">No SERP tracker data yet.</div>`;
 
-    // FAKE REVIEW ASSASSIN
-    if (!HAS_APEX()) {
-      ciFallbackChart("ti-assassin", ["Competitor", "Integrity Score"], review_integrity.competitors.map(c => [esc(c.name), c.score]));
-    } else {
-      const chAssassin = new ApexCharts($("ti-assassin"), {
-        chart: { type: "bar", height: 248, background: "transparent", toolbar: { show: false } },
+    // Competitor review sentiment — REAL (live watchdog)
+    const rs = d.review_sentiment || [];
+    const se = $("ti-sentiment");
+    if (HAS_APEX() && rs.length && se) {
+      const ch = new ApexCharts(se, {
+        chart: { type: "bar", height: 300, background: "transparent", toolbar: { show: false } },
         theme: { mode: "dark" },
-        series: [{ name: "Integrity Score", data: review_integrity.competitors.map(c => c.score) }],
-        colors: [function({ value }) {
-          if (value < 30) return "#f87171";
-          if (value < 65) return "#fbbf24";
-          return "#34d399";
-        }],
-        plotOptions: { bar: { borderRadius: 4, columnWidth: "40%", distributed: true } },
-        xaxis: { categories: review_integrity.competitors.map(c => c.name), labels: { style: { colors: "#7d8a9a" } } },
-        yaxis: { min: 0, max: 100, labels: { style: { colors: "#7d8a9a" } } },
-        grid: { borderColor: "#222c39" },
-        legend: { show: false },
-        tooltip: { theme: "dark", y: { formatter: (v, opts) => {
-          const c = review_integrity.competitors[opts.dataPointIndex];
-          return `${v} / 100 - ${esc(c.details)}`;
-        }}}
+        series: [{ name: "Negative reviews mined", data: rs.map(r => r.negatives || 0) }],
+        xaxis: { categories: rs.map(r => r.competitor), labels: { style: { colors: "#7d8a9a", fontSize: "10px" } } },
+        yaxis: { labels: { style: { colors: "#7d8a9a" } } },
+        colors: ["#f87171"], plotOptions: { bar: { borderRadius: 4, columnWidth: "45%" } },
+        dataLabels: { enabled: true, style: { colors: ["#e6edf3"] } }, grid: { borderColor: "#222c39" }, legend: { show: false },
+        tooltip: { theme: "dark", y: { formatter: (v, o) => { const r = rs[o.dataPointIndex] || {}; return v + " negative · avg " + (r.avg_rating != null ? r.avg_rating + "★" : "—") + (r.top_theme ? " · " + r.top_theme : ""); } } }
       });
-      chAssassin.render();
-      MC.charts.ti_assassin = chAssassin;
-    }
+      ch.render(); MC.charts.ti_sentiment = ch;
+    } else if (se) se.innerHTML = `<div class="mc-empty">No review data yet.</div>`;
 
-    // GEO-GRID OVERLAY (Local Falcon style)
-    const gridData = geo_grid.client_rankings || [];
-    let gridHtml = `<div style="position: relative; width: 100%; height: 248px; background-image: url('/map_bg.png'); background-size: cover; background-position: center; border-radius: 8px; border: 1px solid var(--line); overflow: hidden;">`;
-    
-    if (gridData.length) {
-      gridData.forEach((row, rIdx) => {
-        row.forEach((val, cIdx) => {
-          // Center the 5x5 grid in the view (percentage positions: 12%, 31%, 50%, 69%, 88%)
-          const xPct = 12 + cIdx * 19;
-          const yPct = 12 + rIdx * 19;
-          
-          let bgColor = "#f87171"; // rank 11+ (red)
-          if (val <= 3) bgColor = "#34d399";      // rank 1-3 (green)
-          else if (val <= 7) bgColor = "#38bdf8"; // rank 4-7 (blue)
-          else if (val <= 10) bgColor = "#fbbf24"; // rank 8-10 (yellow)
-          
-          gridHtml += `
-            <div class="geo-dot" 
-                 style="position: absolute; left: ${xPct}%; top: ${yPct}%; width: 26px; height: 26px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 700; color: #0d1117; background: ${bgColor}; border: 2px solid rgba(255,255,255,0.7); transform: translate(-50%, -50%); cursor: pointer; transition: all 0.2s;"
-                 title="Grid Point [${rIdx+1}, ${cIdx+1}]: Rank ${val}">
-              ${val}
-            </div>
-          `;
-        });
-      });
-    } else {
-      gridHtml += `<div class="mc-empty" style="padding:20px;">No grid ranking data found.</div>`;
-    }
-    
-    gridHtml += `
-      <div style="position: absolute; bottom: 8px; right: 8px; padding: 4px 8px; background: rgba(13, 17, 23, 0.85); border-radius: 4px; border: 1px solid var(--line); font-size: 10px; font-family: 'JetBrains Mono', monospace; color: var(--dim);">
-        Center: Fort Lauderdale, FL
-      </div>
-      <div style="position: absolute; bottom: 8px; left: 8px; display: flex; gap: 8px; padding: 4px 8px; background: rgba(13, 17, 23, 0.85); border-radius: 4px; border: 1px solid var(--line); font-size: 9px; font-family: 'JetBrains Mono', monospace;">
-        <span><i style="display:inline-block; width:8px; height:8px; border-radius:50%; background:#34d399; margin-right:3px; vertical-align:middle;"></i>1-3</span>
-        <span><i style="display:inline-block; width:8px; height:8px; border-radius:50%; background:#38bdf8; margin-right:3px; vertical-align:middle;"></i>4-7</span>
-        <span><i style="display:inline-block; width:8px; height:8px; border-radius:50%; background:#fbbf24; margin-right:3px; vertical-align:middle;"></i>8-10</span>
-        <span><i style="display:inline-block; width:8px; height:8px; border-radius:50%; background:#f87171; margin-right:3px; vertical-align:middle;"></i>11+</span>
-      </div>
-    </div>`;
-    
-    $("ti-heatmap").innerHTML = gridHtml;
+    // Ranking threats — REAL (live DataForSEO SERP slots)
+    const threats = d.ranking_threats || [];
+    const tlBadge = lv => lv === "apex" ? `<span class='pill bad'>🔥 apex</span>` : lv === "high" ? `<span class='pill warn'>⚠️ high</span>` : `<span class='pill'>med</span>`;
+    $("ti-threats").innerHTML = threats.length
+      ? table(["Rival domain", "SERP slots", "Keywords", "Avg rank", "Threat"],
+          threats.map(t => [`<strong>${esc(t.domain)}</strong>`, String(t.slots), String(t.keywords), t.avg_rank != null ? String(t.avg_rank) : "—", tlBadge(t.threat_level)]))
+      : `<div class="mc-empty">no rival domains in the tracked SERPs yet</div>`;
 
-    // TIMELINE DIFFS
-    $("ti-diffs").innerHTML = timeline.length ? timeline.map(t => `
-      <div class="act ${t.color === 'green' ? 'low' : (t.color === 'red' ? 'high' : 'flat')}">
-        <div class="a-top">
-          <span class="a-title"><b>${esc(t.competitor)}</b>: ${esc(t.type)} — “${esc(t.item)}”</span>
-          <span class="pill ${t.color === 'green' ? 'ok' : (t.color === 'red' ? 'bad' : 'warn')}">${esc(t.badge)}</span>
-        </div>
-        <div class="a-detail">${esc(t.details)}</div>
-        <div class="a-src">${esc(t.date)}</div>
-      </div>
-    `).join("") : `<div class="mc-empty">No competitor taxonomy updates found.</div>`;
+    // Negative-review marketing angles — REAL (watchdog themes)
+    const angles = d.marketing_angles || [];
+    $("ti-angles").innerHTML = angles.length ? angles.map(a => `
+      <div class="act low">
+        <div class="a-top"><span class="a-title">${esc(a.issue)}</span></div>
+        <div class="a-detail" style="color:#fcd34d">${esc(a.angle)}</div>
+        <div class="a-src">${esc(a.signal)}</div></div>`).join("")
+      : `<div class="mc-empty">No mined review themes yet — run the review watchdog.</div>`;
 
-    // OFFERS table
-    $("ti-offers").innerHTML = table(
-      ["Competitor", "Active Offer / Promo", "Price / Discount", "Detected Source", "Date"],
-      offers.map(o => [esc(o.competitor), esc(o.offer), `<b>${esc(o.price)}</b>`, esc(o.source), esc(o.detected)])
-    );
-
-    // FRESHNESS table
-    $("ti-freshness").innerHTML = table(
-      ["Competitor", "GBP Post Recency", "Freshness Status"],
-      freshness.competitor_freshness.map(f => [
-        esc(f.competitor),
-        `${f.last_post_days} days ago`,
-        f.status === "fresh" ? `<span class="pill ok">fresh</span>` : (f.status === "stale" ? `<span class="pill warn">stale</span>` : `<span class="pill bad">critical</span>`)
-      ])
-    );
-
-    // CORRELATION table
-    $("ti-correlation").innerHTML = table(
-      ["Competitor", "Rank/Velocity Correlation", "365d reviews", "Avg Rank Change"],
-      review_correlation.map(c => [
-        esc(c.competitor),
-        `<b>${c.correlation}</b>`,
-        esc(c.velocity_365),
-        `<span style="color:${c.avg_rank_change.startsWith('+') ? '#86efac' : '#fca5a5'}">${esc(c.avg_rank_change)}</span>`
-      ])
-    );
-
-    const notes = d.hiring_intel_notes || {};
-    const anglesHtml = (notes.marketing_angles || []).map(a => `
-      <div style="margin-bottom: 12px; border-bottom: 1px solid var(--line); padding-bottom: 8px;">
-        <span style="font-family:'JetBrains Mono',monospace; font-size:10px; color:var(--dim); text-transform:uppercase;">Theme: ${esc(a.issue)}</span><br/>
-        <span style="font-size:12px; color:#fcd34d; font-weight:600; display:inline-block; margin-top:2px;">Marketing Angle: ${esc(a.angle)}</span>
-      </div>
-    `).join("");
-
-    const benchmarksHtml = (notes.benchmarks || []).map(b => `
-      <div class="ci-bench" style="display:flex; flex-direction:column; gap:4px; align-items:flex-start; margin-bottom:10px; padding:10px;">
-        <div style="display:flex; justify-content:space-between; width:100%; font-size:12.5px;">
-          <span>${esc(b.label)}</span>
-          <b style="color:#cfe1ff">${esc(b.val)}</b>
-        </div>
-        <span style="font-size:10px; color:var(--dim); font-family:'JetBrains Mono',monospace; margin-top:2px;">Source: <a href="${esc(b.url)}" target="_blank" style="color:#38bdf8; text-decoration:none;">${esc(b.src)}</a></span>
-      </div>
-    `).join("");
-
-    const hiringHtml = `
-      <div class="ci-state bad" style="border-left-color:#f87171; background:rgba(248,113,113,.04); padding:14px; border-radius:10px; height:100%;">
-        <div class="ci-state-title" style="color:#fca5a5; font-weight:700; font-family:'JetBrains Mono',monospace; font-size:11.5px; text-transform:uppercase; letter-spacing:.05em; margin-bottom:8px;">Indeed / Hiring Signals Export Matcher</div>
-        <div style="font-size:12px; margin-bottom:12px; color:var(--ink); line-height:1.4;">${esc(notes.indeed_status)}</div>
-        <div style="font-size:10.5px; font-weight:700; text-transform:uppercase; color:var(--dim); font-family:'JetBrains Mono',monospace; margin-bottom:8px; letter-spacing:.05em;">Signals Scrape Scope:</div>
-        <div style="display:flex; flex-wrap:wrap; gap:6px;">
-          ${(notes.pending_signals || []).map(tag => `<span class="pill warn" style="border-color:#fbbf2444; color:#fcd34d; background:rgba(251,191,36,.06); font-size:10px; padding:2px 8px;">${esc(tag)}</span>`).join("")}
-        </div>
-      </div>
-    `;
-
-    $("ti-signals-notes").innerHTML = `
-      <div style="display:grid; grid-template-columns: 1.2fr 1.2fr 1fr; gap:14px; margin-top:8px;">
-        <div class="panel" style="background:var(--card); border:1px solid var(--line); border-radius:10px; padding:14px; margin:0;">
-          <h4 style="font-family:'JetBrains Mono',monospace; font-size:11px; text-transform:uppercase; color:var(--dim); margin-bottom:12px; letter-spacing:.04em; border-bottom:1px solid var(--line); padding-bottom:6px;">Negative Review marketing angles</h4>
-          <div>${anglesHtml}</div>
-        </div>
-        <div class="panel" style="background:var(--card); border:1px solid var(--line); border-radius:10px; padding:14px; margin:0;">
-          <h4 style="font-family:'JetBrains Mono',monospace; font-size:11px; text-transform:uppercase; color:var(--dim); margin-bottom:12px; letter-spacing:.04em; border-bottom:1px solid var(--line); padding-bottom:6px;">HVAC benchmarks &amp; tickets</h4>
-          <div class="ci-benchmarks">${benchmarksHtml}</div>
-        </div>
-        <div style="margin:0;">
-          ${hiringHtml}
-        </div>
-      </div>
-    `;
+    // HVAC benchmarks — external references
+    const bm = d.benchmarks || [];
+    $("ti-benchmarks").innerHTML = bm.map(b => `
+      <div class="ci-bench" style="display:flex;flex-direction:column;gap:4px;margin-bottom:10px;padding:10px;">
+        <div style="display:flex;justify-content:space-between;width:100%;font-size:12.5px;"><span>${esc(b.label)}</span><b style="color:#cfe1ff">${esc(b.val)}</b></div>
+        <span style="font-size:10px;color:var(--dim);font-family:'JetBrains Mono',monospace;">Source: <a href="${esc(b.url)}" target="_blank" style="color:#38bdf8;text-decoration:none;">${esc(b.src)}</a></span>
+      </div>`).join("");
   };
 
   /* ============================ DEEP DIVE SIMULATOR ============================ */

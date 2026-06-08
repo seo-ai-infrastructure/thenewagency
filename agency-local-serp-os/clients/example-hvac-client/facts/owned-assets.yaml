@@ -4,6 +4,7 @@ owned:                      # outright
   - houseacrepair.com
 controlled:                 # profiles the client manages
   - youtube.com/@houseac
+  - House HVAC Repair        # client's YouTube channel display name (matches video-pack / AIO video `source`)
   - facebook.com/houseac
 influenced:                 # third-party where the client has presence
   - reddit.com/u/houseac

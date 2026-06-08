@@ -32,7 +32,7 @@ def test_below_goal_lists_unclaimed_features_as_opportunity():
     recs = [_slot("owned", "organic"), _slot("competitor", "local_pack"),
             _slot("unknown", "images"), _slot("competitor", "ai_overview")]
     s = ss.saturate_serp(recs)
-    assert s["presence_count"] == 1 and s["meets_goal"] is False and s["gap_to_goal"] == 3
+    assert s["presence_count"] == 1 and s["meets_goal"] is False and s["gap_to_goal"] == 1  # goal_min=2
     # features on the SERP the client does NOT hold -> the action list
     assert s["features_unclaimed"] == ["ai_overview", "images", "local_pack"]
     assert s["competitor_features"] == ["ai_overview", "local_pack"]
@@ -51,7 +51,7 @@ def test_saturation_groups_by_serp_and_sorts_biggest_gap_first():
             _slot("competitor", "organic", kw="bad")]
     serps = ss.saturation(recs)
     assert [s["keyword"] for s in serps] == ["bad", "good"]   # biggest gap first = action queue
-    assert serps[0]["gap_to_goal"] == 4 and serps[1]["meets_goal"] is True
+    assert serps[0]["gap_to_goal"] == 2 and serps[1]["meets_goal"] is True  # goal_min=2
 
 
 def test_same_keyword_different_os_are_separate_serps():
@@ -68,6 +68,29 @@ def test_summary_rolls_up_goal_attainment():
     assert out["pct_meeting_goal"] == 0.5
     assert out["avg_presence"] == 2.5                          # (4 + 1) / 2
     assert [s["keyword"] for s in out["below_goal"]] == ["lose"]
+
+
+def test_ai_overview_cited_twice_counts_as_two_appearances():
+    # The takeover count reads the page as the operator does: an AI Overview that cites the client
+    # twice + an organic listing = 3 appearances, even though it's only 2 distinct feature types.
+    recs = [{"ownership_class": "influenced", "feature_type": "ai_overview", "client_citation_count": 2,
+             "keyword": "ac coil repair cost", "location_name": "Fort Lauderdale, FL", "os": "android",
+             "query_class": "organic_mobile", "lead_value": "high"},
+            {"ownership_class": "owned", "feature_type": "organic", "url": "https://houseacrepair.com/",
+             "keyword": "ac coil repair cost", "location_name": "Fort Lauderdale, FL", "os": "android",
+             "query_class": "organic_mobile", "lead_value": "high"}]
+    s = ss.saturate_serp(recs)
+    assert s["presence_count"] == 3            # AIO(2 citations) + organic(1)
+    assert s["distinct_features_held"] == 2     # but only 2 distinct surfaces
+
+
+def test_same_listing_in_two_lanes_counts_once():
+    # a local_pack returned by BOTH the local_finder and organic lanes is one placement, not two.
+    recs = [{"ownership_class": "controlled", "feature_type": "local_pack", "url": "maps.google/cid=1",
+             "keyword": "ac repair", "location_name": "FTL", "os": "ios", "query_class": ln, "lead_value": "high"}
+            for ln in ("local_finder", "organic_mobile")]
+    s = ss.saturate_serp(recs)
+    assert s["presence_count"] == 1
 
 
 def test_goal_is_env_overridable():

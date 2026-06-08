@@ -3,7 +3,7 @@
 
 Reads what the daily/weekly/monthly cadence already wrote to disk (SERP tracker history,
 per-client signals snapshots, sources.yaml, last_run/circuit) and assembles ONE payload:
-the SERP-saturation headline (multi-presence toward the 4-6+ goal), a keyword x feature
+the SERP-saturation headline (multi-presence toward the 2+ goal), a keyword x feature
 ownership matrix (heatmap), per-source cards (GBP / Bing / Clarity / GSC), a cross-source
 action skyline, and freshness/cost telemetry. No network, no writes — safe to call on every
 poll. Mirrors lib/board_scan (the kanban's read-only projector) in spirit.
@@ -125,7 +125,8 @@ def saturation_block(records, prev_records=None, top=12):
     lanes = sorted({r.get("query_class") for r in records if r.get("query_class")})
     by_lane = {ln: _lane_rollup([r for r in records if r.get("query_class") == ln]) for ln in lanes}
     queue = [{"keyword": x["keyword"], "location": x["location"], "os": x["os"],
-              "query_class": x["query_class"], "lead_value": x.get("lead_value"),
+              "query_class": x["query_class"], "lanes": x.get("lanes", []),
+              "lane_breakdown": x.get("lane_breakdown", {}), "lead_value": x.get("lead_value"),
               "presence_count": x["presence_count"], "goal_min": x["goal_min"],
               "gap_to_goal": x["gap_to_goal"], "features_held": x["features_held"],
               "features_unclaimed": x["features_unclaimed"],
@@ -291,7 +292,7 @@ def action_skyline(saturation, signals, top=12):
     items = []
     for q in saturation.get("action_queue", []):
         gap = q["gap_to_goal"]
-        sev = "high" if gap >= 3 else ("med" if gap >= 1 else "low")
+        sev = "high" if gap >= 2 else ("med" if gap >= 1 else "low")
         miss = ", ".join(q["features_unclaimed"][:5]) or "extend existing placements"
         items.append({"source": "serp", "severity": sev,
                       "title": f"Claim {gap} more on “{q['keyword']}”",
@@ -587,52 +588,17 @@ def aeo(root, client=None):
     citation = aeo_recs.citation_conquest(records, client) if (records and client) else []
     aggregator = aeo_recs.aggregator_conquest(records, client) if (records and client) else []
     crawl = _latest_crawl(root, client) if client else None
-    
-    # Gaps Fallback
-    if not citation and not aggregator:
-        citation = [
-            {"gap": {"keyword": "ac repair fort lauderdale"}, "subsystem": "Citation", "suggested_action": "Add Yelp citation with matching NAP info", "kind": "Yelp Match"},
-            {"gap": {"keyword": "emergency hvac repair"}, "subsystem": "Citation", "suggested_action": "Submit listing to Angi to capture voice share", "kind": "Angi Match"},
-            {"gap": {"keyword": "duct cleaning florida"}, "subsystem": "Citation", "suggested_action": "Verify GBP listing details on YellowPages", "kind": "YellowPages Match"}
-        ]
-        aggregator = [
-            {"gap": {"keyword": "duct cleaning fl"}, "subsystem": "Aggregator", "suggested_action": "Submit location details to Neustar Localeze database", "kind": "Neustar"},
-            {"gap": {"keyword": "heat pump installers"}, "subsystem": "Aggregator", "suggested_action": "Update profile in Factual / Foursquare listings", "kind": "Foursquare"}
-        ]
-        
-    # Crawl Fallback
-    crawlability = (crawl or {}).get("crawlability")
-    evaluation = (crawl or {}).get("evaluation")
-    crawl_run = (crawl or {}).get("run_id") or "run_mock_aeo_102"
-    crawl_generated_at = (crawl or {}).get("generated_at") or _now().isoformat()
-    
-    if (not crawlability or not evaluation) and client != "c1":
-        crawlability = {
-            "markdown_purity": {"purity": 0.92},
-            "entity_clarity": {"clarity": 0.88},
-            "llms_txt_present": True,
-            "bots": [
-                {"bot": "GPTBot", "accessible": True, "blocked_by_robots": False},
-                {"bot": "ClaudeBot", "accessible": True, "blocked_by_robots": False},
-                {"bot": "Google-Extended", "accessible": True, "blocked_by_robots": False}
-            ]
-        }
-        evaluation = {
-            "win_rate": 0.75,
-            "client_coverage": 0.80,
-            "wins": 3,
-            "competitors": {"Quality Air": 0.60, "Air Magic": 0.50, "Air Anytime": 0.30},
-            "missing_entities": ["Heat Pump Warranty details", "NATE Certified technicians credentials"]
-        }
-        
+    # No demo fallbacks: the conquest queue comes from real tracker gaps, and crawlability/
+    # evaluation come from the real ai-crawl-simulator run. When a crawl hasn't run, these are
+    # None and the frontend shows an explicit "run the crawl simulator" empty state.
     return {
         "generated": _now().isoformat(), "client": client, "clients": clients,
         "conquest_queue": {"citation": citation, "aggregator": aggregator,
                            "n": len(citation) + len(aggregator)},
-        "crawlability": crawlability,
-        "evaluation": evaluation,
-        "crawl_run": crawl_run,
-        "crawl_generated_at": crawl_generated_at,
+        "crawlability": (crawl or {}).get("crawlability"),
+        "evaluation": (crawl or {}).get("evaluation"),
+        "crawl_run": (crawl or {}).get("run_id"),
+        "crawl_generated_at": (crawl or {}).get("generated_at"),
     }
 
 
@@ -763,17 +729,83 @@ def competition_intell(root, client=None):
         "competitors": competitors,
         "issue_angles": issue_angles,
         "hiring_signals": {
-            "status": "warn",
-            "current_export": "Quality Air Conditioning (Fort Lauderdale) actively hiring HVAC Service Tech ($30-$40/hr) and Lead Installer ($25-$35/hr). Employee reviews average 2.7/5 stars with reports of excessive micromanagement and stressful culture, though coworkers and PTO are praised.",
-            "tracked_when_available": ["Rating 2.7/5", "Management 2.1", "HVAC Tech $30-$40/hr",
-                                       "Lead Installer $25-$35/hr", "Micromanagement",
-                                       "Overworked/Underpaid", "PTO/Sick Days", "English Required"]},
+            "status": "pending",
+            "current_export": "Hiring / employer-review signals are not collected by this stack yet — no data is shown rather than estimated.",
+            "tracked_when_available": ["open roles", "role type", "pay bands", "posting velocity",
+                                       "employee-review rating", "expansion / capacity clues"]},
         "benchmarks": [
             {"label": "Florida HVAC replacement benchmark", "value": "$7.5k typical replacement job"},
             {"label": "Repair / maintenance mix", "value": "Lower-ticket recurring work"},
             {"label": "Revenue confidence", "value": "Directional until job mix and review capture are calibrated"},
         ],
     }
+
+
+# ---------------- analytics (real-data, from the SERP tracker) ----------------
+def _analytics(root, records):
+    """Command-Center analytics, all derived from the live SERP tracker:
+      feature_sov          — ownership split per SERP feature (client/competitor/aggregator/unmatched)
+      takeover_leaderboard — per-keyword best appearance count + goal status
+      opportunities        — biggest takeover gaps weighted by lead value (the prioritized list)
+      trend                — run-over-run % meeting goal + avg appearances across recent history
+    """
+    PRES = {"owned", "controlled", "influenced"}
+    LV = {"high": 3, "med": 2, "medium": 2, "low": 1}
+
+    sov = {}
+    for r in records:
+        ft = r.get("feature_type")
+        if not ft:
+            continue
+        b = sov.setdefault(ft, {"feature": ft, "client": 0, "competitor": 0,
+                                "aggregator": 0, "unmatched": 0, "total": 0})
+        oc = r.get("ownership_class")
+        b["total"] += 1
+        if oc in PRES:
+            b["client"] += 1
+        elif oc == "competitor":
+            b["competitor"] += 1
+        elif oc == "aggregator":
+            b["aggregator"] += 1
+        else:
+            b["unmatched"] += 1
+    feature_sov = sorted(sov.values(), key=lambda x: (-x["total"], x["feature"]))
+    for b in feature_sov:
+        b["client_share"] = round(b["client"] / b["total"], 3) if b["total"] else 0.0
+
+    serps = sat.saturation(records)
+    by_kw = {}
+    for s in serps:
+        kw = s["keyword"]
+        cur = by_kw.get(kw)
+        if cur is None or s["presence_count"] > cur["appearances"]:
+            by_kw[kw] = {"keyword": kw, "appearances": s["presence_count"],
+                         "meets_goal": s["meets_goal"], "features": s["features_held"],
+                         "lead_value": s.get("lead_value"), "goal_min": s["goal_min"]}
+    leaderboard = sorted(by_kw.values(), key=lambda x: (-x["appearances"], x["keyword"]))
+
+    opps = []
+    for s in serps:
+        if s["meets_goal"]:
+            continue
+        score = s["gap_to_goal"] * LV.get((s.get("lead_value") or "").lower(), 1)
+        opps.append({"keyword": s["keyword"], "os": s["os"], "gap": s["gap_to_goal"],
+                     "appearances": s["presence_count"], "lead_value": s.get("lead_value"),
+                     "unclaimed": s["features_unclaimed"][:5], "score": score})
+    opps.sort(key=lambda x: -x["score"])
+
+    trend = []
+    for f in _history_files(root)[-8:]:
+        recs = _records_from(f)
+        if not recs:
+            continue
+        ss = sat.summary(recs)
+        trend.append({"run": f.stem.replace("mobile_serp_", ""),
+                      "pct_meeting_goal": ss["pct_meeting_goal"],
+                      "avg_presence": ss["avg_presence"], "n_serps": ss["n_serps"]})
+
+    return {"feature_sov": feature_sov, "takeover_leaderboard": leaderboard,
+            "opportunities": opps[:8], "trend": trend}
 
 
 # ---------------- assembly ----------------
@@ -810,129 +842,117 @@ def command_center(root, client=None):
         "ownership_matrix": ownership_matrix(records),
         "source_cards": source_cards(client, signals, sources, prev_signals),
         "action_skyline": action_skyline(saturation, signals),
+        "analytics": _analytics(root, records),
         "freshness": freshness(root, sig_date, last_run),
         "cost": cost_block(root, last_run),
     }
 
 
-def threat_intelligence(root, client=None):
-    """Demo Threat Intelligence payload for local competitors.
+def _bare(d):
+    d = (d or "").lower()
+    return d[4:] if d.startswith("www.") else d
 
-    Fills the active threat dashboard panels including GBP Taxonomy Diff Engine,
-    Offer Arbitrage Matrix, Fake Review Assassin (redress actions), and AI Overview
-    vs Local Pack Divergence Matrix, using mock data tailored for House AC Repair.
-    """
+
+def _client_domain(root, client):
+    """The client's primary owned domain from facts/owned-assets.yaml (None if unavailable)."""
+    try:
+        import yaml
+        p = pathlib.Path(root) / "clients" / str(client) / "facts" / "owned-assets.yaml"
+        owned = (yaml.safe_load(p.read_text()) or {}).get("owned") or []
+        return owned[0] if owned else None
+    except Exception:
+        return None
+
+
+def _divergence_matrix(records, client_domain, top=6):
+    """REAL 'who owns Maps vs who owns AI' quadrant, from the live tracker:
+    map_dominance = a domain's share of local-pack/finder slots; ai_dominance = its share of
+    AI-surface citations. Both normalized 0..1 against the leader. No hardcoded coordinates."""
+    MAP = {"local_pack", "local_finder"}
+    AI = {"ai_overview", "ai_mode_response"}
+    SKIP = {"google.com", "maps.google.com", ""}
+    map_c, ai_c = Counter(), Counter()
+    for r in records:
+        if r.get("feature_type") in MAP:
+            d = _bare(r.get("domain"))
+            if d not in SKIP:
+                map_c[d] += 1
+        if r.get("feature_type") in AI:
+            for s in (r.get("cited_sources") or []):
+                d = _bare(s)
+                if d not in SKIP:
+                    ai_c[d] += 1
+    if not map_c and not ai_c:
+        return []
+    map_max = max(map_c.values(), default=1) or 1
+    ai_max = max(ai_c.values(), default=1) or 1
+    cd = _bare(client_domain or "")
+    ranked = [d for d, _ in (map_c + ai_c).most_common()]
+    order = ([cd] if (cd and (cd in map_c or cd in ai_c)) else []) + [d for d in ranked if d != cd]
+    out = []
+    for d in order[:top]:
+        md = round(map_c.get(d, 0) / map_max, 2)
+        ad = round(ai_c.get(d, 0) / ai_max, 2)
+        quad = ("Apex threat" if md >= 0.5 and ad >= 0.5 else
+                "AI upstart" if ad >= 0.5 else
+                "Maps dinosaur" if md >= 0.5 else "Emerging")
+        out.append({"name": "You" if d == cd else d, "domain": d,
+                    "map_dominance": md, "ai_dominance": ad,
+                    "quadrant": quad, "is_client": d == cd})
+    return out
+
+
+def threat_intelligence(root, client=None):
+    """Threat Intelligence tab — REAL competitive data only (no simulation):
+      divergence_matrix : per-rival Maps-vs-AI dominance from the live SERP tracker.
+      ranking_threats   : rival domains by SERP slot count (shared _threat_intel).
+      review_sentiment  : per-competitor negatives mined by the review watchdog.
+      marketing_angles  : counter-hooks derived from the watchdog's real negative themes.
+      benchmarks        : external HVAC economics references (clearly external, sourced).
+    The fabricated panels — fake-review assassin, offer order book, GBP taxonomy timeline,
+    GBP freshness, review-velocity correlation, geo-grid heatmap, Indeed hiring matcher — are
+    GONE; they required data the stack does not collect."""
     root = pathlib.Path(root)
     client, clients = _resolve_client(root, client)
-    
-    gbp_timeline = [
-        {"date": "2026-06-07", "competitor": "Quality Air", "type": "Added Service",
-         "item": "Heat Pump Repair", "badge": "Opportunity", "color": "green", "gap": True,
-         "details": "Client lacks Heat Pump Repair in owned-assets.yaml; high-value gap."},
-        {"date": "2026-06-05", "competitor": "Air Magic", "type": "Removed Category",
-         "item": "Emergency HVAC", "badge": "Retreat", "color": "red", "gap": False,
-         "details": "Competitor removed primary category, indicating strategic retreat."},
-        {"date": "2026-06-02", "competitor": "Air Anytime", "type": "Added Service",
-         "item": "Duct Cleaning", "badge": "Opportunity", "color": "green", "gap": True,
-         "details": "Air Anytime added custom service Duct Cleaning with price $149."},
-        {"date": "2026-05-28", "competitor": "Quality Air", "type": "Added Service",
-         "item": "Indoor Air Quality", "badge": "Neutral", "color": "flat", "gap": False,
-         "details": "Client already lists Indoor Air Quality. No immediate action needed."}
-    ]
+    records = latest_tracker_records(root)
+    ti = _threat_intel(root, client, records)
+    divergence = _divergence_matrix(records, _client_domain(root, client) or "houseacrepair.com")
 
-    offers = [
-        {"competitor": "Air Magic", "offer": "Furnace Tune-up Special", "price": "$59", "source": "GBP Post", "detected": "2026-06-06"},
-        {"competitor": "Quality Air", "offer": "AC Installation $250 Off", "price": "$250 Off", "source": "Homepage Scrape", "detected": "2026-06-05"},
-        {"competitor": "Air Anytime", "offer": "10% Senior / Vet Discount", "price": "10% Off", "source": "GBP Post", "detected": "2026-06-04"},
-        {"competitor": "Quality Air", "offer": "Free Service Call with Repair", "price": "Free", "source": "Angi Deal", "detected": "2026-05-30"},
-        {"competitor": "Air Magic", "offer": "Emergency A/C Diagnosis", "price": "$79", "source": "Homepage Scrape", "detected": "2026-05-29"}
-    ]
+    report = _latest_review_report(root)
+    marketing_angles = []
+    if report and report.get("competitors"):
+        from lib.review_mining import THEMES
+        agg = {}
+        for e in report["competitors"].values():
+            for t in e.get("top_themes", []):
+                agg[t] = agg.get(t, 0) + (e.get("themes") or {}).get(t, 0)
+        for t, cnt in sorted(agg.items(), key=lambda x: -x[1])[:6]:
+            marketing_angles.append({"issue": t.replace("_", " ").title(),
+                                     "angle": THEMES.get(t, (None, ""))[1],
+                                     "signal": f"{cnt} negative competitor review(s) cite this"})
 
-    review_integrity = {
-        "competitors": [
-            {"name": "Quality Air", "score": 24, "status": "red", "details": "Highly Suspicious: Volume spike of 22 reviews in 48h, 90% new accounts."},
-            {"name": "Air Magic", "score": 85, "status": "green", "details": "Clean: Normal organic review growth, reviews from established reviewers."},
-            {"name": "Air Anytime", "score": 58, "status": "yellow", "details": "Caution: Slight volume acceleration, sentiment uniformity high (all 5-star)."}
-        ],
-        "spikes": [
-            {"date": "2026-06-06", "competitor": "Quality Air", "volume": 22, "rating_variance": 0.08, "new_accounts_pct": 90, "severity": "high",
-             "redress_payload": {
-                 "task": "submit_redress_form",
-                 "competitor_name": "Quality Air Conditioning Company",
-                 "place_id": "ChIJQualityAirLoc",
-                 "evidence": "Spike of 22 reviews in 48 hours, all 5-star, 90% from brand-new Google accounts.",
-                 "payload_url": "https://support.google.com/business/contact/feedback_reviews"
-             }}
-        ]
-    }
-
-    divergence_matrix = {
-        "client_name": client or "Example Client",
-        "competitors": [
-            {"name": "Quality Air", "map_dominance": 0.85, "ai_dominance": 0.90, "quadrant": "Apex Threat", "details": "Apex Threat: Dominates both search channels. Priority counter-campaign needed."},
-            {"name": "Air Magic", "map_dominance": 0.20, "ai_dominance": 0.80, "quadrant": "Upstart", "details": "Upstart: Strong semantic authority/AI citation, but weak proximity/local finder rankings."},
-            {"name": "Air Anytime", "map_dominance": 0.75, "ai_dominance": 0.25, "quadrant": "Dinosaur", "details": "Dinosaur: Strong proximity/maps, but weak AI search footprint. Vulnerable to AEO disruption."},
-            {"name": "Client (You)", "map_dominance": 0.55, "ai_dominance": 0.60, "quadrant": "Apex Threat", "details": "You: Solid mid-market position, growing in both maps and AI Overview citations."}
-        ]
-    }
-
-    geo_grid = {
-        "title": "Local Grid Rank Heatmap (5x5)",
-        "center": "Fort Lauderdale, FL",
-        "client_rankings": [
-            [1, 2, 5, 8, 12],
-            [2, 1, 3, 11, 15],
-            [3, 2, 1, 4, 9],
-            [6, 7, 5, 2, 3],
-            [14, 18, 11, 4, 1]
-        ]
-    }
-
-    review_correlation = [
-        {"competitor": "Quality Air", "correlation": 0.82, "velocity_365": 138, "avg_rank_change": "+1.4 positions", "note": "High correlation: review velocity strongly drives maps positions."},
-        {"competitor": "Air Magic", "correlation": 0.71, "velocity_365": 111, "avg_rank_change": "+0.8 positions", "note": "Moderate correlation: review volume supports AI citations and maps."},
-        {"competitor": "Air Anytime", "correlation": 0.45, "velocity_365": 68, "avg_rank_change": "-0.2 positions", "note": "Low correlation: review velocity has stagnated, ranking slightly declining."}
-    ]
-
-    freshness = {
-        "last_post_date": "2026-06-07",
-        "competitor_freshness": [
-            {"competitor": "Quality Air", "last_post_days": 2, "status": "fresh"},
-            {"competitor": "Air Magic", "last_post_days": 18, "status": "stale"},
-            {"competitor": "Air Anytime", "last_post_days": 45, "status": "critical"}
-        ]
-    }
-
-    hiring_intel_notes = {
-        "indeed_status": "Indeed file mismatch (100 NY/NJ healthcare job postings detected). Corrected competitor Indeed scrape is pending.",
-        "pending_signals": ["open roles", "role type", "posting velocity", "locations", "pay bands", "employee complaints", "expansion or capacity growth clues"],
-        "benchmarks": [
-            {"label": "Florida HVAC replacement benchmark", "val": "~$7.5k typical replacement job", "src": "BuildCost Florida HVAC", "url": "https://buildcost.io/projects/hvac/florida"},
-            {"label": "Repair / maintenance ticket economics", "val": "$450-$900 blended HVAC ticket", "src": "Housecall Pro HVAC Economics", "url": "https://www.housecallpro.com/wp-content/uploads/2026/03/032026-HCP-Trades-Quarterly-Pulse_HVAC-Repair-Economics.pdf"},
-            {"label": "HVAC Business Benchmarks 2026", "val": "Conversion rates / margins / profit", "src": "BAADigi benchmarks", "url": "https://www.baadigi.com/blog/hvac-business-benchmarks-2026-revenue-profit-margins-conversion-rates"}
-        ],
-        "marketing_angles": [
-            {"issue": "Pricing / surprise charges", "angle": "“Upfront estimates before work starts.”"},
-            {"issue": "Poor diagnosis / repeated breakdowns", "angle": "“Fix-it-right diagnostics, not guesswork.”"},
-            {"issue": "Communication delays", "angle": "“Clear arrival windows and status updates.”"},
-            {"issue": "Emergency calls not resolved same day", "angle": "“Emergency AC help when the house is heating up.”"},
-            {"issue": "Install follow-through / inspection / permit headaches", "angle": "“Install coordination through inspection and final handoff.”"}
-        ]
-    }
-
+    apex = sum(1 for d in divergence if d["quadrant"] == "Apex threat" and not d["is_client"])
     return {
-        "generated": _now().isoformat(),
-        "client": client,
-        "clients": clients,
-        "title": "Threat Intelligence Dashboard",
-        "demo_note": "Interactive threat-intel simulation engine",
-        "gbp_timeline": gbp_timeline,
-        "offers": offers,
-        "review_integrity": review_integrity,
-        "divergence_matrix": divergence_matrix,
-        "geo_grid": geo_grid,
-        "review_correlation": review_correlation,
-        "freshness": freshness,
-        "hiring_intel_notes": hiring_intel_notes
+        "generated": _now().isoformat(), "client": client, "clients": clients,
+        "title": "Threat Intelligence",
+        "data_source": ti["review_sentiment_source"],
+        "crawl_telemetry": ti["crawl_telemetry"],
+        "divergence_matrix": divergence,
+        "ranking_threats": ti["ranking_threats"],
+        "review_sentiment": ti["review_sentiment"],
+        "marketing_angles": marketing_angles,
+        "kpis": {"rivals_tracked": len(ti["ranking_threats"]),
+                 "negatives_mined": (report or {}).get("n_negative"),
+                 "apex_threats": apex,
+                 "reviews_sampled": (report or {}).get("n_reviews")},
+        "benchmarks": [
+            {"label": "Florida HVAC replacement benchmark", "val": "~$7.5k typical replacement job",
+             "src": "BuildCost Florida HVAC", "url": "https://buildcost.io/projects/hvac/florida"},
+            {"label": "Repair / maintenance ticket economics", "val": "$450-$900 blended HVAC ticket",
+             "src": "Housecall Pro HVAC Economics", "url": "https://www.housecallpro.com/"},
+            {"label": "HVAC Business Benchmarks 2026", "val": "Conversion / margins / profit",
+             "src": "BAADigi benchmarks",
+             "url": "https://www.baadigi.com/blog/hvac-business-benchmarks-2026-revenue-profit-margins-conversion-rates"},
+        ],
     }
 

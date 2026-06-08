@@ -119,7 +119,7 @@ def test_competition_intell_demo_payload(tmp_path):
     assert ci["summary"]["market_leader"] == "Quality Air"
     assert ci["competitors"][0]["profile_reviews"] == 1010
     assert ci["competitors"][0]["review_velocity_share"] == 43.5
-    assert ci["hiring_signals"]["status"] == "warn"
+    assert ci["hiring_signals"]["status"] == "pending"   # no fabricated employer-review claims
     assert any(a["issue"] == "Pricing / surprise charges" for a in ci["issue_angles"])
 
 
