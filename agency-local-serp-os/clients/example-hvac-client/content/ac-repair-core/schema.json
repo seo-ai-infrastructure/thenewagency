@@ -1,0 +1,150 @@
+{
+  "@context": "https://schema.org",
+  "@graph": [
+    {
+      "@type": "HVACBusiness",
+      "@id": "https://houseacrepair.com/#business",
+      "name": "House AC Repair",
+      "description": "Same-day residential AC repair and air conditioning service in Fort Lauderdale and across Broward County, FL. Licensed, insured, upfront pricing.",
+      "url": "https://houseacrepair.com/",
+      "telephone": "+1-FILL-PHONE",
+      "priceRange": "$$",
+      "image": "https://houseacrepair.com/images/house-ac-repair-fort-lauderdale.jpg",
+      "logo": "https://houseacrepair.com/images/logo.png",
+      "address": {
+        "@type": "PostalAddress",
+        "streetAddress": "[FILL STREET]",
+        "addressLocality": "Fort Lauderdale",
+        "addressRegion": "FL",
+        "postalCode": "[FILL ZIP]",
+        "addressCountry": "US"
+      },
+      "geo": {
+        "@type": "GeoCoordinates",
+        "latitude": "26.1224",
+        "longitude": "-80.1373"
+      },
+      "areaServed": [
+        { "@type": "City", "name": "Fort Lauderdale" },
+        { "@type": "City", "name": "Hollywood" },
+        { "@type": "City", "name": "Pompano Beach" },
+        { "@type": "City", "name": "Plantation" },
+        { "@type": "City", "name": "Coral Springs" },
+        { "@type": "AdministrativeArea", "name": "Broward County" }
+      ],
+      "openingHoursSpecification": [
+        {
+          "@type": "OpeningHoursSpecification",
+          "dayOfWeek": ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"],
+          "opens": "00:00",
+          "closes": "23:59"
+        }
+      ],
+      "hasCredential": "Florida State Certified HVAC Contractor License #[FILL]",
+      "sameAs": [
+        "https://www.google.com/maps/place/[FILL-GBP]",
+        "https://www.yelp.com/biz/[FILL]",
+        "https://www.facebook.com/[FILL]"
+      ],
+      "aggregateRating": {
+        "@type": "AggregateRating",
+        "ratingValue": "[FILL]",
+        "reviewCount": "[FILL]"
+      }
+    },
+    {
+      "@type": "Service",
+      "@id": "https://houseacrepair.com/ac-repair-fort-lauderdale#service",
+      "serviceType": "AC Repair",
+      "name": "AC Repair in Fort Lauderdale, FL",
+      "description": "Same-day residential air conditioning repair in Fort Lauderdale and Broward County: capacitor, contactor, refrigerant recharge, blower motor, compressor, and AC not cooling diagnostics with upfront written pricing.",
+      "provider": { "@id": "https://houseacrepair.com/#business" },
+      "areaServed": [
+        { "@type": "City", "name": "Fort Lauderdale" },
+        { "@type": "AdministrativeArea", "name": "Broward County" }
+      ],
+      "offers": {
+        "@type": "Offer",
+        "priceCurrency": "USD",
+        "priceSpecification": {
+          "@type": "PriceSpecification",
+          "minPrice": "150",
+          "maxPrice": "650",
+          "priceCurrency": "USD"
+        }
+      },
+      "hasOfferCatalog": {
+        "@type": "OfferCatalog",
+        "name": "AC Repair Services",
+        "itemListElement": [
+          { "@type": "Offer", "itemOffered": { "@type": "Service", "name": "AC Capacitor & Contactor Replacement" } },
+          { "@type": "Offer", "itemOffered": { "@type": "Service", "name": "Refrigerant Leak Repair & Recharge" } },
+          { "@type": "Offer", "itemOffered": { "@type": "Service", "name": "AC Not Cooling / No Cold Air Diagnostic" } },
+          { "@type": "Offer", "itemOffered": { "@type": "Service", "name": "Blower Motor & Compressor Repair" } }
+        ]
+      }
+    },
+    {
+      "@type": "WebPage",
+      "@id": "https://houseacrepair.com/ac-repair-fort-lauderdale#webpage",
+      "url": "https://houseacrepair.com/ac-repair-fort-lauderdale",
+      "name": "AC Repair in Fort Lauderdale, FL | House AC Repair",
+      "about": { "@id": "https://houseacrepair.com/ac-repair-fort-lauderdale#service" },
+      "isPartOf": { "@id": "https://houseacrepair.com/#business" }
+    },
+    {
+      "@type": "FAQPage",
+      "@id": "https://houseacrepair.com/ac-repair-fort-lauderdale#faq",
+      "mainEntity": [
+        {
+          "@type": "Question",
+          "name": "How much does AC repair cost in Fort Lauderdale?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Most AC repairs in Fort Lauderdale run $150–$650 depending on the part. A capacitor or contactor replacement is usually $150–$350; a refrigerant recharge runs $200–$450. House AC Repair charges a flat diagnostic fee and gives an upfront, written price before any work."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Who is the best AC repair company in Fort Lauderdale?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "The best Fort Lauderdale AC repair company is licensed, insured, locally reviewed, and offers same-day service with upfront pricing. House AC Repair holds a Florida HVAC license, carries full insurance, and earns 5-star Google reviews from Broward County homeowners."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Is there AC repair near me right now?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Yes — House AC Repair offers same-day 'AC repair near me' service throughout Fort Lauderdale and Broward County, often within hours. Technicians dispatch from a local Fort Lauderdale base to reach Wilton Manors, Oakland Park, Plantation, and the beaches fast."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Does House AC Repair cover all of Broward County?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Yes — as a Broward County AC repair company, House AC Repair serves Fort Lauderdale plus Hollywood, Pompano Beach, Plantation, Coral Springs, Davie, Sunrise, Tamarac, and surrounding cities with consistent pricing and the same licensed technicians."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "How long does an AC repair take?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Most Fort Lauderdale AC repairs are completed in a single visit — typically 1 to 3 hours. Common fixes like capacitors, contactors, or refrigerant recharges are done on the spot because our trucks are stocked with parts for popular South Florida systems."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Why won't my AC blow cold air in Fort Lauderdale?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "An AC blowing warm air in Fort Lauderdale is usually caused by low refrigerant, a failed capacitor, a dirty condenser coil, a frozen evaporator coil, or a tripped breaker. A House AC Repair technician pinpoints the exact cause during a same-day diagnostic."
+          }
+        }
+      ]
+    }
+  ]
+}

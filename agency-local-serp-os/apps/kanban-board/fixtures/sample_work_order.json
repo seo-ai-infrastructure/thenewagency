@@ -1,0 +1,14 @@
+{
+  "work_order_id": "wo_manual_20260605T120000Z_agent_01",
+  "execution_method": "cloakbrowser",
+  "client_id": "agency",
+  "workflow_id": "rank_spot_check",
+  "period": "2026-W24",
+  "order_index": 0,
+  "manual": true,
+  "issued_by": "board",
+  "customer_facing": false,
+  "task_params": {"keyword": "emergency ac repair", "domain": "houseacrepair.com"},
+  "profile_id": "agent_01",
+  "approval_ref": null
+}

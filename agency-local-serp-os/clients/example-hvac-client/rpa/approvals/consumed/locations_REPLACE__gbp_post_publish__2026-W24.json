@@ -1,0 +1,20 @@
+{
+  "approval_id": "approval_20260605T142909Z",
+  "profile_id": "locations_REPLACE",
+  "workflow_id": "gbp_post_publish",
+  "period": "2026-W24",
+  "status": "approved",
+  "created": "2026-06-05T14:29:09.774184+00:00",
+  "expires_at": "2026-06-12T14:29:09.774184+00:00",
+  "content": {
+    "text": "Emergency AC repair, friendly tech at a Fort Lauderdale door",
+    "media_url": "https://cdn.example.com/assets/example-hvac-client/draft_20260605T142909Z/still.png",
+    "video_url": "https://cdn.example.com/assets/example-hvac-client/draft_20260605T142909Z/clip.mp4"
+  },
+  "content_hash": "c5f15ff2c3fb1177017a0254863a68ff0d70e620b1068d94d6254f8b8fd0c5c6",
+  "provenance": {
+    "bridged_from": "video_asset",
+    "asset_draft_id": "draft_20260605T142909Z",
+    "asset_approval": "locations_REPLACE__video_asset__2026-W24.json"
+  }
+}

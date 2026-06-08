@@ -1,0 +1,248 @@
+﻿flowchart TB
+  %% =========================
+  %% Core file-backed state
+  %% =========================
+  subgraph Repo["Repo root"]
+    Env[".env / secrets.env.example / redis.env.example"]
+    Requirements["requirements.txt / requirements-dev.txt"]
+    Ops["ops/launchd\nscheduled wrappers"]
+    Tests["tests/\nunit + runner coverage"]
+    Schemas["shared_schemas/\nintegration schemas"]
+    Playbooks["playbooks/serp_feature_takeover.yaml"]
+  end
+
+  subgraph Client["clients/<client_id>/"]
+    Facts["facts/\nbusiness_entity, owned assets,\ncompetition, locations, target terms"]
+    Strategy["strategy/\nkeyword clusters + feature targets"]
+    Content["content/\npages, GBP posts, schema,\nbarnacle assets, calendars"]
+    Signals["signals/YYYY-MM-DD.json\nunified search + behavior snapshot"]
+    RpaConfig["rpa/\npolicy, workflows, schedules,\nprofiles, phones, GBP config"]
+    RpaApprovals["rpa/approvals/\npending, approved, consumed, rejected"]
+    RpaAssets["rpa/assets/\nstills, clips, generated media"]
+    RpaLogs["rpa/logs/\nhashed before/after evidence"]
+  end
+
+  subgraph AgencyBrowser["clients/agency/browser/"]
+    BrowserConfig["policy, workflows,\nschedules, profiles"]
+    BrowserScripts["scripts/\nrank_spot_check.py"]
+    BrowserApprovals["approvals/\npending, approved, consumed"]
+    BrowserLogs["logs/\nevidence"]
+  end
+
+  %% =========================
+  %% SERP tracking and scoring
+  %% =========================
+  subgraph SerpPipeline["SERP estate pipeline"]
+    DfsEndpoints["integrations/dataforseo/endpoints.yaml"]
+    DfsClient["integrations/dataforseo/client.py"]
+    Tracker["automations/local-mobile-serp-feature-tracker/run.py"]
+    SerpClassifier["lib/serp_features.py\nlane-aware ownership classifier"]
+    TrackerHistory["tracker history/*.jsonl\nnormalized SERP slots"]
+    EstateScoring["automations/serp-estate-scoring/run.py"]
+    EstateLib["lib/estate_scoring.py\nlane scores"]
+    EstateHistory["estate history/*.jsonl"]
+    GapRecs["scripts/gaps_to_recommendations.py"]
+  end
+
+  Facts --> Tracker
+  DfsEndpoints --> Tracker
+  DfsClient --> Tracker
+  Tracker --> SerpClassifier
+  SerpClassifier --> TrackerHistory
+  TrackerHistory --> EstateScoring
+  EstateScoring --> EstateLib
+  EstateLib --> EstateHistory
+  TrackerHistory --> GapRecs
+  GapRecs --> RpaApprovals
+
+  %% =========================
+  %% Search signals ingestion + cadence
+  %% =========================
+  subgraph SignalsPipeline["Signals ingestion + cadence"]
+    SignalRunner["automations/search-signals-ingest/run.py"]
+    SignalLib["lib/signals.py"]
+    Gsc["integrations/gsc/client.py"]
+    Bing["integrations/bing_webmaster/client.py"]
+    Ga4["integrations/ga4/client.py"]
+    Clarity["integrations/clarity/client.py"]
+    GbpInsights["integrations/gbp_insights/client.py"]
+    GoogleAuth["integrations/google_auth.py"]
+    Cadence["scripts/cadence.py + lib/cadence.py\ndaily/weekly/monthly conductor"]
+  end
+
+  ClientSources["clients/<id>/config/sources.yaml"] --> SignalRunner
+  Gsc --> SignalRunner
+  Bing --> SignalRunner
+  Ga4 --> SignalRunner
+  Clarity --> SignalRunner
+  GbpInsights --> SignalRunner
+  GoogleAuth --> Gsc
+  GoogleAuth --> Ga4
+  SignalRunner --> SignalLib
+  SignalLib --> Signals
+  Signals --> Cadence
+  Cadence --> Scheduler
+
+  %% =========================
+  %% Content and media generation
+  %% =========================
+  subgraph ContentPipeline["Drafting, media, and approvals"]
+    ContentWriter["automations/content-writer/run.py"]
+    VideoProducer["automations/video-producer/run.py"]
+    LlmGate["integrations/llm/gate.py\ngenerate-only LLM gate"]
+    Higgsfield["integrations/higgsfield_media/client.py\nHiggsfield CLI"]
+    ApproveCli["scripts/approve_draft.py"]
+    ApprovalLib["lib/approvals.py\nhash, scope, expiry"]
+    GbpBatch["scripts/gen_gbp_posts.py"]
+    AssetBridge["scripts/bridge_asset_to_post.py"]
+  end
+
+  Facts --> ContentWriter
+  Facts --> VideoProducer
+  Strategy --> GbpBatch
+  ContentWriter --> LlmGate
+  VideoProducer --> LlmGate
+  VideoProducer --> Higgsfield
+  Higgsfield --> RpaAssets
+  ContentWriter --> RpaApprovals
+  VideoProducer --> RpaApprovals
+  GbpBatch --> RpaApprovals
+  RpaApprovals --> ApproveCli
+  ApproveCli --> ApprovalLib
+  ApprovalLib --> RpaApprovals
+  RpaApprovals --> AssetBridge
+  RpaAssets --> AssetBridge
+
+  %% =========================
+  %% Work-order generation and execution
+  %% =========================
+  subgraph WorkOrders["Work order routing"]
+    Scheduler["scripts/gen_workorders.py"]
+    BrowserTask["scripts/run_browser_task.py"]
+    DuoInbox["automations/duoplus-rpa-orchestrator/inbox"]
+    ZernioInbox["automations/zernio-publisher/inbox"]
+    CloakInbox["automations/cloakbrowser-runner/inbox"]
+  end
+
+  RpaConfig --> Scheduler
+  BrowserConfig --> Scheduler
+  Scheduler -->|"execution_method: duoplus_rpa"| DuoInbox
+  Scheduler -->|"execution_method: google_business_api"| ZernioInbox
+  Scheduler -->|"execution_method: cloakbrowser"| CloakInbox
+  BrowserTask --> CloakInbox
+  AssetBridge --> ZernioInbox
+
+  subgraph SharedGate["Shared runner gate in lib/"]
+    WorkOrderRunner["lib/orchestration.py\nclaim, idempotency,\napproval verify, evidence, history"]
+    Policy["lib/policy.py\nkill switch + action classes"]
+    RateLimiter["lib/rate_limiter.py\nfile rate limit"]
+    RedisBackends["lib/redis_backends.py\noptional Redis locks + rate limit"]
+    Notify["lib/notify.py\nTelegram/Discord"]
+  end
+
+  Env --> RateLimiter
+  Env --> RedisBackends
+  Env --> Notify
+  RpaConfig --> Policy
+  BrowserConfig --> Policy
+  RpaApprovals --> WorkOrderRunner
+  BrowserApprovals --> WorkOrderRunner
+  WorkOrderRunner --> Policy
+  WorkOrderRunner --> RateLimiter
+  WorkOrderRunner -. when REDIS_HOST is set .-> RedisBackends
+  WorkOrderRunner --> Notify
+  WorkOrderRunner --> RpaLogs
+  WorkOrderRunner --> BrowserLogs
+
+  subgraph Runners["Execution runners"]
+    DuoRunner["automations/duoplus-rpa-orchestrator/run.py"]
+    ZernioRunner["automations/zernio-publisher/run.py"]
+    CloakRunner["automations/cloakbrowser-runner/run.py"]
+    DuoClient["integrations/duoplus/client.py\ncloud phone + RPA tasks"]
+    ZernioClient["integrations/google_business/client.py\nGBP/social via Zernio"]
+    CloakClient["integrations/cloakbrowser/client.py\nstealth Chromium + browser-use"]
+    DuoHistory["duoplus history/done/failed"]
+    ZernioHistory["zernio history/done/failed"]
+    CloakHistory["cloak history/done/failed"]
+  end
+
+  DuoInbox --> DuoRunner
+  ZernioInbox --> ZernioRunner
+  CloakInbox --> CloakRunner
+  DuoRunner --> WorkOrderRunner
+  ZernioRunner --> WorkOrderRunner
+  CloakRunner --> WorkOrderRunner
+  DuoRunner --> DuoClient
+  ZernioRunner --> ZernioClient
+  CloakRunner --> CloakClient
+  DuoRunner --> DuoHistory
+  ZernioRunner --> ZernioHistory
+  CloakRunner --> CloakHistory
+  DuoRunner --> RpaApprovals
+  ZernioRunner --> RpaApprovals
+  CloakRunner --> BrowserApprovals
+  BrowserConfig --> BrowserScripts
+  BrowserScripts --> CloakRunner
+
+  %% =========================
+  %% Board and operations
+  %% =========================
+  subgraph Board["Kanban board"]
+    BoardScan["lib/board_scan.py\nread-only filesystem projection"]
+    StaticBoard["scripts/board.py\nwrites board/index.html"]
+    LiveBoard["apps/kanban-board/server.py\nlocalhost API"]
+    BoardUi["apps/kanban-board/static/\nHTML/CSS/JS"]
+  end
+
+  DuoInbox --> BoardScan
+  ZernioInbox --> BoardScan
+  CloakInbox --> BoardScan
+  DuoHistory --> BoardScan
+  ZernioHistory --> BoardScan
+  CloakHistory --> BoardScan
+  RpaApprovals --> BoardScan
+  BrowserApprovals --> BoardScan
+  BoardScan --> StaticBoard
+  BoardScan --> LiveBoard
+  BoardUi --> LiveBoard
+  LiveBoard --> ApprovalLib
+  LiveBoard --> DuoInbox
+  LiveBoard --> ZernioInbox
+  LiveBoard --> CloakInbox
+
+  %% =========================
+  %% External services
+  %% =========================
+  subgraph External["External services"]
+    DataForSEO["DataForSEO SERP APIs"]
+    Anthropic["Anthropic Claude API"]
+    ZernioApi["Zernio API\nGoogle Business + social"]
+    DuoPlusApi["DuoPlus Open API"]
+    CloakBrowserPkg["cloakbrowser + browser-use"]
+    HiggsfieldCli["Higgsfield CLI"]
+    SearchApis["GSC / Bing / GA4 /\nClarity / GBP Insights"]
+    Redis["Redis Cloud optional"]
+    ChatOps["Telegram / Discord"]
+  end
+
+  DfsClient --> DataForSEO
+  LlmGate --> Anthropic
+  ZernioClient --> ZernioApi
+  DuoClient --> DuoPlusApi
+  CloakClient --> CloakBrowserPkg
+  Higgsfield --> HiggsfieldCli
+  Gsc --> SearchApis
+  Bing --> SearchApis
+  Ga4 --> SearchApis
+  Clarity --> SearchApis
+  GbpInsights --> SearchApis
+  RedisBackends --> Redis
+  Notify --> ChatOps
+
+  Ops --> Scheduler
+  Ops --> DuoRunner
+  Ops --> ZernioRunner
+  Ops --> CloakRunner
+  Tests --> SerpClassifier
+  Tests --> EstateLib
+  Tests --> WorkOrderRunner

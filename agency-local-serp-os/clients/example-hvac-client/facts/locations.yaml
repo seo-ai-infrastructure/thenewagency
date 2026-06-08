@@ -1,0 +1,8 @@
+locations:
+  - id: fort_lauderdale_fl
+    name: "Fort Lauderdale, FL"
+    location_code: 2840
+    local_finder_coordinate: "26.1224,-80.1373,12z"
+    organic_coordinate: "26.1224,-80.1373,12z"   # FIX #4: consistent lat,lng,zoom
+    ai_mode_coordinate: "26.1224,-80.1373,12z"
+mobile_os: [ios, android]

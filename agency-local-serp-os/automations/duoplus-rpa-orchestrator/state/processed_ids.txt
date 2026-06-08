@@ -1,0 +1,6 @@
+profile_001|mobile_profile_healthcheck|2026-06-08
+profile_002|mobile_profile_healthcheck|2026-06-08
+profile_001|mobile_profile_healthcheck|2026-06-15
+profile_002|mobile_profile_healthcheck|2026-06-15
+profile_001|mobile_profile_healthcheck|2026-06-22
+profile_002|mobile_profile_healthcheck|2026-06-22

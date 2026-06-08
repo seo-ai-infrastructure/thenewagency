@@ -1,0 +1,34 @@
+version: 1
+workflows:
+- workflow_id: mobile_profile_healthcheck
+  execution_method: duoplus_rpa
+  duoplus_template_id: replace_template_id
+  action_class: first_party_account_healthcheck
+  customer_facing: false
+  approval_required: false
+  description: Open app, confirm login state, capture screenshot, write status.
+- workflow_id: approved_content_post
+  execution_method: duoplus_rpa
+  duoplus_template_id: replace_template_id
+  action_class: client_owned_content_publishing_after_approval
+  customer_facing: true
+  approval_required: true
+  description: Post a pre-approved, client-owned content artifact. Do not alter copy.
+- workflow_id: gbp_post_publish
+  execution_method: google_business_api
+  action_class: gbp_post_publish
+  customer_facing: true
+  approval_required: true
+  description: Publish a pre-approved GBP post via Zernio (content from facts/ + content-writer).
+- workflow_id: gbp_review_reply
+  execution_method: google_business_api
+  action_class: gbp_review_reply
+  customer_facing: true
+  approval_required: true
+  description: Reply to a Google review via Zernio (approved reply text + review_id from the draft).
+- workflow_id: gbp_photo_upload
+  execution_method: google_business_api
+  action_class: gbp_photo_upload
+  customer_facing: true
+  approval_required: true
+  description: Upload an approved photo to the Google Business Profile via Zernio create_media.

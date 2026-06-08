@@ -1,0 +1,20 @@
+# DuoPlus Open API — REAL endpoints (verified live June 2026). Base + auth below.
+# Method ladder (use the highest-up option that does the job):
+#   1 official platform API  2 DuoPlus API  3 DuoPlus native RPA  4 ADB/UIAutomator  5 desktop RPA
+base: "https://openapi.duoplus.cn/api/v1"        # override with DUOPLUS_API_BASE
+auth: { header: "DuoPlus-API-Key", source_env: "DUOPLUS_API_KEY" }
+envelope: { ok_code: 200, data_key: "data", error_key: "message" }
+limits: { qps_per_interface: 1 }
+api:
+  # control / status  (body: {"image_ids":[id,...]} ; status: 0 unconfigured,1 on,2 off,3 expired,10 powering on)
+  control: [cloudPhone/list, cloudPhone/status, cloudPhone/powerOn, cloudPhone/powerOff, cloudPhone/restart]
+  details: [cloudPhone/info]                       # body {"image_id":id} -> proxy/gps/locale/sim/device
+  # identity: phone is provisioned with its proxy+GPS; re-bind only if you must
+  identity: [cloudPhone/initProxy]                 # body {"image_id", "proxy":{host,port,user,password|id}, "location":{latitude,longitude}}
+  proxy:    [proxy/list, proxy/add, proxy/modify]
+  # RPA: create a task from a template, then find it in taskList, then poll taskLogList
+  rpa:
+    add:    automation/addTask        # {template_id, template_type(1 official/2 custom), name, images:[{image_id,issue_at,config}]}
+    list:   automation/taskList       # {issue_at_start,issue_at_end,name?,id?,...} (only last 7 days retained)
+    report: automation/taskLogList    # {task_id} -> list[].result_info.result (bool) + error_message
+  lowlevel: [execute-the-adb-command]  # ADB — diagnostics/evidence only, not the business engine

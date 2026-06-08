@@ -1,0 +1,45 @@
+version: 1
+profiles:
+- profile_id: profile_001
+  phone_id: duoplus_phone_001
+  expected_account: '@houseac'
+  proxy:
+    id: proxy_ftl_residential_1
+  location:
+    name: Fort Lauderdale, FL
+    lat: 26.1224
+    lng: -80.1373
+  allowed_workflows:
+  - mobile_profile_healthcheck
+  - approved_content_post
+  - gbp_post_publish
+  max_runs_per_day: 2
+  active: true
+- profile_id: profile_002
+  phone_id: duoplus_phone_001
+  expected_account: '@houseac_reviews'
+  proxy:
+    id: proxy_ftl_residential_2
+  location:
+    name: Hollywood, FL
+    lat: 26.0112
+    lng: -80.1495
+  allowed_workflows:
+  - mobile_profile_healthcheck
+  - approved_content_post
+  max_runs_per_day: 2
+  active: true
+- profile_id: profile_003
+  phone_id: duoplus_phone_001
+  expected_account: '@houseac_3'
+  proxy:
+    id: proxy_ftl_residential_3
+  location:
+    name: Pompano Beach, FL
+    lat: 26.2379
+    lng: -80.1248
+  allowed_workflows:
+  - mobile_profile_healthcheck
+  simulate_verify_fail: true
+  max_runs_per_day: 1
+  active: true

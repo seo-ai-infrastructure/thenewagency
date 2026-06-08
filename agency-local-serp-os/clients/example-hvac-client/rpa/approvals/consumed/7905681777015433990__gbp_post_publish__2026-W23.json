@@ -1,0 +1,16 @@
+{
+  "approval_id": "approval_20260606T032405Z",
+  "profile_id": "7905681777015433990",
+  "workflow_id": "gbp_post_publish",
+  "period": "2026-W23",
+  "status": "approved",
+  "created": "2026-06-06T03:24:05.070032+00:00",
+  "expires_at": "2026-06-13T03:24:05.070032+00:00",
+  "content": {
+    "text": "Beat the South Florida heat with House AC Repair. We keep Fort Lauderdale & Broward County homes cool with fast AC repair, evaporator coil service, seasonal tune-ups, and 24/7 emergency support. AC not cooling? Same-day appointments available - get an honest diagnosis and upfront pricing. Proudly serving Fort Lauderdale, Hollywood, Pompano Beach & nearby. Tap to call or request service today."
+  },
+  "content_hash": "78482824d18dcd173dadf04fbc573d830f8e2fdb580fb0ebe1aa14d9b90d791c",
+  "provenance": {
+    "source": "e2e_publish"
+  }
+}

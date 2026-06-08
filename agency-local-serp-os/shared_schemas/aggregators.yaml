@@ -1,0 +1,27 @@
+# Agency-wide structural directory/aggregator domains. In local SERPs these dominate slots but
+# are NOT true competitors — you cannot out-rank Yelp with a new page, you optimize the client's
+# LISTING inside them. classify() tags these slots ownership_class="aggregator" (distinct from
+# competitor) so recommendations route to a cloakbrowser profile-optimization job, not a new page.
+# A client's OWN listing inside an aggregator still wins as owned/controlled when its profile URL
+# is in that client's owned-assets.yaml (asset tiers are checked before this list).
+aggregators:
+  - yelp.com
+  - angi.com
+  - angieslist.com
+  - houzz.com
+  - thumbtack.com
+  - homeadvisor.com
+  - bbb.org
+  - yellowpages.com
+  - porch.com
+  - networx.com
+  - buildzoom.com
+  - expertise.com
+  - bark.com
+  - manta.com
+  - hotfrog.com
+  - foursquare.com
+  - citysearch.com
+  - mapquest.com
+  - superpages.com
+  - chamberofcommerce.com

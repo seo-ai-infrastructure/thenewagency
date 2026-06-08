@@ -1,0 +1,9 @@
+# Per-client WordPress site (self-hosted, REST API + Application Password).
+# The app password itself is NOT stored here — it's read from the named env var (gitignored .env).
+# To go live: replace api_url + username, create an Application Password in WP (Users -> Profile),
+# and put it in .env as the env var named below.
+api_url: https://REPLACE-with-client-wordpress-site.com
+username: REPLACE-wp-username
+app_password_env: WP_APP_PASSWORD_EXAMPLE_HVAC
+default_status: publish        # 'draft' to stage in WP for a second human look before going live
+default_categories: []         # optional WP category IDs

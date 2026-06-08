@@ -1,0 +1,146 @@
+{
+  "run_id": "reviews_20260607T195404Z",
+  "generated_at": "2026-06-07T19:54:04.863195+00:00",
+  "client": "example-hvac-client",
+  "n_reviews": 750,
+  "n_negative": 20,
+  "competitors": {
+    "Air Magic": {
+      "business": "Air Magic",
+      "slug": "air-magic",
+      "n_negative": 5,
+      "themes": {
+        "poor_workmanship": 2,
+        "hidden_fees": 1,
+        "no_show_late": 1,
+        "unresponsive": 1,
+        "rude_unprofessional": 1,
+        "upsell_pressure": 1
+      },
+      "samples": {
+        "poor_workmanship": [
+          "I used Air Magic for service with my very old unit. When it failed I turned to Air Magic. The results:\n\nMy experience with Air Magic. On April 4, 2022, they installed a new A/c. No rep show when city inspector came and the city failed the i",
+          "Got called for scheduled maintenance. i approved they showed up about a month later. Tech comes does his thing, all looked fine and left.  Not one hour later my unit starts leaking water like crazy.  i called they came back he tells me he c"
+        ],
+        "hidden_fees": [
+          "My AC hasn't been working this week. Magic Air came Wednesday to see what's the problem for $100 service call fix it or no fix. They said I needed 4lbs of R22 freon.  Ok. I have an R22 tank with 21lbs . They wouldn't use my freon because i "
+        ],
+        "no_show_late": [
+          "Got called for scheduled maintenance. i approved they showed up about a month later. Tech comes does his thing, all looked fine and left.  Not one hour later my unit starts leaking water like crazy.  i called they came back he tells me he c"
+        ],
+        "unresponsive": [
+          "The Technician was visibly annoyed by me asking question about what was to be performed for the maintenance/tune up.  His answers were short and unresponsive.  He immediately told me my AC unit needs to be replaced.  The only purpose for th"
+        ],
+        "rude_unprofessional": [
+          "The Technician was visibly annoyed by me asking question about what was to be performed for the maintenance/tune up.  His answers were short and unresponsive.  He immediately told me my AC unit needs to be replaced.  The only purpose for th"
+        ],
+        "upsell_pressure": [
+          "The Technician was visibly annoyed by me asking question about what was to be performed for the maintenance/tune up.  His answers were short and unresponsive.  He immediately told me my AC unit needs to be replaced.  The only purpose for th"
+        ]
+      },
+      "avg_rating": 1.0,
+      "top_themes": [
+        "poor_workmanship",
+        "hidden_fees",
+        "no_show_late",
+        "unresponsive",
+        "rude_unprofessional",
+        "upsell_pressure"
+      ]
+    },
+    "Quality Air Conditioning Company": {
+      "business": "Quality Air Conditioning Company",
+      "slug": "quality-air-conditioning-company",
+      "n_negative": 11,
+      "themes": {
+        "poor_workmanship": 4,
+        "misdiagnosis": 4,
+        "upsell_pressure": 3,
+        "overpriced": 2,
+        "warranty_issues": 1,
+        "unresponsive": 3,
+        "no_show_late": 1
+      },
+      "samples": {
+        "poor_workmanship": [
+          "The service provided by Quality Air did not ID that the unit has no refrigerant. Within 3 days the unit failed. We have no working AC. They sold us a defective Bosch AC - it\u2019s broken down 6 times in the first 10 months. Stay Away!",
+          "The worst company I have ever dealt with - period. No communication, incompetent staff, disinterested supervisors. Called on Saturday because I was in need of a company with 4.9 stars I thought they would be good. They were the opposite. Be",
+          "In March a new Bosch compressor was installed in my unit.  I have been without AC for weeks and its 82 degrees in my unit..  Techs have been out numerous times always saying it something different.  The original diagnosis was the freeze sen"
+        ],
+        "misdiagnosis": [
+          "The service provided by Quality Air did not ID that the unit has no refrigerant. Within 3 days the unit failed. We have no working AC. They sold us a defective Bosch AC - it\u2019s broken down 6 times in the first 10 months. Stay Away!",
+          "I appreciate their honest feedback of my unit. \u00a0One supplier wanted to replace parts This company advises against it as it would not impact the performance of my unit.\n\nUpdate: Despite them advising me to not make any changes to my AC unit ",
+          "In March a new Bosch compressor was installed in my unit.  I have been without AC for weeks and its 82 degrees in my unit..  Techs have been out numerous times always saying it something different.  The original diagnosis was the freeze sen"
+        ],
+        "upsell_pressure": [
+          "I appreciate their honest feedback of my unit. \u00a0One supplier wanted to replace parts This company advises against it as it would not impact the performance of my unit.\n\nUpdate: Despite them advising me to not make any changes to my AC unit ",
+          "Very friendly reply and fast action from the company. Also the guy, Steve, was very nice. The service and cleaning of the glogged drain did cost USD 231 and thus in the high end IMO. Also it was recommended to change the capacitor for at pr",
+          "Beware! BAD EXPERIENCE!  Our AC stopped, we called Quality, they came and immediately said the compressor was shot and we needed a new AC. (charged $99.0 but did nothing) We live in condo, just so happens another AC company was in the build"
+        ],
+        "overpriced": [
+          "The serviceman was great (Dewayne ) very courteous and fixed the thermostat that  needed a quick reprogram for heat . I was charged 276.25 which is ridiculous. I had a service contract and that was never discovered about the thermostat..I w",
+          "Very friendly reply and fast action from the company. Also the guy, Steve, was very nice. The service and cleaning of the glogged drain did cost USD 231 and thus in the high end IMO. Also it was recommended to change the capacitor for at pr"
+        ],
+        "warranty_issues": [
+          "The serviceman was great (Dewayne ) very courteous and fixed the thermostat that  needed a quick reprogram for heat . I was charged 276.25 which is ridiculous. I had a service contract and that was never discovered about the thermostat..I w"
+        ],
+        "unresponsive": [
+          "The worst company I have ever dealt with - period. No communication, incompetent staff, disinterested supervisors. Called on Saturday because I was in need of a company with 4.9 stars I thought they would be good. They were the opposite. Be",
+          "Their service is serious HORRIBLE that they always different excuses delay again and again.   Hard to trust them!!!\n\n08/14/2025 They told my husband that they will change the parts on this Friday, but they told my husband will be next week ",
+          "Have had repairs done over the last month. Two different parts and almost 2000 in repairs and today no air again. Someone was suppose to call me to let me know when it will be repaired and no one even calls you. Very disappointing."
+        ],
+        "no_show_late": [
+          "Their service is serious HORRIBLE that they always different excuses delay again and again.   Hard to trust them!!!\n\n08/14/2025 They told my husband that they will change the parts on this Friday, but they told my husband will be next week "
+        ]
+      },
+      "avg_rating": 1.45,
+      "top_themes": [
+        "poor_workmanship",
+        "misdiagnosis",
+        "upsell_pressure",
+        "unresponsive",
+        "overpriced",
+        "warranty_issues",
+        "no_show_late"
+      ]
+    },
+    "Air Anytime": {
+      "business": "Air Anytime",
+      "slug": "air-anytime",
+      "n_negative": 4,
+      "themes": {
+        "poor_workmanship": 1,
+        "no_show_late": 1,
+        "hidden_fees": 1,
+        "upsell_pressure": 1,
+        "misdiagnosis": 1
+      },
+      "samples": {
+        "poor_workmanship": [
+          "Called for emergency service. I had no a/c in my home. The tech  looked at the unit and said he would return tomorrow. The only issue was the coil needs cleaned. He left without any help with the temp in my home at 90 degrees. I guess the c"
+        ],
+        "no_show_late": [
+          "Florin sent me an apology text so hoping after todays appointment I can give Air Anytime a 5 Star review. Fingers Crossed.\nNo Stars really....they left me hanging for hours and did not show up even after they said they would. Don't let them"
+        ],
+        "hidden_fees": [
+          "Called for service on home split a/c system that was frozen.  Filter was clean and the indoor blower was working.  They showed promptly.  They required an $89 fee to look at the system.  After paying the 89$, they then required an additiona"
+        ],
+        "upsell_pressure": [
+          "Disappointed with this company. I called for service, because my AC wasn't working. Richard, the tech, was nice. Took the panels off looked for a leak and offered to fill with freon. He couldn't find anything wrong, so I had it filled and h"
+        ],
+        "misdiagnosis": [
+          "Disappointed with this company. I called for service, because my AC wasn't working. Richard, the tech, was nice. Took the panels off looked for a leak and offered to fill with freon. He couldn't find anything wrong, so I had it filled and h"
+        ]
+      },
+      "avg_rating": 1.5,
+      "top_themes": [
+        "poor_workmanship",
+        "no_show_late",
+        "hidden_fees",
+        "upsell_pressure",
+        "misdiagnosis"
+      ]
+    }
+  },
+  "n_recs": 6
+}

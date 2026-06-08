@@ -1,0 +1,20 @@
+version: 1
+enabled: true                      # KILL SWITCH for the web area — set false to halt all API publishing
+defaults:
+  require_human_approval_for_customer_facing: true
+  fail_closed: true
+allowed_action_classes:
+  - client_owned_content_publishing_after_approval
+  - first_party_infrastructure_deploy
+# RISK TIER: both publish/deploy to production -> ALWAYS routed to the human gate
+# (edge deploys aren't "customer_facing" in the social sense but DO ship to prod, so gate them).
+human_gate_action_classes:
+  - client_owned_content_publishing_after_approval
+  - first_party_infrastructure_deploy
+blocked_action_classes:
+  - fake_reviews
+  - fake_engagement
+  - unsolicited_bulk_messaging
+  - platform_policy_evasion
+  - scraping_private_data
+  - actions_on_non_client_accounts

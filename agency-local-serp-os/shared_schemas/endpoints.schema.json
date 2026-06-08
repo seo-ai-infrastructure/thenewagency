@@ -1,0 +1,26 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "dataforseo endpoints config",
+  "description": "Validates integrations/dataforseo/endpoints.yaml so a renamed key fails loudly instead of silently breaking the tracker.",
+  "type": "object",
+  "required": ["apis"],
+  "properties": {
+    "apis": {
+      "type": "object",
+      "minProperties": 1,
+      "additionalProperties": {
+        "type": "object",
+        "required": ["endpoint", "keyword_source", "parse_as", "cadence", "params"],
+        "properties": {
+          "endpoint": { "type": "string", "pattern": "^https://" },
+          "keyword_source": { "type": "string" },
+          "parse_as": { "enum": ["local_finder", "organic_mobile", "ai_mode"] },
+          "cadence": { "enum": ["daily", "weekly", "monthly"] },
+          "params": { "type": "object" },
+          "english_only": { "type": "boolean" },
+          "target_policy": { "type": "string" }
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,22 @@
+{
+  "approval_id": "approval_20260606T202705Z",
+  "profile_id": "14079618992035666030",
+  "workflow_id": "gbp_post_publish",
+  "period": "2026-06-09",
+  "status": "approved",
+  "created": "2026-06-06T20:27:05.645439+00:00",
+  "expires_at": "2026-06-13T20:27:05.645439+00:00",
+  "content": {
+    "text": "Is your AC blowing warm air even though it's running? You might have a frozen or damaged evaporator coil. This is one of the most common AC issues we see here in Fort Lauderdale, especially during our hot, humid summers. Our experienced technicians can quickly diagnose whether your coil needs a simple repair or full replacement, getting your home cool and comfortable again. Don't sweat it out \u2013 reach out to House AC Repair today and let us help restore your indoor comfort! \u2744\ufe0f",
+    "cta": {
+      "type": "LEARN_MORE",
+      "url": "https://houseacrepair.com"
+    }
+  },
+  "content_hash": "f144be0585481f8c6a3671117030e1b50557a189ee1a81c54cf0ac0d1d78c93a",
+  "provenance": {
+    "source": "gen_gbp_posts",
+    "cluster": "Evaporator Coil Repair/Replacement",
+    "angle": "a common AC problem + how you fix it"
+  }
+}

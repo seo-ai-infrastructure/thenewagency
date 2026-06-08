@@ -1,0 +1,22 @@
+{
+  "approval_id": "approval_20260606T202705Z",
+  "profile_id": "14079618992035666030",
+  "workflow_id": "gbp_post_publish",
+  "period": "2026-06-10",
+  "status": "approved",
+  "created": "2026-06-06T20:27:05.646441+00:00",
+  "expires_at": "2026-06-13T20:27:05.646441+00:00",
+  "content": {
+    "text": "Beat the Florida heat and save money with regular AC maintenance! \ud83d\udcb0 Most Fort Lauderdale homeowners don't realize that a simple tune-up can prevent costly emergency repairs down the road. Dirty filters and worn parts work harder, driving up your energy bills. Our local team helps Broward County families keep their systems running efficiently all year long. Don't wait until your AC breaks on the hottest day of summer. Schedule your maintenance check today and protect your home comfort investment.",
+    "cta": {
+      "type": "LEARN_MORE",
+      "url": "https://houseacrepair.com"
+    }
+  },
+  "content_hash": "63b4c05aab8a769a513af5144cb73e07f330749fd8213b7ed29e671459934521",
+  "provenance": {
+    "source": "gen_gbp_posts",
+    "cluster": "AC Repair Cost & Pricing",
+    "angle": "a money-saving maintenance reminder"
+  }
+}

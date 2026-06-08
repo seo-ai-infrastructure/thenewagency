@@ -1,0 +1,8 @@
+version: 1
+phones:
+  - phone_id: duoplus_phone_001
+    duoplus_image_id: "replace_with_cloud_phone_id"
+    label: "Client Main Cloud Phone"
+    timezone: "America/New_York"
+    max_parallel_runs: 1            # one foreground -> profiles run serially
+    active: true

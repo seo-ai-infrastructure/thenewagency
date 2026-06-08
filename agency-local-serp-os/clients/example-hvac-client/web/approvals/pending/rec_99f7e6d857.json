@@ -1,0 +1,22 @@
+{
+  "recommendation_id": "rec_99f7e6d857",
+  "client_id": "example-hvac-client",
+  "area": "web",
+  "subsystem": "wordpress-publisher",
+  "status": "pending_human_review",
+  "kind": "review_counter_positioning",
+  "gap": {
+    "competitor": "Quality Air Conditioning Company",
+    "theme": "misdiagnosis",
+    "mentions": 4,
+    "counter_hook": "Accurate diagnostics you can trust \u2014 honest assessments, no phantom problems.",
+    "evidence": [
+      "The service provided by Quality Air did not ID that the unit has no refrigerant. Within 3 days the unit failed. We have no working AC. They sold us a defective Bosch AC - it\u2019s broken down 6 times in the first 10 months. Stay Away!",
+      "I appreciate their honest feedback of my unit. \u00a0One supplier wanted to replace parts This company advises against it as it would not impact the performance of my unit.\n\nUpdate: Despite them advising me to not make any changes to my AC unit ",
+      "In March a new Bosch compressor was installed in my unit.  I have been without AC for weeks and its 82 degrees in my unit..  Techs have been out numerous times always saying it something different.  The original diagnosis was the freeze sen"
+    ]
+  },
+  "suggested_action": "Review Counter-Positioning: 'Quality Air Conditioning Company' is repeatedly criticized for misdiagnosis (4 negative reviews). Surface the counter-signal on the client's pages + FAQs: \"Accurate diagnostics you can trust \u2014 honest assessments, no phantom problems.\" (also add to business_entity.md so AI engines match safety/intent queries to the client).",
+  "note": "Human reviews + approves the positioning copy before any publish work order issues.",
+  "created": "2026-06-07T20:07:47.257496+00:00"
+}

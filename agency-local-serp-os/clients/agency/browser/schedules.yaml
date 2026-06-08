@@ -1,0 +1,9 @@
+version: 1
+# These agents are mostly AD-HOC (scripts/run_browser_task.py). Example scheduled scan is
+# inactive by default — flip active:true to run a daily rank spot-check across two agents.
+schedules:
+- schedule_id: daily_rank_spot_check
+  workflow_id: rank_spot_check
+  frequency: daily
+  profiles: [agent_01, agent_02]
+  active: false

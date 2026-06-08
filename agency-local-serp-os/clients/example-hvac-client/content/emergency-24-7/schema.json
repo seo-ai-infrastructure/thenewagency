@@ -1,0 +1,192 @@
+{
+  "@context": "https://schema.org",
+  "@graph": [
+    {
+      "@type": "HVACBusiness",
+      "@id": "https://houseacrepair.com/#business",
+      "name": "House AC Repair",
+      "description": "24/7 emergency and same-day residential air conditioning repair in Fort Lauderdale and Broward County, FL. Licensed, insured, upfront pricing.",
+      "url": "https://houseacrepair.com/",
+      "telephone": "+1-FILL-PHONE",
+      "priceRange": "$$",
+      "image": "https://houseacrepair.com/images/house-ac-repair-emergency-truck.jpg",
+      "logo": "https://houseacrepair.com/images/logo.png",
+      "address": {
+        "@type": "PostalAddress",
+        "streetAddress": "[FILL STREET]",
+        "addressLocality": "Fort Lauderdale",
+        "addressRegion": "FL",
+        "postalCode": "[FILL ZIP]",
+        "addressCountry": "US"
+      },
+      "geo": {
+        "@type": "GeoCoordinates",
+        "latitude": 26.1224,
+        "longitude": -80.1373
+      },
+      "areaServed": [
+        { "@type": "AdministrativeArea", "name": "Broward County, FL" },
+        { "@type": "City", "name": "Fort Lauderdale" },
+        { "@type": "City", "name": "Hollywood" },
+        { "@type": "City", "name": "Pompano Beach" },
+        { "@type": "City", "name": "Plantation" },
+        { "@type": "City", "name": "Coral Springs" },
+        { "@type": "City", "name": "Davie" },
+        { "@type": "City", "name": "Sunrise" }
+      ],
+      "openingHoursSpecification": [
+        {
+          "@type": "OpeningHoursSpecification",
+          "dayOfWeek": [
+            "Monday",
+            "Tuesday",
+            "Wednesday",
+            "Thursday",
+            "Friday",
+            "Saturday",
+            "Sunday"
+          ],
+          "opens": "00:00",
+          "closes": "23:59"
+        }
+      ],
+      "availableLanguage": ["English", "Spanish"],
+      "sameAs": [
+        "https://www.youtube.com/@houseac",
+        "https://www.facebook.com/houseac",
+        "https://www.yelp.com/biz/house-ac"
+      ],
+      "hasCredential": {
+        "@type": "EducationalOccupationalCredential",
+        "credentialCategory": "Florida State Certified HVAC Contractor License",
+        "identifier": "[FILL LICENSE #]"
+      }
+    },
+    {
+      "@type": "Service",
+      "@id": "https://houseacrepair.com/emergency-ac-repair-fort-lauderdale#service",
+      "name": "24/7 Emergency AC Repair",
+      "serviceType": "Emergency Air Conditioning Repair",
+      "description": "24-hour emergency and same-day AC repair for Fort Lauderdale and Broward County homeowners. For an AC not cooling, blowing warm air, or that quit overnight, licensed technicians dispatch around the clock with upfront written pricing.",
+      "category": "HVAC repair",
+      "provider": { "@id": "https://houseacrepair.com/#business" },
+      "areaServed": [
+        { "@type": "AdministrativeArea", "name": "Broward County, FL" },
+        { "@type": "City", "name": "Fort Lauderdale" }
+      ],
+      "availableChannel": {
+        "@type": "ServiceChannel",
+        "servicePhone": {
+          "@type": "ContactPoint",
+          "telephone": "+1-FILL-PHONE",
+          "contactType": "emergency",
+          "availableLanguage": ["English", "Spanish"],
+          "hoursAvailable": {
+            "@type": "OpeningHoursSpecification",
+            "dayOfWeek": [
+              "Monday",
+              "Tuesday",
+              "Wednesday",
+              "Thursday",
+              "Friday",
+              "Saturday",
+              "Sunday"
+            ],
+            "opens": "00:00",
+            "closes": "23:59"
+          }
+        }
+      },
+      "hoursAvailable": {
+        "@type": "OpeningHoursSpecification",
+        "dayOfWeek": [
+          "Monday",
+          "Tuesday",
+          "Wednesday",
+          "Thursday",
+          "Friday",
+          "Saturday",
+          "Sunday"
+        ],
+        "opens": "00:00",
+        "closes": "23:59"
+      },
+      "offers": {
+        "@type": "Offer",
+        "priceCurrency": "USD",
+        "priceSpecification": {
+          "@type": "PriceSpecification",
+          "minPrice": "150",
+          "maxPrice": "700",
+          "priceCurrency": "USD",
+          "description": "Typical emergency AC repair range; after-hours diagnostic fee quoted upfront before dispatch."
+        },
+        "availability": "https://schema.org/InStock"
+      }
+    },
+    {
+      "@type": "FAQPage",
+      "@id": "https://houseacrepair.com/emergency-ac-repair-fort-lauderdale#faq",
+      "mainEntity": [
+        {
+          "@type": "Question",
+          "name": "Is there 24 hour AC repair near me in Fort Lauderdale?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Yes. House AC Repair runs a 24/7 emergency line and same-day dispatch across Fort Lauderdale and Broward County, including nights, weekends, and holidays. Technicians dispatch from a local base, so help reaches your home fast."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "How much is emergency AC repair in Fort Lauderdale?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Emergency AC repair in Fort Lauderdale typically runs $150 to $700 depending on the part and time of day, plus a transparent after-hours diagnostic fee. House AC Repair provides an upfront written price before any work begins."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "What should I do when my AC stops cooling?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Check that the thermostat is set to cool, replace a clogged filter, and confirm the breaker has not tripped. If it still blows warm air, turn the system off to protect the compressor and call for emergency AC repair. We guide Fort Lauderdale homeowners through safe checks and dispatch same-day."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Can I get same-day AC repair near me today?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Yes. House AC Repair provides same-day AC repair throughout Fort Lauderdale and Broward County, often within a few hours of your call. Stocked trucks mean most emergency repairs are fixed on the first visit."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Why is my AC not cooling and blowing warm air?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "An AC not cooling and blowing warm air is usually caused by low refrigerant from a leak, a failed capacitor, a frozen evaporator coil, a dirty condenser, or a tripped breaker. A technician pinpoints the cause during an emergency diagnostic and quotes the repair in writing first."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Do you charge extra for after-hours or weekend AC repair?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "There is a transparent after-hours diagnostic fee for overnight, weekend, and holiday emergencies, disclosed upfront before we dispatch. You always approve the written price before any repair begins, with no hidden surge pricing."
+          }
+        }
+      ]
+    },
+    {
+      "@type": "WebPage",
+      "@id": "https://houseacrepair.com/emergency-ac-repair-fort-lauderdale",
+      "url": "https://houseacrepair.com/emergency-ac-repair-fort-lauderdale",
+      "name": "Emergency 24/7 AC Repair in Fort Lauderdale, FL | House AC Repair",
+      "description": "24-hour emergency and same-day AC repair in Fort Lauderdale and Broward County. AC not cooling? Call House AC Repair any time for fast, upfront-priced air conditioning repair.",
+      "isPartOf": { "@id": "https://houseacrepair.com/#business" },
+      "about": { "@id": "https://houseacrepair.com/emergency-ac-repair-fort-lauderdale#service" },
+      "primaryImageOfPage": "https://houseacrepair.com/images/house-ac-repair-emergency-truck.jpg"
+    }
+  ]
+}

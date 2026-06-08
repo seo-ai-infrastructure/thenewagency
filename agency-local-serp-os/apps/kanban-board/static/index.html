@@ -1,0 +1,120 @@
+<!doctype html><html lang="en"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>LEIA Mission Control</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Sora:wght@400;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/styles.css">
+<link rel="stylesheet" href="/mission-control.css">
+</head><body>
+<header class="head">
+  <h1>LEIA MISSION CONTROL</h1>
+  <nav class="mc-nav">
+    <button id="nav-mc" class="navbtn active" type="button">Command Center</button>
+    <button id="nav-si" class="navbtn" type="button">Search Intelligence</button>
+    <button id="nav-ai" class="navbtn" type="button">AI Search</button>
+    <button id="nav-aeo" class="navbtn" type="button">AEO</button>
+    <button id="nav-ci" class="navbtn" type="button">Real-Time Feedback</button>
+    <button id="nav-ti" class="navbtn" type="button">Threat Intelligence</button>
+    <button id="nav-dd" class="navbtn" type="button">Deep Dive Simulator</button>
+    <button id="nav-board" class="navbtn" type="button">Kanban Board</button>
+  </nav>
+  <span id="gen" class="gen board-only">connecting…</span>
+  <select id="client-filter" class="filter board-only" title="Filter by client"><option value="">All clients</option></select>
+  <button id="add" class="btn primary board-only">+ Add Work Order</button>
+</header>
+
+<!-- Auth Modal (SaaS Mode) -->
+<div id="auth-modal" class="mc-hide" style="position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.8); z-index:9999; display:flex; align-items:center; justify-content:center;">
+  <div style="background:#1e293b; padding:2rem; border-radius:8px; width:400px; text-align:center;">
+    <h2 style="margin-bottom:1rem; color:#fff;">Login to Agency OS</h2>
+    <input type="email" id="auth-email" placeholder="Email" style="width:100%; padding:0.8rem; margin-bottom:1rem; border-radius:4px; border:1px solid #334155; background:#0f172a; color:#fff;">
+    <input type="password" id="auth-pass" placeholder="Password" style="width:100%; padding:0.8rem; margin-bottom:1.5rem; border-radius:4px; border:1px solid #334155; background:#0f172a; color:#fff;">
+    <button id="auth-submit" class="btn primary" style="width:100%;">Sign In</button>
+    <div id="auth-err" style="color:#ef4444; margin-top:1rem; font-size:0.9rem;"></div>
+  </div>
+</div>
+
+<!-- VIEWS: dashboard tabs — rendered by mission-control.js -->
+<section id="view-mc" class="view"></section>
+<section id="view-si" class="view mc-hide"></section>
+<section id="view-ai" class="view mc-hide"></section>
+<section id="view-aeo" class="view mc-hide"></section>
+<section id="view-ci" class="view mc-hide"></section>
+<section id="view-ti" class="view mc-hide"></section>
+<section id="view-dd" class="view mc-hide"></section>
+
+<!-- VIEW: Kanban Board (unchanged projection of the filesystem) -->
+<div id="view-board" class="view mc-hide">
+  <div id="banner" class="banner"></div>
+  <main id="board" class="board"></main>
+  <section class="cal-wrap">
+    <h2 class="cal-title">CONTENT CALENDAR <span id="cal-sub" class="gen"></span></h2>
+    <div id="calendar" class="calendar"></div>
+  </section>
+  <div class="legend">
+    <span><i class="dot" style="background:#38bdf8"></i>DuoPlus</span>
+    <span><i class="dot" style="background:#a78bfa"></i>Zernio</span>
+    <span><i class="dot" style="background:#fbbf24"></i>CloakBrowser</span>
+    <span><i class="dot" style="background:#34d399"></i>Draft</span>
+    <span class="muted">polls every 3s · projection of the filesystem</span>
+  </div>
+</div>
+
+<div id="modal" class="modal hidden"><div class="sheet">
+  <div class="tabs">
+    <button id="tab-create" class="tab active" type="button">Create content</button>
+    <button id="tab-publish" class="tab" type="button">Queue work order</button>
+  </div>
+  <!-- CREATE CONTENT: order any creator -> a draft lands in NEEDS APPROVAL -->
+  <div id="pane-create">
+    <label>Client<select id="c-client"></select></label>
+    <label>Content type<select id="c-task"></select></label>
+    <label id="c-target-wrap" class="hidden"><span id="c-target-label">Target URL</span><input id="c-target" placeholder="https://…"></label>
+    <label id="c-input-wrap"><span id="c-input-label">Topic</span><input id="c-input" placeholder="e.g. Emergency drain cleaning in Fort Lauderdale"></label>
+    <label id="c-slug-wrap">Slug (optional)<input id="c-slug" placeholder="auto from topic"></label>
+    <p id="c-note" class="note">Generates a draft for human approval — nothing is published.</p>
+  </div>
+  <!-- QUEUE WORK ORDER: publish already-approved content -->
+  <div id="pane-publish" class="hidden">
+    <label>Client<select id="m-client"></select></label>
+    <label>Workflow<select id="m-workflow"></select></label>
+    <label>Target (profile / location / content)<select id="m-target"></select></label>
+    <label>Period<input id="m-period" placeholder="default: today"></label>
+    <label>Task params (JSON, optional)<textarea id="m-params" rows="3" placeholder='{"keyword":"..."}'></textarea></label>
+    <p id="m-note" class="note"></p>
+  </div>
+  <div class="row"><button id="m-cancel" class="btn" type="button">Cancel</button><button id="m-go" class="btn primary" type="button">Create</button></div>
+</div></div>
+<script src="/vendor/apexcharts.min.js"></script>
+<script src="/mission-control.js"></script>
+<script src="/app.js"></script>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+  // Initialize Supabase Client
+  const SUPABASE_URL = "https://dgkubjvxcsjejabamsms.supabase.co";
+  const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRna3VianZ4Y3NqZWphYmFtc21zIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA4ODA0MTMsImV4cCI6MjA5NjQ1NjQxM30.tjk3yJetNqHauhGGCjZ5NtNrPJoClCMuKhQ2A-FWi74";
+  const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+  // Auth logic for SaaS
+  document.getElementById("auth-submit").onclick = async () => {
+    const email = document.getElementById("auth-email").value;
+    const pass = document.getElementById("auth-pass").value;
+    
+    if(!email || !pass) {
+      document.getElementById("auth-err").innerText = "Please enter email and password.";
+      return;
+    }
+
+    const { data, error } = await supabase.auth.signInWithPassword({ email, password: pass });
+    if(error) { 
+      document.getElementById("auth-err").innerText = error.message; 
+      return; 
+    }
+    
+    localStorage.setItem("sb-token", data.session.access_token);
+    document.getElementById("auth-modal").classList.add("mc-hide");
+    window.location.reload();
+  };
+</script>
+</body></html>

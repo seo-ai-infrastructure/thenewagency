@@ -1,0 +1,9 @@
+{"tasks":[{"result":[{"items":[
+ {"type":"ai_overview","rank_absolute":1,"references":[{"domain":"houseacrepair.com"},{"domain":"coolbreeze-ac.com"}]},
+ {"type":"featured_snippet","rank_absolute":2,"rank_group":1,"domain":"houseacrepair.com","url":"https://houseacrepair.com/cost-analysis/coil","title":"AC Coil Cost"},
+ {"type":"local_pack","rank_absolute":3,"domain":"houseacrepair.com"},
+ {"type":"organic_video","rank_absolute":4,"url":"https://youtube.com/@houseac/v","title":"How AC coil repair works"},
+ {"type":"people_also_ask","rank_absolute":5,"items":[{"url":"https://houseacrepair.com/faq"}]},
+ {"type":"organic","rank_absolute":7,"domain":"reddit.com","url":"https://reddit.com/u/houseac/x"},
+ {"type":"organic","rank_absolute":8,"domain":"coolbreeze-ac.com","url":"https://coolbreeze-ac.com"}
+]}]}]}

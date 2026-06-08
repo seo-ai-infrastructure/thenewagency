@@ -1,0 +1,64 @@
+{
+  "client": "example-hvac-client",
+  "week": "2026-W23",
+  "location_id": "14079618992035666030",
+  "site": "https://houseacrepair.com",
+  "mode": "approved",
+  "posts": [
+    {
+      "date": "2026-06-07",
+      "cluster": "AC Repair (Core Service)",
+      "angle": "a seasonal South-Florida AC tip",
+      "text": "Summer's here and your AC is working overtime in this South Florida heat! \ud83c\udf34 Notice your system running constantly but not cooling like it should? It might be time for a refrigerant check or filter change. These are common issues we see all summer long in Broward County homes. Don't wait until you're sweating through another hot night \u2013 our local team is here to help keep Fort Lauderdale families comfortable all season. Give us a call today for expert AC repair service you can trust.",
+      "cta": {
+        "type": "LEARN_MORE",
+        "url": "https://houseacrepair.com"
+      },
+      "artifact": "14079618992035666030__gbp_post_publish__2026-06-07.json"
+    },
+    {
+      "date": "2026-06-08",
+      "cluster": "Emergency / 24-7 AC",
+      "angle": "a 24/7 emergency-service highlight",
+      "text": "AC stopped working in the middle of a hot Florida night? We know how uncomfortable that can be for your family. House AC Repair is here for you 24/7 with emergency service throughout Fort Lauderdale and Broward County. Our local technicians understand the urgency and are ready to restore your cool comfort any time, day or night. \ud83c\udf19 Don't suffer through the heat \u2013 reach out when you need us most.",
+      "cta": {
+        "type": "LEARN_MORE",
+        "url": "https://houseacrepair.com"
+      },
+      "artifact": "14079618992035666030__gbp_post_publish__2026-06-08.json"
+    },
+    {
+      "date": "2026-06-09",
+      "cluster": "Evaporator Coil Repair/Replacement",
+      "angle": "a common AC problem + how you fix it",
+      "text": "Is your AC blowing warm air even though it's running? You might have a frozen or damaged evaporator coil. This is one of the most common AC issues we see here in Fort Lauderdale, especially during our hot, humid summers. Our experienced technicians can quickly diagnose whether your coil needs a simple repair or full replacement, getting your home cool and comfortable again. Don't sweat it out \u2013 reach out to House AC Repair today and let us help restore your indoor comfort! \u2744\ufe0f",
+      "cta": {
+        "type": "LEARN_MORE",
+        "url": "https://houseacrepair.com"
+      },
+      "artifact": "14079618992035666030__gbp_post_publish__2026-06-09.json"
+    },
+    {
+      "date": "2026-06-10",
+      "cluster": "AC Repair Cost & Pricing",
+      "angle": "a money-saving maintenance reminder",
+      "text": "Beat the Florida heat and save money with regular AC maintenance! \ud83d\udcb0 Most Fort Lauderdale homeowners don't realize that a simple tune-up can prevent costly emergency repairs down the road. Dirty filters and worn parts work harder, driving up your energy bills. Our local team helps Broward County families keep their systems running efficiently all year long. Don't wait until your AC breaks on the hottest day of summer. Schedule your maintenance check today and protect your home comfort investment.",
+      "cta": {
+        "type": "LEARN_MORE",
+        "url": "https://houseacrepair.com"
+      },
+      "artifact": "14079618992035666030__gbp_post_publish__2026-06-10.json"
+    },
+    {
+      "date": "2026-06-11",
+      "cluster": "AC Maintenance & Tune-Ups",
+      "angle": "a nearby service-area spotlight",
+      "text": "Keeping Coral Springs cool, one AC at a time! \ud83c\udfe1 Your air conditioner works hard in our South Florida heat, and regular maintenance is the key to avoiding those dreaded summer breakdowns. We're proud to help homeowners throughout Coral Springs and all of Broward County keep their systems running smoothly with professional tune-ups. Clean coils, fresh filters, and a thorough inspection mean better efficiency and fewer repair calls down the road. Let us help you stay comfortable all year long \u2013 schedule your AC maintenance with House AC Repair today!",
+      "cta": {
+        "type": "LEARN_MORE",
+        "url": "https://houseacrepair.com"
+      },
+      "artifact": "14079618992035666030__gbp_post_publish__2026-06-11.json"
+    }
+  ]
+}

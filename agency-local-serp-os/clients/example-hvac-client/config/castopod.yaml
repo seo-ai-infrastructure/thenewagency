@@ -1,0 +1,4 @@
+# Per-client Castopod podcast (self-hosted). The instance base URL + API token are env
+# (CASTOPOD_API_BASE / CASTOPOD_API_TOKEN); only the per-client podcast id lives here.
+podcast_id: REPLACE-castopod-podcast-id
+podcast_slug: example-hvac

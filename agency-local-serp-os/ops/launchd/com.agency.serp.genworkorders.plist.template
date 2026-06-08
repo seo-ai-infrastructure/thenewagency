@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0"><dict>
+  <key>Label</key><string>com.agency.serp.genworkorders</string>
+  <key>ProgramArguments</key><array>
+    <string>/bin/bash</string>
+    <string>__REPO__/ops/launchd/run-wrapped.sh</string>
+    <string>/bin/bash</string>
+    <string>scripts/issue_all.sh</string>
+  </array>
+  <key>RunAtLoad</key><false/>
+  <key>StartCalendarInterval</key><dict><key>Hour</key><integer>7</integer><key>Minute</key><integer>0</integer></dict>
+  <key>StandardOutPath</key><string>__REPO__/ops/launchd/logs/issue.out.log</string>
+  <key>StandardErrorPath</key><string>__REPO__/ops/launchd/logs/issue.err.log</string>
+</dict></plist>

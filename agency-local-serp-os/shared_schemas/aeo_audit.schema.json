@@ -1,0 +1,52 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "aeo_audit v1",
+  "type": "object",
+  "required": ["run_id", "generated_at", "client", "crawlability"],
+  "properties": {
+    "run_id": { "type": "string" },
+    "generated_at": { "type": "string" },
+    "client": { "type": "string" },
+    "crawlability": {
+      "type": "object",
+      "required": ["markdown_purity", "entity_clarity", "llms_txt_present", "bots"],
+      "properties": {
+        "markdown_purity": {
+          "type": "object",
+          "required": ["purity", "content_lines", "boilerplate_lines", "total_chars"],
+          "properties": {
+            "purity": { "type": "number" },
+            "content_lines": { "type": "integer" },
+            "boilerplate_lines": { "type": "integer" },
+            "total_chars": { "type": "integer" }
+          }
+        },
+        "entity_clarity": {
+          "type": "object",
+          "required": ["entities", "found", "total", "clarity", "missing"],
+          "properties": {
+            "entities": { "type": "object" },
+            "found": { "type": "integer" },
+            "total": { "type": "integer" },
+            "clarity": { "type": "number" },
+            "missing": { "type": "array", "items": { "type": "string" } }
+          }
+        },
+        "llms_txt_present": { "type": "boolean" },
+        "bots": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["bot", "accessible", "blocked_by_robots"],
+            "properties": {
+              "bot": { "type": "string" },
+              "accessible": { "type": "boolean" },
+              "blocked_by_robots": { "type": "boolean" }
+            }
+          }
+        }
+      }
+    },
+    "evaluation": { "type": ["object", "null"] }
+  }
+}

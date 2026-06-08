@@ -1,0 +1,22 @@
+{
+  "approval_id": "approval_20260606T202705Z",
+  "profile_id": "14079618992035666030",
+  "workflow_id": "gbp_post_publish",
+  "period": "2026-06-11",
+  "status": "approved",
+  "created": "2026-06-06T20:27:05.648701+00:00",
+  "expires_at": "2026-06-13T20:27:05.648701+00:00",
+  "content": {
+    "text": "Keeping Coral Springs cool, one AC at a time! \ud83c\udfe1 Your air conditioner works hard in our South Florida heat, and regular maintenance is the key to avoiding those dreaded summer breakdowns. We're proud to help homeowners throughout Coral Springs and all of Broward County keep their systems running smoothly with professional tune-ups. Clean coils, fresh filters, and a thorough inspection mean better efficiency and fewer repair calls down the road. Let us help you stay comfortable all year long \u2013 schedule your AC maintenance with House AC Repair today!",
+    "cta": {
+      "type": "LEARN_MORE",
+      "url": "https://houseacrepair.com"
+    }
+  },
+  "content_hash": "957bb3c77d9a6dc93e7a46cc9c4c52cda82aa058c6ab2ecab59d9d452292a955",
+  "provenance": {
+    "source": "gen_gbp_posts",
+    "cluster": "AC Maintenance & Tune-Ups",
+    "angle": "a nearby service-area spotlight"
+  }
+}

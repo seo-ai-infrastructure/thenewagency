@@ -1,0 +1,69 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "serp_saturation v1",
+  "type": "object",
+  "required": [
+    "run_id",
+    "generated_at",
+    "goal_min",
+    "goal_stretch",
+    "n_serps",
+    "n_meeting_goal",
+    "pct_meeting_goal",
+    "avg_presence",
+    "serps",
+    "below_goal"
+  ],
+  "properties": {
+    "run_id": { "type": "string" },
+    "generated_at": { "type": "string" },
+    "goal_min": { "type": "integer" },
+    "goal_stretch": { "type": "integer" },
+    "n_serps": { "type": "integer" },
+    "n_meeting_goal": { "type": "integer" },
+    "pct_meeting_goal": { "type": "number" },
+    "avg_presence": { "type": "number" },
+    "serps": { "type": "array", "items": { "$ref": "#/$defs/serp" } },
+    "below_goal": { "type": "array", "items": { "$ref": "#/$defs/serp" } }
+  },
+  "$defs": {
+    "serp": {
+      "type": "object",
+      "required": [
+        "keyword",
+        "location",
+        "os",
+        "query_class",
+        "presence_count",
+        "distinct_features_held",
+        "features_held",
+        "features_unclaimed",
+        "competitor_features",
+        "total_features_on_serp",
+        "goal_min",
+        "goal_stretch",
+        "meets_goal",
+        "goal_band",
+        "gap_to_goal"
+      ],
+      "properties": {
+        "keyword": { "type": "string" },
+        "location": { "type": "string" },
+        "os": { "type": "string" },
+        "query_class": { "type": "string" },
+        "lead_value": { "type": ["string", "null"] },
+        "presence_count": { "type": "integer" },
+        "distinct_features_held": { "type": "integer" },
+        "features_held": { "type": "array", "items": { "type": "string" } },
+        "features_unclaimed": { "type": "array", "items": { "type": "string" } },
+        "competitor_features": { "type": "array", "items": { "type": "string" } },
+        "total_features_on_serp": { "type": "integer" },
+        "goal_min": { "type": "integer" },
+        "goal_stretch": { "type": "integer" },
+        "meets_goal": { "type": "boolean" },
+        "goal_band": { "enum": ["below", "in_band", "above"] },
+        "gap_to_goal": { "type": "integer" }
+      }
+    }
+  }
+}

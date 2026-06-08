@@ -1,0 +1,38 @@
+version: 1
+enabled: true                      # GLOBAL KILL SWITCH — set false to halt all RPA
+defaults:
+  require_human_approval_for_customer_facing: true
+  require_screenshot_evidence: true
+  max_retries_read_only: 2
+  retry_customer_facing: false     # never blind-retry side-effecting writes
+  intra_workflow_jitter_seconds: [3, 12]
+  fail_closed: true
+allowed_action_classes:
+  - first_party_account_healthcheck
+  - profile_healthcheck
+  - local_search_simulation
+  - mobile_quality_assurance
+  - screenshot_evidence_collection
+  - app_install_or_update
+  - internal_data_entry
+  - client_owned_content_publishing_after_approval
+  - gbp_post_publish
+  - gbp_review_reply
+  - gbp_photo_upload
+# RISK TIER: these post/respond publicly -> ALWAYS routed to the human gate,
+# even if a workflow forgets to set customer_facing (defense in depth).
+human_gate_action_classes:
+  - client_owned_content_publishing_after_approval
+  - gbp_post_publish
+  - gbp_review_reply
+  - gbp_photo_upload
+blocked_action_classes:
+  - fake_reviews
+  - review_gating
+  - fake_engagement
+  - unsolicited_bulk_messaging
+  - captcha_bypass
+  - verification_bypass
+  - platform_policy_evasion
+  - scraping_private_data
+  - actions_on_non_client_accounts

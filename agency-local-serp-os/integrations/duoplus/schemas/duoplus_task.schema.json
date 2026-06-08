@@ -1,0 +1,3 @@
+{"type":"object","required":["work_order_id","phone_id","profile_id","workflow_id"],
+ "properties":{"work_order_id":{"type":"string"},"customer_facing":{"type":"boolean"},
+ "requires_human_approval":{"type":"boolean"},"approval_ref":{"type":["string","null"]}}}

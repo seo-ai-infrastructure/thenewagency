@@ -1,0 +1,31 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "estate_score v1",
+  "description": "One record per query_class (lane). Lane scores are never blended.",
+  "type": "object",
+  "required": ["run_id", "query_class", "lane_score", "queries"],
+  "properties": {
+    "run_id": { "type": "string" },
+    "query_class": { "enum": ["local_finder", "organic_mobile", "ai_mode"] },
+    "lane_score": { "type": "number", "minimum": 0, "maximum": 1 },
+    "samples": { "type": "integer", "minimum": 0 },
+    "low_confidence": { "type": "boolean" },
+    "queries": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["keyword", "location", "os", "estate_share", "total_slots"],
+        "properties": {
+          "keyword": { "type": "string" },
+          "location": { "type": "string" },
+          "os": { "type": "string" },
+          "estate_share": { "type": "number", "minimum": 0, "maximum": 1 },
+          "lead_value": { "type": ["string", "null"] },
+          "competitor_slots": { "type": "integer" },
+          "total_slots": { "type": "integer" },
+          "ai_available": { "type": "boolean" }
+        }
+      }
+    }
+  }
+}

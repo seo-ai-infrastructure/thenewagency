@@ -1,0 +1,16 @@
+version: 1
+# One persona profile per client, logged into ALL its social/video platforms (Facebook, Reddit,
+# TikTok, Quora, LinkedIn, YouTube). Created/registered by scripts/provision_cb_profile.py.
+# Log in ONCE per platform via the CloakBrowser Manager GUI; cookies persist in user_data_dir so
+# tasks never re-login. The wrong-account guard checks expected_account at verify_url before acting.
+profiles:
+- profile_id: example-hvac-client-cb-agent
+  fingerprint_id: cloak_fp_example-hvac-client-cb-agent
+  user_data_dir: ~/cloak-profiles/example-hvac-client-cb-agent
+  proxy_ref: proxy_hvac_01                # set PROXY_HVAC_01 in .env (sticky residential, near service area)
+  expected_account: "REPLACE-after-first-login"   # e.g. the FB Page name / handle the guard checks
+  verify_url: "https://www.facebook.com/"          # a page that shows the logged-in identity
+  allowed_workflows: [facebook_post, reddit_post, quora_answer_post, linkedin_post, tiktok_upload, youtube_upload,
+                      reddit_comment, facebook_comment, linkedin_comment, youtube_comment,
+                      pinterest_pin, eventbrite_create, patch_article, nextdoor_post]
+  paused: false

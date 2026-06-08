@@ -1,0 +1,19 @@
+{
+  "approval_id": "approval_20260605T142909Z",
+  "profile_id": "locations_REPLACE",
+  "workflow_id": "video_asset",
+  "period": "2026-W24",
+  "status": "approved",
+  "created": "2026-06-05T14:29:09.709278+00:00",
+  "expires_at": "2026-06-12T14:29:09.709278+00:00",
+  "content": {
+    "text": "Emergency AC repair, friendly tech at a Fort Lauderdale door"
+  },
+  "content_hash": "9669c3d81ac7f7c4edd4b0cd5f2408a5bba691e5ccfe678128756d7185ac27a6",
+  "provenance": {
+    "prompt_model": "stub",
+    "image_model": "fake-image",
+    "facts_used": true,
+    "approved_from_draft": "draft_20260605T142909Z"
+  }
+}

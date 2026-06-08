@@ -1,0 +1,151 @@
+version: 1
+# Social + video, posted "like a human" on the per-client CloakBrowser profile <client>-cb-agent.
+#   kind: agent_task       -> Claude drives a contextual post (Facebook/Reddit/Quora/LinkedIn)
+#   kind: playwright_script -> deterministic upload form (TikTok/YouTube)
+# ALL are public ACTIONS -> gated: a hashed approval artifact is required. Approved text/media is
+# merged into params and posted verbatim — the agent never edits approved copy.
+workflows:
+- workflow_id: facebook_post
+  execution_method: cloakbrowser
+  kind: agent_task
+  agent_goal: >
+    On the already-logged-in Facebook Page for this business, create a new post containing the
+    pre-approved text (params.text) and, if present, attach params.media_url. Post it VERBATIM —
+    never edit the copy. Do not like, follow, comment, or message anywhere else. Confirm it published.
+  action_class: social_posting
+  customer_facing: true
+  approval_required: true
+  description: Publish a pre-approved post to the client's Facebook Page (human-like).
+- workflow_id: reddit_post
+  execution_method: cloakbrowser
+  kind: agent_task
+  agent_goal: >
+    Post the pre-approved text (params.text) to the subreddit/thread named in params.target as a
+    genuine, helpful contribution, VERBATIM. Respect subreddit rules. No vote manipulation, no spam,
+    no posting to unrelated subreddits.
+  action_class: social_posting
+  customer_facing: true
+  approval_required: true
+  description: Publish a pre-approved Reddit post/comment (human-like, rule-respecting).
+- workflow_id: quora_answer_post
+  execution_method: cloakbrowser
+  kind: agent_task
+  agent_goal: >
+    Answer the Quora question at params.target with the pre-approved answer (params.text), VERBATIM.
+    If the text discloses affiliation, keep that disclosure. No link spam.
+  action_class: social_posting
+  customer_facing: true
+  approval_required: true
+  description: Publish a pre-approved Quora answer (human-like).
+- workflow_id: linkedin_post
+  execution_method: cloakbrowser
+  kind: agent_task
+  agent_goal: >
+    Publish the pre-approved LinkedIn post/Pulse article text (params.text) on the logged-in
+    profile, VERBATIM. No mass connecting or messaging.
+  action_class: social_posting
+  customer_facing: true
+  approval_required: true
+  description: Publish a pre-approved LinkedIn post / Pulse article (human-like).
+- workflow_id: tiktok_upload
+  execution_method: cloakbrowser
+  kind: playwright_script
+  script: scripts/tiktok_upload.py
+  action_class: client_owned_video_publishing_after_approval
+  customer_facing: true
+  approval_required: true
+  description: Upload an approved video (params.video_path) to TikTok with the approved caption.
+- workflow_id: youtube_upload
+  execution_method: cloakbrowser
+  kind: playwright_script
+  script: scripts/youtube_upload.py
+  action_class: client_owned_video_publishing_after_approval
+  customer_facing: true
+  approval_required: true
+  description: Upload an approved video to YouTube (Shorts or long-form) with the approved title/desc.
+# --- "Drop a comment" on a SPECIFIC target (params.target = the thread/post/video URL) ---
+- workflow_id: reddit_comment
+  execution_method: cloakbrowser
+  kind: agent_task
+  agent_goal: >
+    Navigate to the Reddit thread at params.target and post the pre-approved comment (params.text)
+    as a reply, VERBATIM. Be a genuine, rule-respecting contribution. Do not edit the copy, do not
+    vote-manipulate, do not post anywhere else. Confirm it posted.
+  action_class: social_posting
+  customer_facing: true
+  approval_required: true
+  description: Post a pre-approved comment to a specific Reddit thread (human-like).
+- workflow_id: facebook_comment
+  execution_method: cloakbrowser
+  kind: agent_task
+  agent_goal: >
+    Navigate to the Facebook post or group at params.target and add the pre-approved comment
+    (params.text), VERBATIM. Do not edit the copy or interact elsewhere. Confirm it posted.
+  action_class: social_posting
+  customer_facing: true
+  approval_required: true
+  description: Post a pre-approved comment to a specific Facebook post/group (human-like).
+- workflow_id: linkedin_comment
+  execution_method: cloakbrowser
+  kind: agent_task
+  agent_goal: >
+    Navigate to the LinkedIn post at params.target and add the pre-approved comment (params.text),
+    VERBATIM. No mass actions elsewhere. Confirm it posted.
+  action_class: social_posting
+  customer_facing: true
+  approval_required: true
+  description: Post a pre-approved comment to a specific LinkedIn post (human-like).
+- workflow_id: youtube_comment
+  execution_method: cloakbrowser
+  kind: agent_task
+  agent_goal: >
+    Navigate to the YouTube video at params.target and add the pre-approved comment (params.text),
+    VERBATIM. Do not edit the copy. Confirm it posted.
+  action_class: social_posting
+  customer_facing: true
+  approval_required: true
+  description: Post a pre-approved comment to a specific YouTube video (human-like).
+# --- Pinterest pin / Eventbrite event / Patch.com article (human-like, on <client>-cb-agent) ---
+- workflow_id: pinterest_pin
+  execution_method: cloakbrowser
+  kind: agent_task
+  agent_goal: >
+    Create a new Pinterest Pin: upload the image at params.image_path, set the title to params.title
+    and the description to params.text VERBATIM, and set the destination link to params.link if present.
+    Save the Pin. Do not edit the copy or interact elsewhere.
+  action_class: social_posting
+  customer_facing: true
+  approval_required: true
+  description: Create a Pinterest pin (image + approved description + link), human-like.
+- workflow_id: eventbrite_create
+  execution_method: cloakbrowser
+  kind: agent_task
+  agent_goal: >
+    Create a new Eventbrite event on the logged-in account: title params.title, description
+    params.text VERBATIM, start params.startDateTime, end params.endDateTime, location params.location.
+    Save/publish it. Do NOT invent any detail not provided in the params.
+  action_class: client_owned_content_publishing_after_approval
+  customer_facing: true
+  approval_required: true
+  description: Create a local Eventbrite event from an approved draft (human-like).
+- workflow_id: patch_article
+  execution_method: cloakbrowser
+  kind: agent_task
+  agent_goal: >
+    Publish the pre-approved community article (params.text) to Patch.com on the logged-in account:
+    use the first line as the headline and the rest as the body, VERBATIM. Do not edit the copy.
+  action_class: client_owned_content_publishing_after_approval
+  customer_facing: true
+  approval_required: true
+  description: Publish an approved local article to Patch.com (human-like).
+- workflow_id: nextdoor_post
+  execution_method: cloakbrowser
+  kind: agent_task
+  agent_goal: >
+    On the logged-in Nextdoor account (the business's neighborhood), create a new post with the
+    pre-approved text (params.text), VERBATIM — genuine and neighborly, not an ad. Do not edit the
+    copy or interact elsewhere. Confirm it posted.
+  action_class: social_posting
+  customer_facing: true
+  approval_required: true
+  description: Publish a pre-approved post to Nextdoor (human-like).

@@ -1,0 +1,20 @@
+provider: zernio
+base_url: "https://zernio.com/api/v1"
+auth: { scheme: Bearer, source_env: ZERNIO_API_KEY }
+# Zernio manages the Google business.manage OAuth at account-connect time; we only hold
+# the Zernio API key + the connected accountId (+ optional locationId for multi-location).
+endpoints:
+  create_post:    { method: POST, path: "/posts" }
+  list_reviews:   { method: GET,  path: "/accounts/{accountId}/gmb-reviews" }
+  reply_review:   { method: POST, path: "/accounts/{accountId}/gmb-reviews/{reviewId}/reply" }  # confirm exact path
+  create_media:   { method: POST, path: "/accounts/{accountId}/gmb-media" }
+  list_locations: { method: GET,  path: "/accounts/{accountId}/gmb-locations" }
+limits:
+  content_chars: 1500
+  images_per_post: 1
+  image_formats: [JPEG, PNG]
+  image_max_mb: 5
+  image_min_px: "400x300"
+  videos: false
+  observed_failure_rate: "~6.5% (Zernio platform stat — handle retries/holds accordingly)"
+unsupported: [videos, qa_replies, service_areas, business_categories]

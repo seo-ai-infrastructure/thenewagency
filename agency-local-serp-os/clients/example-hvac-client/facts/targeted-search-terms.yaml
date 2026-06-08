@@ -1,0 +1,8 @@
+version: 2
+rank_tracking:
+  local_finder_terms:
+    - { id: ac_repair_ftl, keyword: "ac repair fort lauderdale fl", service_line: ac_repair, lead_value: high }
+  organic_mobile_terms:
+    - { id: coil_cost_ftl, keyword: "ac evaporator coil repair cost fort lauderdale fl", service_line: coil_repair, lead_value: medium_high }
+  ai_mode_conversational_queries:
+    - { id: who_call_coil_ftl, keyword: "who should I call for evaporator coil replacement in Fort Lauderdale", service_line: coil_repair, lead_value: medium_high }

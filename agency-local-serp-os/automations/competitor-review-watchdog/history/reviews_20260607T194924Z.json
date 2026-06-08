@@ -1,0 +1,53 @@
+{
+  "run_id": "reviews_20260607T194924Z",
+  "generated_at": "2026-06-07T19:49:24.575539+00:00",
+  "client": "example-hvac-client",
+  "n_reviews": 750,
+  "n_negative": 20,
+  "competitors": {
+    "Air Magic": {
+      "business": "Air Magic",
+      "slug": "air-magic",
+      "n_negative": 5,
+      "themes": {
+        "hidden_fees": 1
+      },
+      "samples": {
+        "hidden_fees": [
+          "My AC hasn't been working this week. Magic Air came Wednesday to see what's the problem for $100 service call fix it or no fix. They said I needed 4lbs of R22 freon.  Ok. I have an R22 tank with 21lbs . They wouldn't use my freon because i "
+        ]
+      },
+      "avg_rating": 1.0,
+      "top_themes": [
+        "hidden_fees"
+      ]
+    },
+    "Quality Air Conditioning Company": {
+      "business": "Quality Air Conditioning Company",
+      "slug": "quality-air-conditioning-company",
+      "n_negative": 11,
+      "themes": {},
+      "samples": {},
+      "avg_rating": 1.45,
+      "top_themes": []
+    },
+    "Air Anytime": {
+      "business": "Air Anytime",
+      "slug": "air-anytime",
+      "n_negative": 4,
+      "themes": {
+        "no_show_late": 1
+      },
+      "samples": {
+        "no_show_late": [
+          "Florin sent me an apology text so hoping after todays appointment I can give Air Anytime a 5 Star review. Fingers Crossed.\nNo Stars really....they left me hanging for hours and did not show up even after they said they would. Don't let them"
+        ]
+      },
+      "avg_rating": 1.5,
+      "top_themes": [
+        "no_show_late"
+      ]
+    }
+  },
+  "n_recs": 0
+}

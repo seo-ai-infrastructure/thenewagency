@@ -1,0 +1,22 @@
+version: 1
+# "web" area = API content publishers (WordPress, Cloudflare edge, Castopod). Each is gated:
+# a hashed, human-approved artifact is required before anything is published/deployed.
+workflows:
+- workflow_id: wp_article_publish
+  execution_method: wordpress_api
+  action_class: client_owned_content_publishing_after_approval
+  customer_facing: true
+  approval_required: true
+  description: Publish a pre-approved long-form article to the client's self-hosted WordPress.
+- workflow_id: edge_deploy
+  execution_method: cloudflare_edge
+  action_class: first_party_infrastructure_deploy
+  customer_facing: false
+  approval_required: true
+  description: Deploy approved HTML + Schema.org JSON-LD to the client's Cloudflare edge worker.
+- workflow_id: podcast_publish
+  execution_method: castopod_api
+  action_class: client_owned_content_publishing_after_approval
+  customer_facing: true
+  approval_required: true
+  description: Publish a pre-approved podcast episode to Castopod (RSS -> Spotify/Apple/YouTube).

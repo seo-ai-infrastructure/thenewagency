@@ -1,0 +1,109 @@
+{
+  "run_id": "aeo_20260607T192348Z",
+  "generated_at": "2026-06-07T19:23:48.053579+00:00",
+  "client": "example-hvac-client",
+  "crawlability": {
+    "markdown_purity": {
+      "purity": 0.8646,
+      "content_lines": 17,
+      "boilerplate_lines": 3,
+      "total_chars": 1241
+    },
+    "entity_clarity": {
+      "entities": {
+        "service": true,
+        "location": true,
+        "price": true,
+        "hours": false,
+        "guarantee": false
+      },
+      "found": 3,
+      "total": 5,
+      "clarity": 0.6,
+      "missing": [
+        "hours",
+        "guarantee"
+      ]
+    },
+    "llms_txt_present": true,
+    "bots": [
+      {
+        "bot": "GPTBot",
+        "accessible": true,
+        "blocked_by_robots": false
+      },
+      {
+        "bot": "ClaudeBot",
+        "accessible": true,
+        "blocked_by_robots": false
+      },
+      {
+        "bot": "OAI-SearchBot",
+        "accessible": true,
+        "blocked_by_robots": false
+      },
+      {
+        "bot": "PerplexityBot",
+        "accessible": true,
+        "blocked_by_robots": false
+      },
+      {
+        "bot": "Bingbot",
+        "accessible": true,
+        "blocked_by_robots": false
+      }
+    ]
+  },
+  "evaluation": {
+    "client_coverage": 0.6,
+    "missing_entities": [
+      "hours",
+      "guarantee"
+    ],
+    "win_rate": 0.0,
+    "wins": 0,
+    "competitors": {
+      "coolbreeze-ac.com": 1.0
+    },
+    "entity_conquest": {
+      "hours": [
+        "coolbreeze-ac.com"
+      ],
+      "guarantee": [
+        "coolbreeze-ac.com"
+      ]
+    },
+    "entity_matrix": {
+      "service": {
+        "client": true,
+        "competitors": {
+          "coolbreeze-ac.com": true
+        }
+      },
+      "location": {
+        "client": true,
+        "competitors": {
+          "coolbreeze-ac.com": true
+        }
+      },
+      "price": {
+        "client": true,
+        "competitors": {
+          "coolbreeze-ac.com": true
+        }
+      },
+      "hours": {
+        "client": false,
+        "competitors": {
+          "coolbreeze-ac.com": true
+        }
+      },
+      "guarantee": {
+        "client": false,
+        "competitors": {
+          "coolbreeze-ac.com": true
+        }
+      }
+    }
+  }
+}

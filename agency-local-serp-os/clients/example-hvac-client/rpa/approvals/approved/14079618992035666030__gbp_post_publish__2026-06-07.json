@@ -1,0 +1,22 @@
+{
+  "approval_id": "approval_20260606T202705Z",
+  "profile_id": "14079618992035666030",
+  "workflow_id": "gbp_post_publish",
+  "period": "2026-06-07",
+  "status": "approved",
+  "created": "2026-06-06T20:27:05.641207+00:00",
+  "expires_at": "2026-06-13T20:27:05.641207+00:00",
+  "content": {
+    "text": "Summer's here and your AC is working overtime in this South Florida heat! \ud83c\udf34 Notice your system running constantly but not cooling like it should? It might be time for a refrigerant check or filter change. These are common issues we see all summer long in Broward County homes. Don't wait until you're sweating through another hot night \u2013 our local team is here to help keep Fort Lauderdale families comfortable all season. Give us a call today for expert AC repair service you can trust.",
+    "cta": {
+      "type": "LEARN_MORE",
+      "url": "https://houseacrepair.com"
+    }
+  },
+  "content_hash": "3fe9b0464224f610308caabffa26ce9b6c69292eeec6196723c737da43e620ff",
+  "provenance": {
+    "source": "gen_gbp_posts",
+    "cluster": "AC Repair (Core Service)",
+    "angle": "a seasonal South-Florida AC tip"
+  }
+}

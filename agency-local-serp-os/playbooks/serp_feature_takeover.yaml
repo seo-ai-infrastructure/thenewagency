@@ -1,0 +1,61 @@
+# SERP-FEATURE TAKEOVER PLAYBOOK
+# For every targeted keyword we map the MOBILE SERP features present (DataForSEO mobile) and run
+# the matching tactic to capture each. For every term we also stand up 2x "barnacle" assets on
+# high-authority third-party platforms to swing for extra real estate. Keywords are grouped BY
+# CONTENT (one content asset can target a whole cluster).
+version: 1
+source: dataforseo_mobile           # we target the mobile SERP results
+
+features:
+
+  ai_overview:                       # Google AI Overview (AIO)
+    goal: get cited as a source in the AI Overview
+    assets: [youtube_video, notebooklm_source, edge_html_schema]
+    tactics:
+      - Publish a YouTube video that directly answers the query (AIO weighs video + transcript).
+      - Build a NotebookLM notebook / structured source set so the answer is citable.
+      - Serve the answer page as static HTML + Schema.org from a Cloudflare edge worker (~10ms load)
+        for crawlability and Core Web Vitals.
+
+  people_also_ask:                   # PAA accordion
+    goal: own the PAA answers
+    treat_as: secondary_keywords     # each PAA question = a secondary keyword
+    assets: [youtube_chapters, html_headings]
+    tactics:
+      - Turn each PAA question into a YouTube CHAPTER and an on-page H2/H3 with a concise answer.
+
+  featured_snippet:                  # position-0
+    goal: win the featured snippet
+    assets: [pillar_article, video, images, patch_article, linkedin_pulse, reddit_wiki]
+    tactics:
+      - Write a pillar article (+ video + images) and syndicate it on a big-authority platform
+        (e.g. a Patch.com article/event).
+      - Link it from LinkedIn Pulse and a Reddit channel (sidebar wiki link) for authority + extra
+        SERP real estate.
+
+  local_pack:                        # map pack / local finder (3-pack)
+    goal: rank in the 3-pack
+    assets: [gbp, reviews, citations]
+    tactics:
+      - GBP optimization (categories, posts, photos, reviews), NAP consistency, local citations.
+
+  organic:
+    goal: own organic positions
+    assets: [service_page, internal_links]
+    tactics:
+      - Optimized service/landing page for the term + internal links from the content cluster.
+
+  video:                             # video carousel / thumbnail
+    goal: capture the video result
+    assets: [youtube_video]
+    tactics:
+      - YouTube video optimized for the term (title, chapters, transcript, schema).
+
+# Barnacle SEO: piggyback high-authority domains so we occupy MORE of page 1 per term.
+barnacle:
+  per_term: 2                        # stand up 2 barnacle assets for every term
+  rationale: occupy extra page-1 real estate via high-authority third-party platforms.
+  platforms: [youtube, patch, linkedin_pulse, reddit, medium, quora, nextdoor, justia, eventbrite]
+
+grouping:
+  by: content                        # group keywords that share one content asset into a cluster

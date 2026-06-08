@@ -1,0 +1,25 @@
+{
+  "draft_id": "draft_20260605T214535Z",
+  "client_id": "example-hvac-client",
+  "kind": "video_asset",
+  "workflow_id": "video_asset",
+  "scope_id": "House AC Repair",
+  "status": "pending_human_review",
+  "created": "2026-06-05T21:49:15.094521+00:00",
+  "source": {
+    "brief": "Summer AC tune-up: 21-point inspection special, beat the Florida heat"
+  },
+  "content": {
+    "text": "Summer AC tune-up: 21-point inspection special, beat the Florida heat",
+    "image_path": "clients\\example-hvac-client\\rpa\\assets\\draft_20260605T214535Z\\still.png",
+    "video_path": "clients\\example-hvac-client\\rpa\\assets\\draft_20260605T214535Z\\clip.mp4",
+    "image_prompt": "A professional HVAC technician in a clean uniform kneeling beside an outdoor AC condenser unit outside a single-family home with palm trees and tropical landscaping typical of Broward County, Florida. Bright morning sunlight casts clear shadows on the concrete pad, highlighting the technician's focused work inspecting the unit with diagnostic tools. Shot from a low three-quarter angle with shallow depth of field, the residential home's stucco exterior visible but softly blurred in the background. Atmosphere conveys reliability and expert service, with vivid blue sky suggesting hot summer weather. Photorealistic style with warm, natural Florida lighting emphasizing professionalism and seasonal preparedness.",
+    "motion_prompt": "Slow push-in from medium to close-up as the technician inspects gauges on the condenser unit, adjusting dials with focused precision. Palm fronds sway gently in the background breeze. Natural morning light remains consistent. Pacing is steady and professional, conveying methodical expertise. Subtle ambient hum of the AC unit powering on."
+  },
+  "provenance": {
+    "prompt_model": "claude-sonnet-4-5",
+    "image_model": "gpt_image_2",
+    "facts_used": true
+  },
+  "note": "Review the asset files, then scripts/approve_draft.py to emit a hashed approval."
+}

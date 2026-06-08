@@ -1,0 +1,84 @@
+flowchart TB
+  Client["Client source of truth\nclients/<id>/ facts, config,\ncontent, approvals, assets"]
+  Board["Kanban board\nlib/board_scan.py + apps/kanban-board\nprojects filesystem state"]
+
+  subgraph Intel["Search intelligence"]
+    DataForSEO["DataForSEO lanes\nlocal finder, organic mobile, AI mode"]
+    Tracker["SERP tracker\nnormalizes slots"]
+    Classifier["lib/serp_features.py\nownership + citations"]
+    Scoring["estate scoring\nper-lane share"]
+    Gaps["gap recommendations\npending human review"]
+  end
+
+  subgraph Signals["Signals (measurement)"]
+    Connectors["GSC, Bing, GA4,\nClarity, GBP insights"]
+    Snapshot["lib/signals.py\nsignals/YYYY-MM-DD.json"]
+    Cadence["scripts/cadence.py\ndaily/weekly/monthly loop"]
+  end
+
+  subgraph Drafts["Drafts and approvals"]
+    ContentWriter["content-writer\nGBP posts, replies"]
+    VideoProducer["video-producer\nstill + clip assets"]
+    LlmGate["LLM gate\ngenerate only"]
+    ApprovalGate["lib/approvals.py\nhash, scope, expiry"]
+    Approved["approved artifacts\nsingle-use content"]
+  end
+
+  subgraph Routing["Work-order routing"]
+    Scheduler["scripts/gen_workorders.py\nroutes by execution_method"]
+    DuoInbox["DuoPlus inbox\nduoplus_rpa"]
+    ZernioInbox["Zernio inbox\ngoogle_business_api"]
+    CloakInbox["CloakBrowser inbox\ncloakbrowser"]
+  end
+
+  subgraph Shared["Shared execution gate"]
+    RunnerGate["lib/orchestration.py\nclaim, policy, idempotency,\napproval verify, evidence, history"]
+    Policy["lib/policy.py\nkill switch + action classes"]
+    Coordination["file locks/rate limits\nor Redis when enabled"]
+  end
+
+  subgraph Execution["Execution surfaces"]
+    Duo["DuoPlus cloud phone RPA\nin-app workflows"]
+    Zernio["Zernio API\nGBP + social publishing"]
+    Cloak["CloakBrowser\nstealth browser scripts/agents"]
+    History["done/failed history\nhashed evidence logs"]
+  end
+
+  Client --> DataForSEO
+  DataForSEO --> Tracker --> Classifier --> Scoring --> Gaps --> Client
+
+  Client --> Connectors --> Snapshot --> Cadence --> Client
+
+  Client --> ContentWriter
+  Client --> VideoProducer
+  ContentWriter --> LlmGate
+  VideoProducer --> LlmGate
+  LlmGate --> ApprovalGate
+  VideoProducer --> Client
+  ApprovalGate --> Approved --> Client
+
+  Client --> Scheduler
+  Approved --> Scheduler
+  Scheduler --> DuoInbox
+  Scheduler --> ZernioInbox
+  Scheduler --> CloakInbox
+
+  DuoInbox --> RunnerGate
+  ZernioInbox --> RunnerGate
+  CloakInbox --> RunnerGate
+  Client --> Policy --> RunnerGate
+  Coordination --> RunnerGate
+
+  RunnerGate --> Duo
+  RunnerGate --> Zernio
+  RunnerGate --> Cloak
+  Duo --> History
+  Zernio --> History
+  Cloak --> History
+  History --> Client
+
+  Client --> Board
+  DuoInbox --> Board
+  ZernioInbox --> Board
+  CloakInbox --> Board
+  History --> Board

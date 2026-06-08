@@ -1,0 +1,8 @@
+version: 1
+provider: zernio
+# Live values pulled from the connected Zernio account (House AC Repair, brockmisner85@gmail.com).
+account_id: "6a1993762b2567671a6704b2"          # Zernio account _id (GET /api/v1/accounts)
+default_location_id: "14079618992035666030"       # Smiley Drain Cleaning & Plumbing (VERIFIED listing)
+locations:
+  - id: "14079618992035666030"
+    label: "Smiley Drain Cleaning & Plumbing"

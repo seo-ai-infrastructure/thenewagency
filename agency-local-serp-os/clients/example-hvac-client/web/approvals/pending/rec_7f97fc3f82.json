@@ -1,0 +1,21 @@
+{
+  "recommendation_id": "rec_7f97fc3f82",
+  "client_id": "example-hvac-client",
+  "area": "web",
+  "subsystem": "wordpress-publisher",
+  "status": "pending_human_review",
+  "kind": "review_counter_positioning",
+  "gap": {
+    "competitor": "Air Magic",
+    "theme": "poor_workmanship",
+    "mentions": 2,
+    "counter_hook": "Workmanship guarantee \u2014 we fix it right the first time.",
+    "evidence": [
+      "I used Air Magic for service with my very old unit. When it failed I turned to Air Magic. The results:\n\nMy experience with Air Magic. On April 4, 2022, they installed a new A/c. No rep show when city inspector came and the city failed the i",
+      "Got called for scheduled maintenance. i approved they showed up about a month later. Tech comes does his thing, all looked fine and left.  Not one hour later my unit starts leaking water like crazy.  i called they came back he tells me he c"
+    ]
+  },
+  "suggested_action": "Review Counter-Positioning: 'Air Magic' is repeatedly criticized for poor workmanship (2 negative reviews). Surface the counter-signal on the client's pages + FAQs: \"Workmanship guarantee \u2014 we fix it right the first time.\" (also add to business_entity.md so AI engines match safety/intent queries to the client).",
+  "note": "Human reviews + approves the positioning copy before any publish work order issues.",
+  "created": "2026-06-07T20:07:47.257496+00:00"
+}

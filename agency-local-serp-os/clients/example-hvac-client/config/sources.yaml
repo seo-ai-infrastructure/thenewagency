@@ -1,0 +1,12 @@
+version: 1
+# Which property/site/project each search-data source should pull for this client.
+gsc:
+  site_url: "https://houseacrepair.com/"     # exact GSC property (URL-prefix) or "sc-domain:houseacrepair.com"
+ga4:
+  property_id: "REPLACE_GA4_NUMERIC_ID"      # GA4 Admin -> Property Settings -> Property ID (numeric)
+bing:
+  site_url: "https://houseacrepair.com/"     # verified Bing Webmaster site
+clarity:
+  enabled: true                              # uses MICROSOFT_CLARITY_API_TOKEN (project-scoped JWT)
+gbp_insights:
+  zernio_account_id: "6a1993762b2567671a6704b2"   # from integrations/google_business (Zernio account _id)

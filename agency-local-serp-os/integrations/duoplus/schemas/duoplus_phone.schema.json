@@ -1,0 +1,3 @@
+{"type":"object","required":["phone_id","duoplus_image_id"],"properties":{
+ "phone_id":{"type":"string"},"duoplus_image_id":{"type":"string"},
+ "max_parallel_runs":{"type":"integer"},"timezone":{"type":"string"}}}

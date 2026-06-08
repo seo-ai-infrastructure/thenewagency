@@ -1,0 +1,17 @@
+{
+  "recommendation_id": "rec_178895b867",
+  "client_id": "example-hvac-client",
+  "area": "web",
+  "subsystem": "wordpress-publisher",
+  "status": "pending_human_review",
+  "kind": "aeo_entity_injection",
+  "gap": {
+    "entity": "hours",
+    "competitors": [
+      "coolbreeze-ac.com"
+    ]
+  },
+  "suggested_action": "AEO Entity Injection: competitors coolbreeze-ac.com explicitly state 'hours' and your site does not. Add explicit, machine-readable 'hours' text to the relevant page so AI crawlers can extract it.",
+  "note": "Human reviews + supplies approved copy before any publish work order issues.",
+  "created": "2026-06-07T21:05:18.091513+00:00"
+}

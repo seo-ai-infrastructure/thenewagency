@@ -1,0 +1,4 @@
+# Tracker reads lanes from ../../integrations/dataforseo/endpoints.yaml and the
+# client's facts/. Per-client knobs only:
+client_id: example-hvac-client
+device: mobile

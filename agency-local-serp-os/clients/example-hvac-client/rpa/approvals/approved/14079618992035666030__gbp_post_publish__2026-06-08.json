@@ -1,0 +1,22 @@
+{
+  "approval_id": "approval_20260606T202705Z",
+  "profile_id": "14079618992035666030",
+  "workflow_id": "gbp_post_publish",
+  "period": "2026-06-08",
+  "status": "approved",
+  "created": "2026-06-06T20:27:05.644431+00:00",
+  "expires_at": "2026-06-13T20:27:05.644431+00:00",
+  "content": {
+    "text": "AC stopped working in the middle of a hot Florida night? We know how uncomfortable that can be for your family. House AC Repair is here for you 24/7 with emergency service throughout Fort Lauderdale and Broward County. Our local technicians understand the urgency and are ready to restore your cool comfort any time, day or night. \ud83c\udf19 Don't suffer through the heat \u2013 reach out when you need us most.",
+    "cta": {
+      "type": "LEARN_MORE",
+      "url": "https://houseacrepair.com"
+    }
+  },
+  "content_hash": "4da2f97fdc3cf030789231bedff6bbebb299ab544ed10777159f889b2478fe8e",
+  "provenance": {
+    "source": "gen_gbp_posts",
+    "cluster": "Emergency / 24-7 AC",
+    "angle": "a 24/7 emergency-service highlight"
+  }
+}

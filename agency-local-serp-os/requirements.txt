@@ -1,0 +1,9 @@
+requests
+pyyaml
+jsonschema
+google-auth      # GSC + GA4 ingestion (integrations/google_auth.py): service-account bearer tokens
+redis            # optional: only for multi-machine Redis coordination
+# (LLM gate uses the Anthropic REST API via 'requests'; no extra package needed)
+cloakbrowser[geoip]   # cloakbrowser-runner: stealth Chromium (drop-in Playwright); geoip matches tz/locale to proxy exit
+browser-use           # cloakbrowser agent_task (social_scan/social_reply): Claude-driven browser agent over CDP
+# Media generation (video-producer): Higgsfield CLI — `npm i -g higgsfield` + `higgsfield auth login` (not a pip dep)

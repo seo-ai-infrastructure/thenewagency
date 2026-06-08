@@ -1,0 +1,12 @@
+version: 1
+# Cadence for this client's social/video posting on the <client>-cb-agent profile. Most posting
+# is on-demand (create a draft -> approve -> the board issues the work order), but recurring posts
+# can be scheduled here. active:false = ignored by gen_workorders. Each post still needs an approval.
+schedules:
+- schedule_id: weekly_reddit_value_post
+  workflow_id: reddit_post
+  frequency: weekly
+  day_of_week: tuesday
+  active: false
+  profiles: [example-hvac-client-cb-agent]
+  task_params: {target: "r/your_local_subreddit"}

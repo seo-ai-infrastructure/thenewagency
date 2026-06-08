@@ -1,0 +1,118 @@
+{
+  "@context": "https://schema.org",
+  "@graph": [
+    {
+      "@type": "HVACBusiness",
+      "@id": "https://houseacrepair.com/#business",
+      "name": "House AC Repair",
+      "description": "Residential AC installation and replacement in Fort Lauderdale and Broward County, FL. High-efficiency, hurricane-rated systems with financing and free in-home quotes.",
+      "url": "https://houseacrepair.com/",
+      "telephone": "[FILL: PHONE]",
+      "image": "https://houseacrepair.com/images/ac-installation-fort-lauderdale.jpg",
+      "priceRange": "$$",
+      "address": {
+        "@type": "PostalAddress",
+        "streetAddress": "[FILL: STREET ADDRESS]",
+        "addressLocality": "Fort Lauderdale",
+        "addressRegion": "FL",
+        "postalCode": "[FILL: ZIP]",
+        "addressCountry": "US"
+      },
+      "areaServed": [
+        { "@type": "AdministrativeArea", "name": "Broward County, FL" },
+        { "@type": "City", "name": "Fort Lauderdale" },
+        { "@type": "City", "name": "Hollywood" },
+        { "@type": "City", "name": "Pompano Beach" },
+        { "@type": "City", "name": "Plantation" },
+        { "@type": "City", "name": "Coral Springs" }
+      ],
+      "knowsAbout": ["AC installation", "AC replacement", "HVAC contractor", "Air conditioning repair", "SEER2 systems"],
+      "openingHoursSpecification": [
+        {
+          "@type": "OpeningHoursSpecification",
+          "dayOfWeek": ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"],
+          "opens": "00:00",
+          "closes": "23:59"
+        }
+      ]
+    },
+    {
+      "@type": "Service",
+      "@id": "https://houseacrepair.com/ac-installation-fort-lauderdale/#service",
+      "serviceType": "AC Installation & Replacement",
+      "name": "AC Installation & Replacement in Fort Lauderdale, FL",
+      "description": "Full residential AC system installation and replacement in Fort Lauderdale and Broward County. Manual J load sizing, Broward County permitting, high-SEER2 hurricane-rated equipment, financing, and free in-home quotes.",
+      "provider": { "@id": "https://houseacrepair.com/#business" },
+      "areaServed": [
+        { "@type": "AdministrativeArea", "name": "Broward County, FL" },
+        { "@type": "City", "name": "Fort Lauderdale" }
+      ],
+      "offers": {
+        "@type": "Offer",
+        "priceCurrency": "USD",
+        "priceSpecification": {
+          "@type": "PriceSpecification",
+          "minPrice": "5500",
+          "maxPrice": "12000",
+          "priceCurrency": "USD"
+        },
+        "description": "Typical installed cost of a new residential AC system in Fort Lauderdale / Broward County. Financing available. DRAFT figures — verify before publishing."
+      },
+      "hasOfferCatalog": {
+        "@type": "OfferCatalog",
+        "name": "AC Installation Services",
+        "itemListElement": [
+          { "@type": "Offer", "itemOffered": { "@type": "Service", "name": "New AC system installation" } },
+          { "@type": "Offer", "itemOffered": { "@type": "Service", "name": "AC unit replacement / changeout" } },
+          { "@type": "Offer", "itemOffered": { "@type": "Service", "name": "High-efficiency SEER2 system upgrade" } }
+        ]
+      }
+    },
+    {
+      "@type": "FAQPage",
+      "@id": "https://houseacrepair.com/ac-installation-fort-lauderdale/#faq",
+      "mainEntity": [
+        {
+          "@type": "Question",
+          "name": "When should I replace my AC unit in Florida?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Replace it when the unit is 10–15 years old, uses R-22 refrigerant, or needs a repair costing more than half the price of a new system. Frequent breakdowns, rising bills, and weak cooling are clear signs to replace before summer."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "How much does it cost to replace an AC unit in Fort Lauderdale?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "AC unit replacement in Fort Lauderdale typically costs $5,500–$12,000 installed, depending on size, SEER2 efficiency, and ductwork. A standard 3-ton home system usually runs about $7,000–$9,500 including permit and old-unit removal."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "How much does a new AC system cost in Broward County?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "A complete new AC system in Broward County generally costs $6,000–$12,000+ installed. High-efficiency variable-speed systems cost more up front but lower summer electric bills. Financing spreads the cost into low monthly payments."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "How long does an AC installation take in Fort Lauderdale?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Most residential AC installations take 4–8 hours for a standard changeout. Jobs adding ductwork, an air handler, or a high-efficiency system can take a full day. We often schedule same-week installs across Broward County."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Is it better to repair or replace my AC unit?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "If your unit is under 10 years old and the repair is minor, repair it. If it is past 12 years, on R-22, or facing a repair over half a new system's cost, replacement saves more long term. We provide both numbers in writing."
+          }
+        }
+      ]
+    }
+  ]
+}

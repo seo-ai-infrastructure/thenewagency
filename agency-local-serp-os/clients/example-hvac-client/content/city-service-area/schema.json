@@ -1,0 +1,117 @@
+{
+  "@context": "https://schema.org",
+  "@graph": [
+    {
+      "@type": "HVACBusiness",
+      "@id": "https://houseacrepair.example/#business",
+      "name": "House AC Repair",
+      "description": "Residential AC repair company based in Fort Lauderdale, serving nearby Broward County cities including Hollywood, Pompano Beach, Plantation, and Coral Springs FL.",
+      "telephone": "[PHONE]",
+      "url": "https://houseacrepair.example/",
+      "priceRange": "$$",
+      "address": {
+        "@type": "PostalAddress",
+        "streetAddress": "[ADDRESS]",
+        "addressLocality": "Fort Lauderdale",
+        "addressRegion": "FL",
+        "postalCode": "[ZIP]",
+        "addressCountry": "US"
+      },
+      "areaServed": [
+        { "@type": "City", "name": "Hollywood", "addressRegion": "FL" },
+        { "@type": "City", "name": "Pompano Beach", "addressRegion": "FL" },
+        { "@type": "City", "name": "Plantation", "addressRegion": "FL" },
+        { "@type": "City", "name": "Coral Springs", "addressRegion": "FL" },
+        { "@type": "AdministrativeArea", "name": "Broward County, FL" }
+      ],
+      "openingHoursSpecification": [
+        {
+          "@type": "OpeningHoursSpecification",
+          "dayOfWeek": ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"],
+          "opens": "07:00",
+          "closes": "21:00"
+        }
+      ],
+      "knowsAbout": ["AC repair", "air conditioning repair", "HVAC repair", "heat pump repair", "refrigerant recharge"]
+    },
+    {
+      "@type": "Service",
+      "@id": "https://houseacrepair.example/city-service-area/#service",
+      "serviceType": "Residential AC Repair",
+      "name": "Residential AC Repair — Hollywood, Pompano Beach, Plantation & Coral Springs FL",
+      "description": "Same-day residential air conditioning repair across nearby Broward County cities, including no-cooling diagnosis, capacitor and compressor repair, refrigerant leak repair, and condensate drain clearing.",
+      "provider": { "@id": "https://houseacrepair.example/#business" },
+      "areaServed": [
+        { "@type": "City", "name": "Hollywood", "addressRegion": "FL" },
+        { "@type": "City", "name": "Pompano Beach", "addressRegion": "FL" },
+        { "@type": "City", "name": "Plantation", "addressRegion": "FL" },
+        { "@type": "City", "name": "Coral Springs", "addressRegion": "FL" }
+      ],
+      "offers": {
+        "@type": "Offer",
+        "priceCurrency": "USD",
+        "priceSpecification": {
+          "@type": "PriceSpecification",
+          "minPrice": "150",
+          "maxPrice": "650",
+          "priceCurrency": "USD",
+          "description": "Typical range for common single-fault residential AC repairs; quoted up front before work begins."
+        }
+      }
+    },
+    {
+      "@type": "FAQPage",
+      "@id": "https://houseacrepair.example/city-service-area/#faq",
+      "mainEntity": [
+        {
+          "@type": "Question",
+          "name": "Who does AC repair in Hollywood FL?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "House AC Repair provides same-day residential AC repair throughout Hollywood FL, from Hollywood Beach to Emerald Hills. Our licensed Fort Lauderdale techs fix no-cooling, low-airflow, and refrigerant issues, typically in a single visit. Call [PHONE]."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "How much is AC repair in Pompano Beach?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Most Pompano Beach AC repairs run $150 to $650 depending on the part. Diagnostic plus a capacitor or contactor is on the low end; refrigerant or compressor work is higher. We quote a flat rate up front before any work."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Do you offer air conditioning repair in Plantation FL?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Yes. We provide complete air conditioning repair in Plantation FL — Plantation Acres, Jacaranda, and Central Park — diagnosing and fixing no-cool, airflow, and thermostat faults, most often the same day you call."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Is there same-day AC repair near me in Coral Springs?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Yes. House AC Repair offers same-day residential AC repair across Coral Springs, including Heron Bay and Eagle Trace. Licensed techs handle no-cooling and refrigerant faults fast. Call [PHONE] to book."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "How fast can you get to my Broward city?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Because we run daily routes through Hollywood, Pompano Beach, Plantation, and Coral Springs from our Fort Lauderdale base, same-day appointments are common, and we offer earliest-available scheduling when systems are fully down."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Are you a local company or a national chain?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "We are a locally operated Fort Lauderdale residential AC repair company serving nearby Broward County cities, not a national call-center brand. You speak with a local team and meet a local tech."
+          }
+        }
+      ]
+    }
+  ]
+}

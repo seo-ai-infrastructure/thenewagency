@@ -1,0 +1,3 @@
+{"type":"object","required":["work_order_id","status"],"properties":{
+ "status":{"enum":["done","failed","blocked","aborted"]},"landed":{"type":"boolean"},
+ "evidence":{"type":"array","items":{"type":"string"}},"reason":{"type":["string","null"]}}}

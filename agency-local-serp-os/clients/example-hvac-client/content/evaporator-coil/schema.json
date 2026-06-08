@@ -1,0 +1,124 @@
+{
+  "@context": "https://schema.org",
+  "@graph": [
+    {
+      "@type": "HVACBusiness",
+      "@id": "https://houseacrepair.example/#business",
+      "name": "House AC Repair",
+      "description": "Residential HVAC and AC repair company specializing in evaporator coil repair and replacement in Fort Lauderdale and Broward County, FL.",
+      "url": "https://houseacrepair.example/evaporator-coil-repair-fort-lauderdale",
+      "telephone": "[PHONE]",
+      "image": "https://houseacrepair.example/img/evaporator-coil-repair-fort-lauderdale.jpg",
+      "priceRange": "$$",
+      "address": {
+        "@type": "PostalAddress",
+        "streetAddress": "[ADDRESS]",
+        "addressLocality": "Fort Lauderdale",
+        "addressRegion": "FL",
+        "postalCode": "[ZIP]",
+        "addressCountry": "US"
+      },
+      "areaServed": [
+        { "@type": "City", "name": "Fort Lauderdale" },
+        { "@type": "City", "name": "Hollywood" },
+        { "@type": "City", "name": "Pompano Beach" },
+        { "@type": "City", "name": "Plantation" },
+        { "@type": "City", "name": "Coral Springs" },
+        { "@type": "AdministrativeArea", "name": "Broward County" }
+      ],
+      "knowsAbout": [
+        "AC evaporator coil repair",
+        "Evaporator coil replacement",
+        "Refrigerant leak repair",
+        "Residential HVAC repair"
+      ],
+      "hasOfferCatalog": {
+        "@type": "OfferCatalog",
+        "name": "Evaporator Coil Services",
+        "itemListElement": [
+          {
+            "@type": "Offer",
+            "itemOffered": { "@type": "Service", "name": "Evaporator Coil Leak Repair" }
+          },
+          {
+            "@type": "Offer",
+            "itemOffered": { "@type": "Service", "name": "Evaporator Coil Replacement" }
+          }
+        ]
+      }
+    },
+    {
+      "@type": "Service",
+      "@id": "https://houseacrepair.example/evaporator-coil-repair-fort-lauderdale/#service",
+      "serviceType": "Evaporator Coil Repair & Replacement",
+      "name": "Evaporator Coil Repair & Replacement in Fort Lauderdale",
+      "description": "Free coil diagnostics and up-front flat-rate quotes for AC evaporator coil repair ($300-$700) and replacement ($900-$2,800) for homeowners in Fort Lauderdale and Broward County, FL.",
+      "provider": { "@id": "https://houseacrepair.example/#business" },
+      "areaServed": {
+        "@type": "AdministrativeArea",
+        "name": "Broward County, FL"
+      },
+      "offers": {
+        "@type": "AggregateOffer",
+        "priceCurrency": "USD",
+        "lowPrice": "300",
+        "highPrice": "2800",
+        "offerCount": "2"
+      }
+    },
+    {
+      "@type": "FAQPage",
+      "@id": "https://houseacrepair.example/evaporator-coil-repair-fort-lauderdale/#faq",
+      "mainEntity": [
+        {
+          "@type": "Question",
+          "name": "How much does evaporator coil repair cost in Fort Lauderdale?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "AC evaporator coil repair in Fort Lauderdale typically costs $300-$700, covering leak detection, sealing a minor leak, and a refrigerant recharge. Older R-22 systems cost more. Repair makes sense only on newer coils with small, accessible leaks."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "How much does it cost to replace an AC evaporator coil?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "A full evaporator coil replacement in Fort Lauderdale generally runs $900-$2,800, including the coil, refrigerant, labor, and disposal. If the coil is still under manufacturer parts warranty, many replacements fall in the $600-$1,200 range for labor."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Can a leaking evaporator coil be repaired, or should it be replaced?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "A leaking evaporator coil can sometimes be repaired if the leak is small, reachable, and the coil is newer. Coils that leak from corrosion usually have multiple failure points, so replacement is the lasting fix. If the coil is out of warranty or over 8 years old, replace it."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "What are the signs your AC evaporator coil is bad?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Signs of a bad evaporator coil include warm air from vents, ice or frost on the indoor coil or refrigerant line, hissing or bubbling sounds, a sweet chemical smell, longer cooling cycles, water near the air handler, and rising power bills."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Who should I call for evaporator coil replacement in Fort Lauderdale?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Call a licensed, insured residential HVAC contractor that handles coil work daily. House AC Repair is a local Broward County HVAC company offering free coil diagnostics, up-front flat-rate quotes, OEM-matched coils, and warranty-backed workmanship across Fort Lauderdale."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Is it worth replacing an evaporator coil or the whole AC?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Replacing just the evaporator coil is worth it when the condenser and compressor are healthy and under 8-10 years old. If the system is older, uses R-22, or the coil would cost more than about a third of a new system, replacing the full AC is usually the better value."
+          }
+        }
+      ]
+    }
+  ]
+}

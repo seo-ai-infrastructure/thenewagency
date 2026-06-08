@@ -1,0 +1,32 @@
+.env
+redis.env
+*.rate_state
+*.rate_state.lock
+__pycache__/
+*.pyc
+.venv/
+secrets.env
+*_rate_state*
+
+# tool installs / local agent config (not project source)
+.agents/
+.claude/
+skills-lock.json
+log/
+
+# generated media + runtime evidence (regenerable, large)
+clients/*/rpa/assets/
+clients/*/rpa/logs/
+clients/*/web/logs/
+clients/*/web/assets/
+clients/*/browser/logs/
+clients/*/content/audio/*.mp3
+~/cloak-profiles/
+
+# test + runtime state (regenerable)
+.pytest_cache/
+integrations/dataforseo/state/
+automations/*/state/last_run.*
+graphify-out/
+
+.vercel

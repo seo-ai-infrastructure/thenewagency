@@ -1,0 +1,55 @@
+version: 1
+# Six agency browser identities. Each maps to a CloakBrowser Manager profile (unique
+# fingerprint) + a sticky proxy + a persistent user_data_dir. Log each account in ONCE via
+# the Manager GUI / noVNC; cookies & sessions then persist so tasks never re-login.
+#
+# LIVE checklist per profile:
+#   proxy_ref      -> set the matching env var in .env (proxy_01 -> PROXY_01=http://user:pass@host:port)
+#   expected_account -> the real logged-in account; the wrong-account guard checks it
+#   verify_url     -> (optional) a page that shows the login (e.g. https://myaccount.google.com);
+#                     required if expected_account is set, else the guard fails closed. Clear
+#                     expected_account for pure read-only profiles that don't need verification.
+#   user_data_dir  -> ~ resolves to your Windows home (C:\Users\brock\...)
+profiles:
+- profile_id: agent_01
+  fingerprint_id: cloak_fp_agent_01          # CloakBrowser Manager profile/fingerprint id
+  user_data_dir: ~/cloak-profiles/agent_01   # persistent cookies/history/logins live here
+  proxy_ref: proxy_01                         # resolves to proxy creds in secrets (BYO proxy)
+  expected_account: "agent01@example.com"     # verify-before-act target
+  allowed_workflows: [rank_spot_check, social_scan]
+  paused: false
+- profile_id: agent_02
+  fingerprint_id: cloak_fp_agent_02
+  user_data_dir: ~/cloak-profiles/agent_02
+  proxy_ref: proxy_02
+  expected_account: "agent02@example.com"
+  allowed_workflows: [rank_spot_check, social_scan]
+  paused: false
+- profile_id: agent_03
+  fingerprint_id: cloak_fp_agent_03
+  user_data_dir: ~/cloak-profiles/agent_03
+  proxy_ref: proxy_03
+  expected_account: "agent03@example.com"
+  allowed_workflows: [rank_spot_check, social_scan]
+  paused: false
+- profile_id: agent_04
+  fingerprint_id: cloak_fp_agent_04
+  user_data_dir: ~/cloak-profiles/agent_04
+  proxy_ref: proxy_04
+  expected_account: "agent04@example.com"
+  allowed_workflows: [rank_spot_check, social_scan, social_reply]
+  paused: false
+- profile_id: agent_05
+  fingerprint_id: cloak_fp_agent_05
+  user_data_dir: ~/cloak-profiles/agent_05
+  proxy_ref: proxy_05
+  expected_account: "agent05@example.com"
+  allowed_workflows: [rank_spot_check, social_scan, social_reply]
+  paused: false
+- profile_id: agent_06
+  fingerprint_id: cloak_fp_agent_06
+  user_data_dir: ~/cloak-profiles/agent_06
+  proxy_ref: proxy_06
+  expected_account: "agent06@example.com"
+  allowed_workflows: [rank_spot_check, social_scan, social_reply]
+  paused: false

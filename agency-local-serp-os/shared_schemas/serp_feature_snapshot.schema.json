@@ -1,0 +1,133 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "serp_feature_snapshot v3",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "run_id",
+    "client_id",
+    "api_source",
+    "query_class",
+    "keyword",
+    "location_name",
+    "device",
+    "os",
+    "feature_type",
+    "ownership_class"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "3"
+    },
+    "run_id": {
+      "type": "string"
+    },
+    "client_id": {
+      "type": "string"
+    },
+    "api_source": {
+      "type": "string"
+    },
+    "query_class": {
+      "enum": [
+        "local_finder",
+        "organic_mobile",
+        "ai_mode"
+      ]
+    },
+    "keyword": {
+      "type": "string"
+    },
+    "keyword_id": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "lead_value": {
+      "enum": [
+        "high",
+        "medium_high",
+        "medium",
+        "low",
+        "unknown"
+      ]
+    },
+    "location_name": {
+      "type": "string"
+    },
+    "device": {
+      "type": "string"
+    },
+    "os": {
+      "enum": [
+        "ios",
+        "android"
+      ]
+    },
+    "feature_type": {
+      "type": "string"
+    },
+    "rank_absolute": {
+      "type": [
+        "integer",
+        "null"
+      ]
+    },
+    "rank_group": {
+      "type": [
+        "integer",
+        "null"
+      ]
+    },
+    "title": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "url": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "domain": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "ownership_class": {
+      "enum": [
+        "owned",
+        "controlled",
+        "influenced",
+        "aggregator",
+        "competitor",
+        "unknown"
+      ]
+    },
+    "client_mentioned": {
+      "type": "boolean"
+    },
+    "client_cited": {
+      "type": "boolean"
+    },
+    "cited_sources": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "cited_competitors": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "ai_surface_available": {
+      "type": "boolean"
+    }
+  }
+}

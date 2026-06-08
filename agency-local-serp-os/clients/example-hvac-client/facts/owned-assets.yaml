@@ -1,0 +1,10 @@
+# Ownership tiers for the 5-class classifier. Match tokens (domains/handles/urls).
+gbp_place_id: ChIJhouseac
+owned:                      # outright
+  - houseacrepair.com
+controlled:                 # profiles the client manages
+  - youtube.com/@houseac
+  - facebook.com/houseac
+influenced:                 # third-party where the client has presence
+  - reddit.com/u/houseac
+  - yelp.com/biz/house-ac

@@ -1,0 +1,154 @@
+{
+  "@context": "https://schema.org",
+  "@graph": [
+    {
+      "@type": "HVACBusiness",
+      "@id": "https://houseacrepair.com/#business",
+      "name": "House AC Repair",
+      "description": "Licensed residential HVAC and AC repair, maintenance, and tune-up company serving Fort Lauderdale and Broward County, Florida.",
+      "url": "https://houseacrepair.com/",
+      "telephone": "[PHONE]",
+      "priceRange": "$$",
+      "image": "https://houseacrepair.com/images/house-ac-repair-fort-lauderdale.jpg",
+      "logo": "https://houseacrepair.com/images/logo.png",
+      "address": {
+        "@type": "PostalAddress",
+        "streetAddress": "[ADDRESS]",
+        "addressLocality": "Fort Lauderdale",
+        "addressRegion": "FL",
+        "postalCode": "[ZIP]",
+        "addressCountry": "US"
+      },
+      "geo": {
+        "@type": "GeoCoordinates",
+        "latitude": "26.1224",
+        "longitude": "-80.1373"
+      },
+      "areaServed": [
+        { "@type": "City", "name": "Fort Lauderdale" },
+        { "@type": "City", "name": "Hollywood" },
+        { "@type": "City", "name": "Pompano Beach" },
+        { "@type": "City", "name": "Plantation" },
+        { "@type": "City", "name": "Coral Springs" },
+        { "@type": "AdministrativeArea", "name": "Broward County" }
+      ],
+      "openingHoursSpecification": [
+        {
+          "@type": "OpeningHoursSpecification",
+          "dayOfWeek": ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"],
+          "opens": "00:00",
+          "closes": "23:59"
+        }
+      ],
+      "hasCredential": "Licensed & insured Florida HVAC contractor — License [LICENSE #]",
+      "aggregateRating": {
+        "@type": "AggregateRating",
+        "ratingValue": "4.9",
+        "reviewCount": "[REVIEW COUNT]"
+      }
+    },
+    {
+      "@type": "Service",
+      "@id": "https://houseacrepair.com/ac-maintenance#service",
+      "serviceType": "AC Maintenance & Tune-Up",
+      "name": "AC Maintenance & Tune-Ups in Fort Lauderdale",
+      "description": "Professional twice-a-year AC tune-up and maintenance service for Fort Lauderdale and Broward County homes — coil cleaning, refrigerant and electrical checks, condensate drain clearing, and a 20-point inspection built for South Florida heat, humidity, and salt air.",
+      "provider": { "@id": "https://houseacrepair.com/#business" },
+      "areaServed": [
+        { "@type": "City", "name": "Fort Lauderdale" },
+        { "@type": "AdministrativeArea", "name": "Broward County" }
+      ],
+      "category": "HVAC Maintenance",
+      "offers": {
+        "@type": "Offer",
+        "priceCurrency": "USD",
+        "price": "79.00",
+        "priceSpecification": {
+          "@type": "PriceSpecification",
+          "minPrice": "79.00",
+          "maxPrice": "149.00",
+          "priceCurrency": "USD"
+        },
+        "availability": "https://schema.org/InStock",
+        "url": "https://houseacrepair.com/ac-maintenance"
+      },
+      "hasOfferCatalog": {
+        "@type": "OfferCatalog",
+        "name": "AC Maintenance Options",
+        "itemListElement": [
+          {
+            "@type": "Offer",
+            "itemOffered": { "@type": "Service", "name": "One-Time AC Tune-Up" }
+          },
+          {
+            "@type": "Offer",
+            "itemOffered": { "@type": "Service", "name": "Annual AC Maintenance Plan (2 visits/year)" }
+          }
+        ]
+      }
+    },
+    {
+      "@type": "FAQPage",
+      "@id": "https://houseacrepair.com/ac-maintenance#faq",
+      "mainEntity": [
+        {
+          "@type": "Question",
+          "name": "How often should you service your AC in Florida?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Twice a year — spring and fall. Florida systems run nearly year-round and battle humidity and salt air, so a single annual service isn't enough to prevent peak-summer breakdowns in Fort Lauderdale and Broward County."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "What does an AC tune-up include?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Coil cleaning, refrigerant and electrical checks, capacitor testing, condensate drain clearing, filter and airflow inspection, and thermostat calibration — plus a written report and a cooling temperature-split test."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "How much does an AC tune-up cost in Fort Lauderdale?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "A standard AC tune-up in the Fort Lauderdale and Broward County area runs about $79–$149. Maintenance-plan members typically pay less per visit and get priority scheduling and repair discounts."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "What is included in AC maintenance service in Broward County?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Recurring scheduled care — typically two visits a year combining a full tune-up with proactive part inspection, refrigerant top-off when needed, drain-line treatment, and efficiency optimization to reduce breakdowns and extend system life."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Is an AC maintenance plan worth it in Broward County?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Yes. Two visits a year reduce breakdowns, lower energy bills, extend equipment life, and satisfy warranty documentation requirements — usually paying for itself within a season or two in Florida's climate."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Can a tune-up prevent emergency AC repairs?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Largely, yes. Most summer failures trace back to dirty coils, weak capacitors, low refrigerant, or clogged condensate drains — all of which a professional tune-up catches and corrects early."
+          }
+        }
+      ]
+    },
+    {
+      "@type": "WebPage",
+      "@id": "https://houseacrepair.com/ac-maintenance",
+      "url": "https://houseacrepair.com/ac-maintenance",
+      "name": "AC Maintenance & Tune-Ups in Fort Lauderdale, FL | House AC Repair",
+      "isPartOf": { "@id": "https://houseacrepair.com/#business" },
+      "about": { "@id": "https://houseacrepair.com/ac-maintenance#service" },
+      "primaryImageOfPage": "https://houseacrepair.com/images/ac-tune-up-fort-lauderdale.jpg"
+    }
+  ]
+}

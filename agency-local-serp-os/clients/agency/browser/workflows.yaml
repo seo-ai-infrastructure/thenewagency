@@ -1,0 +1,30 @@
+version: 1
+# kind: playwright_script (deterministic) | agent_task (Tier-4 AI browser agent).
+# Read-only recon needs no approval. Any public ACTION is gated.
+workflows:
+- workflow_id: rank_spot_check
+  execution_method: cloakbrowser
+  kind: playwright_script
+  script: scripts/rank_spot_check.py
+  action_class: read_only_serp_observation
+  customer_facing: false
+  approval_required: false
+  description: Deterministic SERP position check for a domain+keyword from a real browser.
+- workflow_id: social_scan
+  execution_method: cloakbrowser
+  kind: agent_task
+  agent_goal: >
+    Open the specified social profiles and summarize new mentions, comments, and DMs.
+    READ ONLY — do not post, like, follow, or reply. Return a short bulleted summary.
+  action_class: read_only_social_scan
+  customer_facing: false
+  approval_required: false
+  description: Agentic read-only scan of social surfaces; reports, never acts.
+- workflow_id: social_reply
+  execution_method: cloakbrowser
+  kind: agent_task
+  agent_goal: Post the pre-approved reply text to the specified comment/thread, verbatim.
+  action_class: social_posting
+  customer_facing: true
+  approval_required: true
+  description: GATED example — a public action. Requires a hashed approval artifact.

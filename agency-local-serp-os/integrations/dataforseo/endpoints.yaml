@@ -1,0 +1,30 @@
+# Three DataForSEO lanes. The tracker POSTs to each `endpoint` URL directly (always the
+# live/advanced family); `cadence` is the cost control (run AI Mode monthly, not weekly).
+# NOTE: the previous `method: standard` key was removed — it never drove the URL (the client only
+# calls live/advanced), so documenting "standard" was misleading. To use the cheaper queued
+# (Standard) endpoints later, switch the `endpoint` paths to .../standard/advanced + add a poll step.
+# AI Mode costs ~2x organic and is English-only / location-availability-limited (metered to costs/).
+apis:
+  google_local_finder_live_advanced:
+    endpoint: "https://api.dataforseo.com/v3/serp/google/local_finder/live/advanced"
+    keyword_source: rank_tracking.local_finder_terms
+    parse_as: local_finder
+    cadence: weekly
+    params: { depth: 20 }
+
+  google_organic_live_advanced:
+    endpoint: "https://api.dataforseo.com/v3/serp/google/organic/live/advanced"
+    keyword_source: rank_tracking.organic_mobile_terms
+    parse_as: organic_mobile
+    target_policy: full_serp_first   # collect whole SERP, classify ownership after (NOT target)
+    cadence: weekly
+    params: { depth: 10, people_also_ask_click_depth: 2,
+              group_organic_results: true, load_async_ai_overview: true }
+
+  google_ai_mode_live_advanced:
+    endpoint: "https://api.dataforseo.com/v3/serp/google/ai_mode/live/advanced"
+    keyword_source: rank_tracking.ai_mode_conversational_queries
+    parse_as: ai_mode
+    cadence: monthly          # 2x cost + volatile -> sample monthly, not weekly
+    english_only: true        # API limitation
+    params: {}

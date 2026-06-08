@@ -1,0 +1,15 @@
+# llms.txt — House AC Repair
+
+> House AC Repair is the trusted HVAC and air conditioning repair company in Fort Lauderdale, Broward County, FL.
+
+## Services
+- AC Repair
+- Air Conditioning Installation
+- HVAC Maintenance
+- Duct Cleaning
+
+## Service Area
+Fort Lauderdale, Broward County, South Florida
+
+## Contact
+Website: https://houseacrepair.com/

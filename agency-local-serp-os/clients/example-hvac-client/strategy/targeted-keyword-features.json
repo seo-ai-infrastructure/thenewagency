@@ -1,0 +1,205 @@
+{
+  "project": "House AC Repair - Residential HVAC SERP-Feature Takeover",
+  "market": "Fort Lauderdale & Broward County, FL",
+  "source": "dataforseo_mobile",
+  "grouping": "by_content_cluster",
+  "barnacle_per_term": 2,
+  "clusters": [
+    {
+      "cluster": "AC Repair (Core Service)",
+      "content_asset": "AC Repair service page (Fort Lauderdale) + GBP-linked local landing",
+      "intent": "transactional",
+      "keywords": [
+        { "keyword": "ac repair fort lauderdale fl", "lead_value": "high", "lane": "local_finder", "features": ["local_pack", "organic", "discussions_and_forums", "people_also_ask", "people_also_search"] },
+        { "keyword": "air conditioning repair fort lauderdale", "lead_value": "high", "lane": "local_finder", "features": ["local_services", "ai_overview", "organic", "people_also_search", "discussions_and_forums", "people_also_ask", "perspectives"] },
+        { "keyword": "ac repair near me", "lead_value": "high", "lane": "local_finder", "features": ["local_pack", "people_also_ask", "people_also_search", "organic"] },
+        { "keyword": "broward county ac repair company", "lead_value": "medium_high", "lane": "organic_mobile", "features": ["local_services", "local_pack", "organic", "people_also_search", "people_also_ask"] }
+      ],
+      "target_features": ["local_pack", "local_services", "ai_overview", "people_also_ask", "organic", "discussions_and_forums", "people_also_search", "perspectives"],
+      "per_feature_tactics": {
+        "local_pack": "GBP optimization for AC Repair in Fort Lauderdale (primary category 'HVAC contractor' + 'Air conditioning repair service', geo-tagged photos, weekly GBP posts), drive 5-star reviews with 'AC repair Fort Lauderdale' in review text, and build/clean NAP citations (Yelp, BBB, Angi, Apple Maps, Bing Places).",
+        "local_services": "Activate & verify Google Local Services Ads (Google Guaranteed badge), license/insurance upload, and review pass-through so the LSA unit shows above the 3-pack.",
+        "ai_overview": "YouTube video 'How AC Repair Works in Fort Lauderdale' + NotebookLM source set on local HVAC repair + Cloudflare edge worker serving static HTML+Schema (LocalBusiness/HVACBusiness) at ~10ms for citability.",
+        "people_also_ask": "Treat each PAA ('How much is AC repair in Fort Lauderdale?', 'Who is the best AC repair company?') as a secondary keyword -> a YouTube chapter + an on-page H2/H3 with a 40-55 word concise answer.",
+        "organic": "Optimized AC Repair service page targeting the cluster + internal links from cost, emergency, and city-area pages.",
+        "discussions_and_forums": "Seed an authentic Reddit (r/fortlauderdale) + Nextdoor thread answering 'who to call for AC repair' to occupy the discussions block."
+      },
+      "barnacle": ["youtube", "nextdoor"]
+    },
+    {
+      "cluster": "Emergency / 24-7 AC",
+      "content_asset": "Emergency 24/7 AC Repair landing page (click-to-call optimized)",
+      "intent": "transactional",
+      "keywords": [
+        { "keyword": "24 hour ac repair fort lauderdale", "lead_value": "high", "lane": "local_finder", "features": ["ai_overview", "organic", "people_also_search", "people_also_ask"] },
+        { "keyword": "emergency ac repair fort lauderdale fl", "lead_value": "high", "lane": "local_finder", "features": ["ai_overview", "organic", "people_also_ask", "people_also_search"] },
+        { "keyword": "same day ac repair near me", "lead_value": "high", "lane": "local_finder", "features": ["local_services", "local_pack", "people_also_ask", "people_also_search", "organic"] },
+        { "keyword": "ac not cooling emergency repair", "lead_value": "medium_high", "lane": "organic_mobile", "features": ["ai_overview", "local_services", "local_pack", "people_also_ask", "video", "organic", "people_also_search", "perspectives"] }
+      ],
+      "target_features": ["ai_overview", "local_services", "local_pack", "people_also_ask", "video", "organic", "people_also_search", "perspectives"],
+      "per_feature_tactics": {
+        "ai_overview": "YouTube video 'What to do when your AC stops cooling (Fort Lauderdale emergency)' + NotebookLM source set + Cloudflare edge worker serving static HTML+Schema (Service + LocalBusiness, areaServed Broward) at ~10ms.",
+        "local_services": "Google Local Services Ads with 24/7 hours enabled and 'emergency / same-day' service attributes so the LSA unit captures urgent clicks.",
+        "local_pack": "GBP set to 24-hour hours, 'Emergency service' attribute, recent reviews mentioning 'same day' and 'midnight'; NAP citations consistent.",
+        "people_also_ask": "Each PAA ('Is there 24 hour AC repair near me?', 'How much is emergency AC repair?') -> YouTube chapter + on-page H2/H3 concise answer with click-to-call CTA.",
+        "video": "Optimized YouTube video for 'AC not cooling emergency repair' (title, timestamped chapters, full transcript, VideoObject schema) to win the video result.",
+        "organic": "Click-to-call optimized Emergency 24/7 landing page + internal links from core AC Repair and city pages."
+      },
+      "barnacle": ["youtube", "nextdoor"]
+    },
+    {
+      "cluster": "Evaporator Coil Repair/Replacement",
+      "content_asset": "Evaporator Coil Repair & Replacement pillar page + explainer video",
+      "intent": "commercial",
+      "keywords": [
+        { "keyword": "ac evaporator coil repair cost fort lauderdale fl", "lead_value": "medium_high", "lane": "organic_mobile", "features": ["featured_snippet", "people_also_ask", "organic", "video", "local_pack", "people_also_search", "paid"] },
+        { "keyword": "evaporator coil replacement cost fort lauderdale", "lead_value": "medium_high", "lane": "organic_mobile", "features": ["ai_overview", "organic", "people_also_ask", "discussions_and_forums", "video", "knowledge_graph_expanded_item"] },
+        { "keyword": "who should i call for evaporator coil replacement in fort lauderdale", "lead_value": "high", "lane": "ai_mode", "features": ["local_pack", "people_also_ask", "organic"] },
+        { "keyword": "signs your ac evaporator coil is bad", "lead_value": "medium", "lane": "organic_mobile", "features": ["ai_overview", "people_also_ask", "video", "organic", "discussions_and_forums", "people_also_search"] }
+      ],
+      "target_features": ["featured_snippet", "ai_overview", "video", "people_also_ask", "local_pack", "organic", "discussions_and_forums", "people_also_search", "knowledge_graph_expanded_item", "paid"],
+      "per_feature_tactics": {
+        "featured_snippet": "Pillar article on evaporator coil repair vs. replacement cost (+ explainer video + labeled cost-table images), syndicated to a Patch.com article, linked from LinkedIn Pulse and a Reddit channel sidebar wiki to win position-0.",
+        "ai_overview": "YouTube explainer 'Evaporator coil replacement cost in Fort Lauderdale' + NotebookLM source set with cost ranges + Cloudflare edge worker static HTML+Schema (Article/FAQPage) at ~10ms for citation.",
+        "video": "Optimized YouTube explainer ('signs your evaporator coil is bad', cost breakdown) with chapters, transcript, and VideoObject schema -> wins the video result present on 3 of 4 terms.",
+        "people_also_ask": "Each PAA ('How much to replace an evaporator coil?', 'Can a leaking coil be repaired?') -> YouTube chapter + on-page H2/H3 concise answer.",
+        "local_pack": "GBP optimization + reviews mentioning 'evaporator coil' / 'coil replacement'; NAP citations for the high-intent 'who should I call' term.",
+        "organic": "Evaporator coil pillar page targeting the cluster + internal links from cost and core repair pages.",
+        "discussions_and_forums": "Seed a Reddit / HVAC forum thread on coil replacement cost to occupy the discussions block."
+      },
+      "barnacle": ["youtube", "patch"]
+    },
+    {
+      "cluster": "AC Repair Cost & Pricing",
+      "content_asset": "AC Repair Cost guide (pricing pillar) + cost-range explainer video",
+      "intent": "commercial",
+      "keywords": [
+        { "keyword": "ac repair cost fort lauderdale", "lead_value": "medium_high", "lane": "organic_mobile", "features": ["ai_overview", "local_services", "people_also_ask", "local_pack", "organic", "people_also_search"] },
+        { "keyword": "how much does ac repair cost in florida", "lead_value": "medium", "lane": "ai_mode", "features": ["ai_overview", "organic", "people_also_search", "people_also_ask", "discussions_and_forums", "paid"] },
+        { "keyword": "ac refrigerant recharge cost fort lauderdale", "lead_value": "medium", "lane": "organic_mobile", "features": ["featured_snippet", "people_also_ask", "people_also_search", "organic", "local_pack"] },
+        { "keyword": "average cost to fix ac not blowing cold air", "lead_value": "medium", "lane": "organic_mobile", "features": ["ai_overview", "people_also_ask", "people_also_search", "organic", "video", "paid"] }
+      ],
+      "target_features": ["ai_overview", "featured_snippet", "video", "local_services", "local_pack", "people_also_ask", "organic", "people_also_search", "discussions_and_forums", "paid"],
+      "per_feature_tactics": {
+        "ai_overview": "YouTube 'AC repair cost in Florida explained' + NotebookLM source set of itemized cost ranges (refrigerant recharge, capacitor, compressor) + Cloudflare edge worker static HTML+Schema (FAQPage) at ~10ms for citation.",
+        "featured_snippet": "Pricing pillar article with a clear cost table (+ video + images), syndicated to a Patch.com article, linked from LinkedIn Pulse + Reddit sidebar wiki to win position-0 on 'refrigerant recharge cost'.",
+        "video": "Optimized YouTube cost-range explainer ('what it costs when AC won't blow cold air') with chapters, transcript, VideoObject schema -> wins the video result.",
+        "local_services": "Google Local Services Ads present on 'ac repair cost' -> keep LSA verified with up-front pricing signals.",
+        "local_pack": "GBP optimization + reviews referencing fair/transparent pricing; NAP citations consistent.",
+        "people_also_ask": "Each PAA ('How much does AC repair cost?', 'Is it worth repairing an AC?') -> YouTube chapter + on-page H2/H3 concise answer with a cost range.",
+        "organic": "AC Repair Cost pricing pillar page + internal links from core repair and evaporator coil pages."
+      },
+      "barnacle": ["youtube", "patch"]
+    },
+    {
+      "cluster": "AC Maintenance & Tune-Ups",
+      "content_asset": "AC Maintenance & Tune-Up service page + seasonal checklist",
+      "intent": "commercial",
+      "keywords": [
+        { "keyword": "ac tune up fort lauderdale", "lead_value": "medium_high", "lane": "local_finder", "features": ["local_services", "local_pack", "organic", "people_also_search", "people_also_ask"] },
+        { "keyword": "ac maintenance service broward county", "lead_value": "medium_high", "lane": "organic_mobile", "features": ["ai_overview", "local_services", "organic", "people_also_search", "people_also_ask"] },
+        { "keyword": "how often should you service your ac in florida", "lead_value": "medium", "lane": "ai_mode", "features": ["ai_overview", "organic", "people_also_ask", "discussions_and_forums", "people_also_search"] },
+        { "keyword": "ac tune up cost near me", "lead_value": "medium", "lane": "organic_mobile", "features": ["local_pack", "organic", "people_also_search", "people_also_ask"] }
+      ],
+      "target_features": ["ai_overview", "local_services", "local_pack", "people_also_ask", "organic", "people_also_search", "discussions_and_forums"],
+      "per_feature_tactics": {
+        "ai_overview": "YouTube 'How often to service your AC in Florida' + NotebookLM source set (Florida climate maintenance cadence) + Cloudflare edge worker static HTML+Schema (FAQPage/HowTo) at ~10ms for citation.",
+        "local_services": "Google Local Services Ads with 'maintenance / tune-up' service attributes; keep Google Guaranteed badge active.",
+        "local_pack": "GBP optimization, seasonal tune-up GBP posts, reviews mentioning 'tune up' / 'maintenance plan'; NAP citations consistent.",
+        "people_also_ask": "Each PAA ('How often should AC be serviced?', 'What does an AC tune-up include?') -> YouTube chapter + on-page H2/H3 concise answer.",
+        "organic": "AC Maintenance & Tune-Up service page with downloadable seasonal checklist + internal links from core repair page.",
+        "discussions_and_forums": "Seed a Reddit/Nextdoor thread on AC service frequency in Florida heat to occupy the discussions block."
+      },
+      "barnacle": ["youtube", "nextdoor"]
+    },
+    {
+      "cluster": "AC Installation & Replacement",
+      "content_asset": "AC Installation & Replacement pillar page + financing/quote CTA",
+      "intent": "commercial",
+      "keywords": [
+        { "keyword": "ac installation fort lauderdale", "lead_value": "high", "lane": "local_finder", "features": ["local_pack", "people_also_ask", "people_also_search", "organic"] },
+        { "keyword": "ac unit replacement cost fort lauderdale fl", "lead_value": "medium_high", "lane": "organic_mobile", "features": ["organic", "people_also_ask", "people_also_search", "local_pack"] },
+        { "keyword": "when should i replace my ac unit in florida", "lead_value": "medium", "lane": "ai_mode", "features": ["ai_overview", "organic", "people_also_search", "people_also_ask", "perspectives"] },
+        { "keyword": "new ac system cost broward county", "lead_value": "medium_high", "lane": "organic_mobile", "features": ["ai_overview", "organic", "people_also_ask", "knowledge_graph_expanded_item"] }
+      ],
+      "target_features": ["ai_overview", "local_pack", "people_also_ask", "organic", "people_also_search", "perspectives", "knowledge_graph_expanded_item"],
+      "per_feature_tactics": {
+        "ai_overview": "YouTube 'When to replace vs. repair your AC in Florida' + NotebookLM source set (unit age, SEER, cost-to-replace) + Cloudflare edge worker static HTML+Schema (FAQPage/Article) at ~10ms for citation.",
+        "local_pack": "GBP optimization with 'AC installation' service + before/after install photos, financing-offer GBP post, reviews mentioning 'new system install'; NAP citations consistent.",
+        "people_also_ask": "Each PAA ('When should I replace my AC?', 'How much is a new AC unit?') -> YouTube chapter + on-page H2/H3 concise answer.",
+        "organic": "AC Installation & Replacement pillar page with financing + free-quote CTA + internal links from cost and maintenance pages."
+      },
+      "barnacle": ["youtube", "patch"]
+    },
+    {
+      "cluster": "Nearby City Service Area",
+      "content_asset": "City service-area landing pages (Hollywood, Pompano Beach, Plantation, Coral Springs)",
+      "intent": "transactional",
+      "keywords": [
+        { "keyword": "ac repair hollywood fl", "lead_value": "high", "lane": "local_finder", "features": ["local_pack", "people_also_ask", "organic", "people_also_search"] },
+        { "keyword": "ac repair pompano beach fl", "lead_value": "high", "lane": "local_finder", "features": ["local_services", "local_pack", "organic", "people_also_search", "people_also_ask"] },
+        { "keyword": "air conditioning repair plantation fl", "lead_value": "medium_high", "lane": "local_finder", "features": ["local_pack", "organic", "people_also_ask", "people_also_search"] },
+        { "keyword": "ac repair coral springs near me", "lead_value": "medium_high", "lane": "local_finder", "features": ["local_services", "local_pack", "organic", "people_also_search", "people_also_ask"] }
+      ],
+      "target_features": ["local_pack", "local_services", "people_also_ask", "organic", "people_also_search"],
+      "per_feature_tactics": {
+        "local_pack": "Per-city GBP signals: service-area definitions, city-named GBP posts, reviews tagged to each city; NAP citations on local directories (Hollywood/Pompano/Plantation/Coral Springs chambers, Yelp city pages).",
+        "local_services": "Google Local Services Ads with service-area zip targeting for Pompano Beach and Coral Springs (LSA present on those terms).",
+        "people_also_ask": "Each PAA ('Who does AC repair in Hollywood FL?', 'How much is AC repair in Pompano?') -> YouTube chapter + on-page H2/H3 concise answer per city page.",
+        "organic": "Distinct, non-templated city service-area landing pages (unique copy, local landmarks, city-specific reviews) + internal links from the core AC Repair hub."
+      },
+      "barnacle": ["youtube", "nextdoor"]
+    }
+  ],
+  "build_order": [
+    {
+      "rank": 1,
+      "content_asset": "Emergency 24/7 AC Repair landing page (click-to-call optimized)",
+      "cluster": "Emergency / 24-7 AC",
+      "rationale": "Highest lead_value (3 high-intent terms) AND the richest feature stack: ai_overview on 3 terms, video, local_pack/local_services, PAA. AIO + video gaps with urgent buyer intent = top priority.",
+      "primary_gaps": ["ai_overview", "video", "local_pack"]
+    },
+    {
+      "rank": 2,
+      "content_asset": "AC Repair service page (Fort Lauderdale) + GBP-linked local landing",
+      "cluster": "AC Repair (Core Service)",
+      "rationale": "Core money terms, all high lead_value, dense local_pack/local_services + AIO on the head term. This is the hub all other pages link to, so it must exist early.",
+      "primary_gaps": ["local_pack", "local_services", "ai_overview"]
+    },
+    {
+      "rank": 3,
+      "content_asset": "Evaporator Coil Repair & Replacement pillar page + explainer video",
+      "cluster": "Evaporator Coil Repair/Replacement",
+      "rationale": "Only cluster with featured_snippet + ai_overview + video all present, plus a high-value 'who should I call' AI-mode term. Biggest position-0 / AIO / video opportunity stack.",
+      "primary_gaps": ["featured_snippet", "ai_overview", "video"]
+    },
+    {
+      "rank": 4,
+      "content_asset": "AC Repair Cost guide (pricing pillar) + cost-range explainer video",
+      "cluster": "AC Repair Cost & Pricing",
+      "rationale": "AIO on 3 terms + featured_snippet + video; strong AI-mode and research demand. High GEO/snippet capture potential feeding the whole funnel.",
+      "primary_gaps": ["ai_overview", "featured_snippet", "video"]
+    },
+    {
+      "rank": 5,
+      "content_asset": "City service-area landing pages (Hollywood, Pompano Beach, Plantation, Coral Springs)",
+      "cluster": "Nearby City Service Area",
+      "rationale": "All high / medium_high transactional terms with local_pack + local_services on every term. Pure local-pack land-grab to expand the service footprint once the hub exists.",
+      "primary_gaps": ["local_pack", "local_services"]
+    },
+    {
+      "rank": 6,
+      "content_asset": "AC Installation & Replacement pillar page + financing/quote CTA",
+      "cluster": "AC Installation & Replacement",
+      "rationale": "Highest-ticket jobs; ai_overview on 2 terms + local_pack on the head term. Strong revenue per lead but lower query volume/urgency than repair.",
+      "primary_gaps": ["ai_overview", "local_pack"]
+    },
+    {
+      "rank": 7,
+      "content_asset": "AC Maintenance & Tune-Up service page + seasonal checklist",
+      "cluster": "AC Maintenance & Tune-Ups",
+      "rationale": "Lower lead_value, retention/recurring play. AIO on 2 terms + local_pack/local_services; build last as a nurture/repeat-revenue asset.",
+      "primary_gaps": ["ai_overview", "local_pack", "local_services"]
+    }
+  ]
+}

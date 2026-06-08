@@ -1,0 +1,12 @@
+version: 1
+enabled: true                          # global kill switch (false = stop everything)
+defaults:
+  intra_workflow_jitter_seconds: [3, 12]
+allowed_action_classes:
+  - read_only_serp_observation
+  - read_only_social_scan
+  - social_posting
+blocked_action_classes:
+  - fake_review_or_engagement          # FTC hard block — never, regardless of tooling
+human_gate_action_classes:
+  - social_posting                     # any public posting gated even if customer_facing unset

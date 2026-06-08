@@ -1,0 +1,12 @@
+client_id: example-hvac-client
+client_urls:
+  - "https://houseacrepair.com/"
+competitors:
+  - {domain: "coolbreeze-ac.com", url: "https://coolbreeze-ac.com/"}
+entities:
+  service: ["ac repair", "air conditioning", "hvac"]
+  location: ["fort lauderdale", "broward"]
+  price: ['\$\d', "pricing", "cost"]
+  hours: ["24/7", "emergency", "open 24"]
+  guarantee: ["guarantee", "warranty", "satisfaction"]
+bots: ["GPTBot", "ClaudeBot", "OAI-SearchBot", "PerplexityBot", "Bingbot"]

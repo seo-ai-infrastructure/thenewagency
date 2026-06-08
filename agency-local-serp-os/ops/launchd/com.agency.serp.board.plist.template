@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0"><dict>
+  <key>Label</key><string>com.agency.serp.board</string>
+  <key>ProgramArguments</key><array>
+    <string>/bin/bash</string>
+    <string>__REPO__/ops/launchd/run-wrapped.sh</string>
+    <string>python3</string>
+    <string>apps/kanban-board/server.py</string>
+    <string>--host</string><string>127.0.0.1</string>
+    <string>--port</string><string>8787</string>
+  </array>
+  <key>RunAtLoad</key><true/>
+  <key>KeepAlive</key><true/>
+  <key>StandardOutPath</key><string>__REPO__/ops/launchd/logs/board.out.log</string>
+  <key>StandardErrorPath</key><string>__REPO__/ops/launchd/logs/board.err.log</string>
+</dict></plist>
