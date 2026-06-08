@@ -3,7 +3,7 @@
 
 Reads what the daily/weekly/monthly cadence already wrote to disk (SERP tracker history,
 per-client signals snapshots, sources.yaml, last_run/circuit) and assembles ONE payload:
-the SERP-saturation headline (multi-presence toward the 4-6+ goal), a keyword x feature
+the SERP-saturation headline (multi-presence toward the 2+ goal), a keyword x feature
 ownership matrix (heatmap), per-source cards (GBP / Bing / Clarity / GSC), a cross-source
 action skyline, and freshness/cost telemetry. No network, no writes — safe to call on every
 poll. Mirrors lib/board_scan (the kanban's read-only projector) in spirit.
@@ -292,7 +292,7 @@ def action_skyline(saturation, signals, top=12):
     items = []
     for q in saturation.get("action_queue", []):
         gap = q["gap_to_goal"]
-        sev = "high" if gap >= 3 else ("med" if gap >= 1 else "low")
+        sev = "high" if gap >= 2 else ("med" if gap >= 1 else "low")
         miss = ", ".join(q["features_unclaimed"][:5]) or "extend existing placements"
         items.append({"source": "serp", "severity": sev,
                       "title": f"Claim {gap} more on “{q['keyword']}”",

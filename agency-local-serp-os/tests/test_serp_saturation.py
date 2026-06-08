@@ -32,7 +32,7 @@ def test_below_goal_lists_unclaimed_features_as_opportunity():
     recs = [_slot("owned", "organic"), _slot("competitor", "local_pack"),
             _slot("unknown", "images"), _slot("competitor", "ai_overview")]
     s = ss.saturate_serp(recs)
-    assert s["presence_count"] == 1 and s["meets_goal"] is False and s["gap_to_goal"] == 3
+    assert s["presence_count"] == 1 and s["meets_goal"] is False and s["gap_to_goal"] == 1  # goal_min=2
     # features on the SERP the client does NOT hold -> the action list
     assert s["features_unclaimed"] == ["ai_overview", "images", "local_pack"]
     assert s["competitor_features"] == ["ai_overview", "local_pack"]
@@ -51,7 +51,7 @@ def test_saturation_groups_by_serp_and_sorts_biggest_gap_first():
             _slot("competitor", "organic", kw="bad")]
     serps = ss.saturation(recs)
     assert [s["keyword"] for s in serps] == ["bad", "good"]   # biggest gap first = action queue
-    assert serps[0]["gap_to_goal"] == 4 and serps[1]["meets_goal"] is True
+    assert serps[0]["gap_to_goal"] == 2 and serps[1]["meets_goal"] is True  # goal_min=2
 
 
 def test_same_keyword_different_os_are_separate_serps():

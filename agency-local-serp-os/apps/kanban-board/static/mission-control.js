@@ -108,7 +108,7 @@
     $("mc-kpis").innerHTML = [
       { l: "SERPs at goal", v: `${fmt(s.n_meeting_goal)}<small>/${fmt(s.n_serps)}</small>`, d: dl.n_meeting_goal },
       { l: "Avg appearances / page", v: fmt(s.avg_presence), d: dl.avg_presence },
-      { l: "% meeting 4–6+", v: pct + "%", d: dl.pct_meeting_goal },
+      { l: `% meeting ${fmt(s.goal_min)}+`, v: pct + "%", d: dl.pct_meeting_goal },
       { l: "Real SERPs tracked", v: fmt(s.n_serps), d: null },
     ].map(k => `<div class="kpi"><div class="k-label">${esc(k.l)}</div><div class="k-val">${k.v}</div>${deltaChip(k.d, "up")}</div>`).join("");
 

@@ -1,6 +1,6 @@
 """SERP saturation / multi-presence scoring.
 
-The strategic goal is to occupy the SAME SERP 4-6+ times across ALL feature types
+The strategic goal is to occupy the SAME SERP 2+ times (stretch 4+) across ALL feature types
 (organic + local pack/finder + people-also-ask + images + video + AI surface + forums +
 shopping + ...). Where lib/estate_scoring measures *ownership-weighted share* of a SERP,
 this measures *how many distinct placements* the client holds on each SERP and flags the
@@ -11,8 +11,8 @@ A slot counts as client presence when its ownership_class is owned/controlled/in
 Consumes the same v3 snapshot records the tracker writes; no network.
 
 Goal thresholds are env-overridable (a PM can retune without a code edit):
-  SATURATION_GOAL_MIN      (default 4)  — at/above this, the SERP meets the goal
-  SATURATION_GOAL_STRETCH  (default 6)  — above this, the SERP is in the stretch band
+  SATURATION_GOAL_MIN      (default 2)  — at/above this, the SERP meets the goal
+  SATURATION_GOAL_STRETCH  (default 4)  — above this, the SERP is in the stretch band
 """
 import os
 from collections import defaultdict
@@ -42,8 +42,8 @@ def _appearances(present):
 
 
 def _goal(goal_min, goal_stretch):
-    gm = int(os.environ.get("SATURATION_GOAL_MIN", "4")) if goal_min is None else goal_min
-    gs = int(os.environ.get("SATURATION_GOAL_STRETCH", "6")) if goal_stretch is None else goal_stretch
+    gm = int(os.environ.get("SATURATION_GOAL_MIN", "2")) if goal_min is None else goal_min
+    gs = int(os.environ.get("SATURATION_GOAL_STRETCH", "4")) if goal_stretch is None else goal_stretch
     return gm, gs
 
 

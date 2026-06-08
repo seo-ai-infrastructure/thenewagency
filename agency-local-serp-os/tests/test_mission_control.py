@@ -77,7 +77,7 @@ def test_command_center_title_and_client(tmp_path):
 def test_saturation_block_computed_from_tracker_history(tmp_path):
     root = _make_root(tmp_path)
     sat = mc.command_center(root, "c1")["saturation"]
-    assert sat["n_serps"] == 2 and sat["goal_min"] == 4
+    assert sat["n_serps"] == 2 and sat["goal_min"] == 2
     assert sat["n_meeting_goal"] == 1                      # only the 'good kw' SERP (4 owned)
     assert sat["pct_meeting_goal"] == 0.5
     assert "local_finder" in sat["by_lane"] and "organic_mobile" in sat["by_lane"]
