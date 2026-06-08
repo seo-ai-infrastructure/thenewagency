@@ -14,14 +14,55 @@ The system has been modernized from a local filesystem script into a full-stack 
 - **Agent Orchestrator:** CloakBrowser Runner (`automations/cloakbrowser-runner/run.py`), typically deployed via Docker, polling for JSON work orders to execute UI actions.
 
 ## 🔑 Environment Variables
-Your `.env` and Vercel Environment Variables must contain:
-```env
-# Supabase Authentication & DB
-SUPABASE_URL=https://<your-project>.supabase.co
-SUPABASE_KEY=<your-anon-jwt-key>
+Your `.env` 
+```
 
-# Redis Task Queue (Celery)
-REDIS_URL=redis://:<password>@<redis-host>:<port>/0
+### The CloakBrowser Agent Pool
+When the worker processes an automation, it drops a JSON payload into `automations/cloakbrowser-runner/inbox/`. 
+Your Dockerized CloakBrowser Manager continuously watches this folder. When a file drops, it wakes up the specific persistent browser profile (e.g. `example-hvac-client-cb-agent`) and executes the task autonomously (e.g. Hijacking a PAA on Reddit).
+
+## 📊 Core Subsystems
+- **DataForSEO Tracks:** Local Finder, Organic Mobile, and AI Mode. 
+- **PAA Velocity Trap (`lib/paa_velocity.py`):** Scans historical search data to automatically detect rising competitor keywords and issues "hijack" work orders.
+- **Deep Dive "God Mode":** An interactive UI (`mission-control.js`) that visualizes Proximity Decay, Revenue Pipeline loss, and Reputation Shock (CTR exponential decay).
+
+## 📂 Repository Layout
+```text
+api/index.py                        # Vercel Serverless Entrypoint (Flask)
+apps/kanban-board/static/           # SaaS Frontend (HTML/JS/CSS)
+automations/cloakbrowser-runner/    # Agent Orchestrator & Poller
+clients/<id>/browser/               # Client profiles.yaml & workflows.yaml
+lib/db.py                           # Supabase Postgres bridge
+lib/tasks.py                        # Celery Application & Task definitions
+scripts/migrate_to_supabase.py      # Migration tool from local JSON to Supabase
+worker.py                           # Celery Worker Entrypoint
+```
+
+
+## Lanes (integrations/dataforseo/endpoints.yaml)
+- Local Finder  /v3/serp/google/local_finder/live/advanced   (map-pack)
+- Organic mobile /v3/serp/google/organic/live/advanced        (full feature stack + AIO)
+- AI Mode       /v3/serp/google/ai_mode/live/advanced         (English-only, ~2x cost, monthly)
+
+## What was fixed/upgraded vs the prior spec
+2. AI Mode absence handled (English-only / location-limited) — recorded, not errored.
+3. AI Overview vs AI Mode disambiguated by LANE (both arrive as an ai_overview item).
+4. Coordinate format standardized (lat,lng,zoom) across lanes.
+5. competition.yaml (structured) drives the 5-class ownership classifier.
+6. AI citations captured: cited_sources + cited_competitors (who's winning the AI surface).
+7. Cost controls: per-lane cadence + Standard (queued) method in endpoints.yaml;
+   AI Mode monthly; minimal paid params to control cost. Raw responses archived to raw/ so you never re-pay to re-parse.
+8. Schedule-collector idempotency via state/last_run.txt (not inbox/work-order).
+9. Scoring: THREE separate lane scores (never blended), estate_share = ownership-weighted
+   share of SERP slots, weighted by ownership class AND keyword lead_value.
+10. AI surfaces scored by CITATION (influenced), not block ownership — being cited
+    among several sources is not owning the slot.
+
+## Run
+```bash
+pip install -r requirements.txt
+python run_all_dry.py            # tracker (fixtures) -> estate scoring, end to end
+# live: set DATAFORSEO_LOGIN/PASSWORD in env, fill clients/<id>/facts, drop --dry-run
 ```
 
 ## 🛠 Deployment & Execution
