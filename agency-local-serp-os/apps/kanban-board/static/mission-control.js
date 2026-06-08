@@ -254,6 +254,12 @@
           <div class="panel"><h3>Striking distance — quick wins (pos 5–15) <span class="h-accent"></span></h3><div id="si-striking"></div></div>
           <div class="panel"><h3>Keyword rankings vs competitors <span class="h-accent"></span></h3><div id="si-ranks"></div></div>
         </div>
+        <div class="panel" style="margin-top:13px">
+          <h3>GSC metric correlation matrix <span class="h-accent"></span></h3>
+          <div class="sub" style="margin-bottom:8px">How your GSC metrics relate across queries — diagonal = each metric's distribution, off-diagonal = scatter with Pearson r.</div>
+          <div class="corr-legend" id="si-corr-legend"></div>
+          <div id="si-corr"></div>
+        </div>
       </div>`;
     $("si-client").onchange = e => window.mcSetClient(e.target.value);
   };
@@ -291,7 +297,48 @@
        fmt(r.best_rank), fmt(r.best_competitor_rank), esc((r.features_held || []).join(", ") || "—")]));
     $("si-ranks").innerHTML = `<div class="sub-h">Local Finder</div>${rk(kr.local_finder)}
       <div class="sub-h">Organic Mobile</div>${rk(kr.organic_mobile)}`;
+    renderCorrelation(d.gsc_correlation);
   };
+  function _hist(vals, n) {
+    if (!vals.length) return new Array(n).fill(0);
+    const mn = Math.min(...vals), mx = Math.max(...vals), w = (mx - mn) / n || 1;
+    const counts = new Array(n).fill(0);
+    vals.forEach(v => { let i = Math.floor((v - mn) / w); if (i >= n) i = n - 1; if (i < 0) i = 0; counts[i]++; });
+    return counts;
+  }
+  const rColor = r => r >= 0.7 ? "#34d399" : r >= 0.4 ? "#fbbf24" : r > -0.4 ? "#7d8a9a" : r > -0.7 ? "#fb923c" : "#f87171";
+  function renderCorrelation(c) {
+    const host = $("si-corr"); if (!host) return;
+    if (!c || !(c.points || []).length) { host.innerHTML = `<div class="mc-empty">No GSC rows to correlate.</div>`; return; }
+    const M = c.metrics, LABEL = { clicks: "Clicks", impressions: "Impressions", ctr: "CTR %", position: "Avg Position" }, n = M.length;
+    $("si-corr-legend").innerHTML = [["#34d399", "Strong + (≥0.7)"], ["#fbbf24", "Medium + (0.4–0.7)"],
+      ["#7d8a9a", "Weak (−0.4–0.4)"], ["#fb923c", "Medium − (−0.7–−0.4)"], ["#f87171", "Strong − (≤−0.7)"]]
+      .map(([col, t]) => `<span><i style="background:${col}"></i>${t}</span>`).join("");
+    let html = `<div class="corr-grid" style="grid-template-columns:84px repeat(${n},1fr)"><div class="corr-corner"></div>`;
+    M.forEach(m => html += `<div class="corr-head">${esc(LABEL[m])}</div>`);
+    M.forEach((ry, ri) => { html += `<div class="corr-head corr-rhead">${esc(LABEL[ry])}</div>`;
+      M.forEach((cx, ci) => html += `<div class="corr-cell" id="corr-${ri}-${ci}"></div>`); });
+    host.innerHTML = html + `</div>`;
+    if (!HAS_APEX()) return;
+    M.forEach((ry, ri) => M.forEach((cx, ci) => {
+      const el = $(`corr-${ri}-${ci}`); if (!el) return;
+      if (ri === ci) {
+        const ch = new ApexCharts(el, { chart: { type: "bar", height: 116, sparkline: { enabled: true } },
+          series: [{ data: _hist(c.points.map(p => p[ry]), 12) }], colors: ["#38bdf8"],
+          plotOptions: { bar: { columnWidth: "88%" } }, tooltip: { enabled: false } });
+        ch.render(); MC.charts[`corr_${ri}_${ci}`] = ch;
+        const tag = document.createElement("div"); tag.className = "corr-r"; tag.style.color = "#7d8a9a"; tag.textContent = "dist"; el.appendChild(tag);
+      } else {
+        const r = ((c.r[ry] || {})[cx]) ?? 0;
+        const ch = new ApexCharts(el, { chart: { type: "scatter", height: 116, sparkline: { enabled: true } },
+          series: [{ name: `${LABEL[cx]} × ${LABEL[ry]}`, data: c.points.map(p => [p[cx], p[ry]]) }],
+          colors: [rColor(r)], markers: { size: 2.4 }, xaxis: { type: "numeric" },
+          tooltip: { enabled: false }, grid: { show: false } });
+        ch.render(); MC.charts[`corr_${ri}_${ci}`] = ch;
+        const tag = document.createElement("div"); tag.className = "corr-r"; tag.style.color = rColor(r); tag.textContent = "r " + r; el.appendChild(tag);
+      }
+    }));
+  }
 
   /* ============================ AI SEARCH ============================ */
   SHELL.ai = function () {

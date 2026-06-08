@@ -393,6 +393,38 @@ def _keyword_rankings(records):
     return out
 
 
+def _pearson(xs, ys):
+    """Pearson correlation r for two equal-length numeric series (0.0 if degenerate). Stdlib only."""
+    n = len(xs)
+    if n < 2:
+        return 0.0
+    mx, my = sum(xs) / n, sum(ys) / n
+    cov = sum((x - mx) * (y - my) for x, y in zip(xs, ys))
+    vx = sum((x - mx) ** 2 for x in xs)
+    vy = sum((y - my) ** 2 for y in ys)
+    if vx <= 0 or vy <= 0:
+        return 0.0
+    return round(cov / (vx ** 0.5 * vy ** 0.5), 3)
+
+
+def _gsc_correlation(rows, cap=400):
+    """Per-query GSC metric relationships (clicks / impressions / CTR% / avg position) for the
+    correlation matrix: the raw points + a pairwise Pearson-r matrix. All real, from GSC rows."""
+    metrics = ["clicks", "impressions", "ctr", "position"]
+    pts = []
+    for r in rows[:cap]:
+        try:
+            pts.append({"clicks": float(r.get("clicks") or 0),
+                        "impressions": float(r.get("impressions") or 0),
+                        "ctr": float(r.get("ctr") or 0) * 100.0,
+                        "position": float(r.get("position") or 0)})
+        except (TypeError, ValueError):
+            continue
+    cols = {m: [p[m] for p in pts] for m in metrics}
+    rmat = {a: {b: _pearson(cols[a], cols[b]) for b in metrics} for a in metrics}
+    return {"metrics": metrics, "points": pts, "r": rmat, "n": len(pts)}
+
+
 def search_intelligence(root, client=None):
     root = pathlib.Path(root)
     client, clients = _resolve_client(root, client)
@@ -452,6 +484,7 @@ def search_intelligence(root, client=None):
             "gsc": _perf(gsc, "impressions", "clicks", "position", gsc_conn),
             "bing": _perf(bing, "impressions", "clicks", "avg_impression_position", bing_conn)},
         "striking_distance": _striking_distance(gsc),
+        "gsc_correlation": _gsc_correlation(gsc),
         "keyword_rankings": kr,
     }
 
