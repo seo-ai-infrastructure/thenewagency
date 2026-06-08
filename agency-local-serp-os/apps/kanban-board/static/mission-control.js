@@ -234,7 +234,6 @@
           <div class="mc-controls" style="margin: 10px 0 14px;">
             <span class="mc-chip ok" id="ti-trace">crawl: —</span>
             <span class="mc-chip" id="ti-geo">Fort Lauderdale, FL (Primary GEO)</span>
-            <span class="mc-chip">Analysis window: last 30 days</span>
             <span class="mc-chip warn" id="ti-pressure">Competitor pressure: —</span>
           </div>
 
@@ -246,52 +245,18 @@
             <div class="kpi"><div class="k-label">Content size</div><div class="k-val" style="font-size:22px;" id="ti-size">—</div></div>
           </div>
 
-          <div style="display:grid; grid-template-columns: 1fr 1fr; gap:13px; margin-bottom:13px;">
-            <div class="kpi" style="padding:14px;"><h4 class="sub-h" style="margin-top:0; color:#38bdf8;">Step duration (seconds)</h4><div id="ai-ti-duration" style="height:240px; margin-top:10px;"></div></div>
-            <div class="kpi" style="padding:14px;"><h4 class="sub-h" style="margin-top:0; color:#38bdf8;">Network request types</h4><div id="ai-ti-network" style="height:240px; margin-top:10px;"></div></div>
-          </div>
-
-          <div style="display:grid; grid-template-columns: 1fr 1fr; gap:13px; margin-bottom:13px;">
-            <div class="kpi" style="padding:14px;"><h4 class="sub-h" style="margin-top:0; color:#38bdf8;">Skip reasons</h4><div id="ai-ti-skip" style="height:240px; margin-top:10px;"></div></div>
-            <div class="kpi" style="padding:14px;"><h4 class="sub-h" style="margin-top:0; color:#38bdf8;">DOM size growth (chars)</h4><div id="ai-ti-dom" style="height:240px; margin-top:10px;"></div></div>
-          </div>
-
           <div class="panel" style="padding:14px; margin-bottom:13px; background:var(--card);">
-            <h4 class="sub-h" style="margin-top:0; color:#38bdf8; margin-bottom:12px;">Divergence matrix: AIO vs Local Pack dominance</h4>
-            <div id="ai-ti-divergence" style="height:320px;"></div>
-          </div>
-
-          <div class="panel" style="padding:14px; margin-bottom:13px; background:var(--card);">
-            <h4 class="sub-h" style="margin-top:0; color:#38bdf8; margin-bottom:12px;">Competitor pressure &amp; ranking threats</h4>
+            <h4 class="sub-h" style="margin-top:0; color:#38bdf8; margin-bottom:12px;">Competitor pressure &amp; ranking threats <span style="font-weight:400; color:var(--dim); font-size:11px;">— live DataForSEO SERP slots across the tracked keywords</span></h4>
             <div id="ai-ti-pressure-table" style="margin-top:8px;"></div>
           </div>
 
-          <div style="display:grid; grid-template-columns: 1.2fr 1fr; gap:13px; margin-bottom:13px;">
-            <div class="kpi" style="padding:14px;"><h4 class="sub-h" style="margin-top:0; color:#38bdf8;">Competitor review sentiment (last 90d)</h4><div id="ai-ti-sentiment" style="height:240px; margin-top:10px;"></div></div>
-            <div class="kpi" style="padding:14px; display:flex; flex-direction:column; justify-content:space-between; background:var(--card);">
-              <div>
-                <h4 class="sub-h" style="margin-top:0; margin-bottom:14px; color:#38bdf8;">GBP freshness &amp; offer tracking</h4>
-                <ul style="list-style:none; padding:0; display:flex; flex-direction:column; gap:12px; font-size:12px; color:var(--dim);">
-                  <li style="display:flex; align-items:flex-start; gap:8px;"><span style="color:#34d399; font-weight:bold; font-family:'JetBrains Mono',monospace;">[Offer]</span> <span><b>Cool Air USA</b>: "$59 fall furnace tune-up" (2026-06-05)</span></li>
-                  <li style="display:flex; align-items:flex-start; gap:8px;"><span style="color:#38bdf8; font-weight:bold; font-family:'JetBrains Mono',monospace;">[Service]</span> <span><b>Fuss Free AC</b>: Added service "Ductless Mini-Split"</span></li>
-                  <li style="display:flex; align-items:flex-start; gap:8px;"><span style="color:#f87171; font-weight:bold; font-family:'JetBrains Mono',monospace;">[Alert]</span> <span><b>House AC Repair</b>: No GBP post in 19 days → <span style="color:#fca5a5; font-weight:600;">freshness alert</span></span></li>
-                  <li style="display:flex; align-items:flex-start; gap:8px;"><span style="color:#fbbf24; font-weight:bold; font-family:'JetBrains Mono',monospace;">[Spike]</span> <span>Review velocity spike: A+ ESC +340% WoW (potential fake reviews)</span></li>
-                </ul>
-              </div>
-              <div style="font-size:10.5px; color:var(--dim); font-family:'JetBrains Mono',monospace; border-top:1px solid var(--line); padding-top:8px; margin-top:14px;">
-                Updated: 2026-06-07 · 30d analysis window
-              </div>
-            </div>
+          <div class="kpi" style="padding:14px; margin-bottom:8px;">
+            <h4 class="sub-h" style="margin-top:0; color:#38bdf8;">Competitor review sentiment <span style="font-weight:400; color:var(--dim); font-size:11px;">— negative reviews mined per competitor (live watchdog)</span></h4>
+            <div id="ai-ti-sentiment" style="height:260px; margin-top:10px;"></div>
           </div>
 
-          <div class="panel" style="padding:14px; margin-bottom:8px; background:var(--card);">
-            <h4 class="sub-h" style="margin-top:0; margin-bottom:10px; color:#38bdf8;">Agent screenshot timeline</h4>
-            <div id="ai-ti-screenshots" style="display: flex; gap: 12px; overflow-x: auto; padding-bottom: 8px;"></div>
-            <div style="margin-top: 8px; font-size: 10px; color: var(--dim);"><i class="fas fa-info-circle"></i> Thumbnails captured at each decision step (homepage → competitor GBP → service pages).</div>
-          </div>
-
-          <div style="text-align: center; font-size: 10px; color: var(--dim); border-top: 1px solid var(--line); padding-top: 12px; margin-top: 14px;">
-            Generated from threat-intel engine v2 · Data sources: DataForSEO, Google Maps API, SERP snapshots (30d window) · All charts interactive.
+          <div style="text-align: center; font-size: 10px; color: var(--dim); border-top: 1px solid var(--line); padding-top: 12px; margin-top: 14px;" id="ti-foot">
+            Sourced from the live Firecrawl AEO crawl, the DataForSEO SERP tracker, and the competitor-review watchdog. No synthetic figures.
           </div>
         </div>
       </div>`;
@@ -315,154 +280,51 @@
         q.client_cited ? `<span class="pill ok">yes</span>` : `<span class="pill bad">no</span>`,
         esc((q.cited_competitors || []).join(", ") || "—"), esc((q.cited_sources || []).join(", ") || "—")]));
 
-    // Threat Intel sub-charts rendering
-    if (HAS_APEX()) {
-      const steps = Array.from({length: 32}, (_, i) => i);
-      const durations = steps.map((step, idx) => {
-          if (idx < 6) return 0.9 + Math.random() * 0.7;
-          if (idx < 14) return 1.9 + Math.random() * 1.4;
-          if (idx < 23) return 1.2 + Math.random() * 1.0;
-          return 0.7 + Math.random() * 0.5;
-      });
-      durations[4] = 3.2;
-      durations[19] = 2.9;
+    // ---- Active Threat Intel: REAL data only (strip + pressure table + review sentiment) ----
+    const ti = d.threat_intel || {};
+    const ct = ti.crawl_telemetry || {};
+    const tiSet = (id, v) => { const el = $(id); if (el) el.textContent = v; };
+    tiSet("ti-trace", "crawl: " + (ct.trace || "not run"));
+    tiSet("ti-pressure", "Competitor pressure: " + (ct.competitor_pressure || "—"));
+    tiSet("ti-bots", ct.bots_probed != null ? ct.bots_probed : "—");
+    tiSet("ti-allowed", ct.bots_allowed != null ? ct.bots_allowed : "—");
+    tiSet("ti-blocked", ct.bots_blocked != null ? ct.bots_blocked : "—");
+    tiSet("ti-entities", (ct.entities_found != null ? ct.entities_found : "—") + (ct.entities_total != null ? "/" + ct.entities_total : ""));
+    tiSet("ti-size", ct.content_kb != null ? ct.content_kb + " KB" : "—");
 
-      let ch = new ApexCharts($("ai-ti-duration"), {
-        chart: { type: "line", height: 200, background: "transparent", toolbar: { show: false } },
+    // Ranking-threats table — live DataForSEO SERP slot counts per rival domain across tracked keywords
+    const threats = ti.ranking_threats || [];
+    const tlBadge = lv => lv === "apex" ? `<span class='pill bad'>🔥 apex</span>`
+                        : lv === "high" ? `<span class='pill warn'>⚠️ high</span>`
+                        : `<span class='pill'>med</span>`;
+    const ptEl = $("ai-ti-pressure-table");
+    if (ptEl) ptEl.innerHTML = threats.length
+      ? table(["Rival domain", "SERP slots", "Keywords", "Avg rank", "Threat"],
+          threats.map(t => [`<strong>${esc(t.domain)}</strong>`, String(t.slots),
+                            String(t.keywords), t.avg_rank != null ? String(t.avg_rank) : "—",
+                            tlBadge(t.threat_level)]))
+      : `<div class="mc-empty">no rival domains in the tracked SERPs yet</div>`;
+
+    // Review-sentiment chart — negative reviews mined per competitor (live watchdog)
+    const rs = ti.review_sentiment || [];
+    const sentEl = $("ai-ti-sentiment");
+    if (HAS_APEX() && rs.length && sentEl) {
+      const ch = new ApexCharts(sentEl, {
+        chart: { type: "bar", height: 260, background: "transparent", toolbar: { show: false } },
         theme: { mode: "dark" },
-        series: [{ name: "duration (s)", data: durations }],
-        stroke: { width: 2.5, curve: "smooth" },
-        colors: ["#38bdf8"],
-        xaxis: { categories: steps, labels: { style: { colors: "#7d8a9a", fontSize: "9px" } } },
-        yaxis: { labels: { style: { colors: "#7d8a9a", fontSize: "9px" } } },
+        series: [{ name: "Negative reviews mined", data: rs.map(r => r.negatives || 0) }],
+        xaxis: { categories: rs.map(r => r.competitor), labels: { style: { colors: "#7d8a9a", fontSize: "10px" } } },
+        yaxis: { labels: { style: { colors: "#7d8a9a" } } },
+        colors: ["#f87171"],
+        plotOptions: { bar: { borderRadius: 4, columnWidth: "45%" } },
+        dataLabels: { enabled: true, style: { colors: ["#e6edf3"] } },
         grid: { borderColor: "#222c39" },
-        tooltip: { theme: "dark" }
-      });
-      ch.render(); MC.charts.ai_ti_duration = ch;
-
-      ch = new ApexCharts($("ai-ti-network"), {
-        chart: { type: "donut", height: 200, background: "transparent" },
-        theme: { mode: "dark" },
-        labels: ['HTML', 'JS', 'CSS', 'Images', 'Fonts', 'API/JSON', 'Other'],
-        series: [43, 76, 28, 52, 9, 22, 15],
-        colors: ['#1e4a76', '#3b82f6', '#38bdf8', '#2dd4bf', '#f97316', '#a855f7', '#94a3b8'],
-        legend: { position: "right", labels: { colors: "#7d8a9a", fontSize: "10px" } },
-        stroke: { colors: ["#11171f"] },
-        tooltip: { theme: "dark" }
-      });
-      ch.render(); MC.charts.ai_ti_network = ch;
-
-      ch = new ApexCharts($("ai-ti-skip"), {
-        chart: { type: "donut", height: 200, background: "transparent" },
-        theme: { mode: "dark" },
-        labels: ['Irrelevant ads', 'No contact info', 'Duplicate content', 'Goal achieved', 'Not disclosed'],
-        series: [28, 36, 12, 18, 6],
-        colors: ['#f87171', '#fbbf24', '#eef2f6', '#34d399', '#a78bfa'],
-        legend: { position: "right", labels: { colors: "#7d8a9a", fontSize: "10px" } },
-        stroke: { colors: ["#11171f"] },
-        tooltip: { theme: "dark" }
-      });
-      ch.render(); MC.charts.ai_ti_skip = ch;
-
-      const domSizes = steps.map((step, i) => {
-          if (i < 7) return 12500 + i * 900;
-          if (i < 15) return 24000 + (i-6) * 2100;
-          if (i < 24) return 52000 + (i-14) * 1800;
-          return 68000 + (i-23) * 500;
-      });
-      domSizes[11] = 31000;
-      domSizes[17] = 73800;
-      ch = new ApexCharts($("ai-ti-dom"), {
-        chart: { type: "area", height: 200, background: "transparent", toolbar: { show: false } },
-        theme: { mode: "dark" },
-        series: [{ name: "DOM size", data: domSizes }],
-        stroke: { width: 2.5, curve: "smooth" },
-        colors: ["#34d399"],
-        fill: { type: "gradient", gradient: { opacityFrom: 0.4, opacityTo: 0.05 } },
-        xaxis: { categories: steps, labels: { style: { colors: "#7d8a9a", fontSize: "9px" } } },
-        yaxis: { labels: { style: { colors: "#7d8a9a", fontSize: "9px" }, formatter: v => (v / 1000).toFixed(0) + "k" } },
-        grid: { borderColor: "#222c39" },
-        tooltip: { theme: "dark" }
-      });
-      ch.render(); MC.charts.ai_ti_dom = ch;
-
-      const scatterComps = [
-        {name: 'House AC Repair', x: 0.32, y: 0.12},
-        {name: 'Cool Air USA', x: 0.78, y: 0.71},
-        {name: 'Fuss Free AC', x: 0.41, y: 0.54},
-        {name: 'Local HVAC Co', x: 0.15, y: 0.28},
-        {name: 'Sunshine Cooling', x: 0.62, y: 0.19},
-        {name: 'A+ ESC', x: 0.88, y: 0.85}
-      ];
-      ch = new ApexCharts($("ai-ti-divergence"), {
-        chart: { type: "scatter", height: 320, background: "transparent", toolbar: { show: false } },
-        theme: { mode: "dark" },
-        series: scatterComps.map(c => ({
-          name: c.name,
-          data: [[c.x, c.y]]
-        })),
-        colors: ['#34d399', '#f87171', '#fbbf24', '#7d8a9a', '#38bdf8', '#a78bfa'],
-        xaxis: { min: 0, max: 1.0, tickAmount: 4, labels: { style: { colors: "#7d8a9a" } }, title: { text: "Map pack share (map rank)", style: { color: "#7d8a9a", fontSize: "11px" } } },
-        yaxis: { min: 0, max: 1.0, tickAmount: 4, labels: { style: { colors: "#7d8a9a" } }, title: { text: "AI Overview citation rate", style: { color: "#7d8a9a", fontSize: "11px" } } },
-        grid: { borderColor: "#222c39" },
-        legend: { position: "bottom", labels: { colors: "#7d8a9a" } },
-        annotations: {
-          xaxis: [{ x: 0.5, borderColor: "#1f6feb", strokeDashArray: 3, label: { text: "Map Threshold", style: { color: "#7d8a9a", background: "#11171f" } } }],
-          yaxis: [{ y: 0.5, borderColor: "#1f6feb", strokeDashArray: 3, label: { text: "AI Threshold", style: { color: "#7d8a9a", background: "#11171f" } } }]
-        },
-        tooltip: { theme: "dark" }
-      });
-      ch.render(); MC.charts.ai_ti_divergence = ch;
-
-      ch = new ApexCharts($("ai-ti-sentiment"), {
-        chart: { type: "bar", height: 240, background: "transparent", toolbar: { show: false } },
-        theme: { mode: "dark" },
-        series: [
-          { name: 'Positive %', data: [78, 86, 74, 92] },
-          { name: 'Negative %', data: [12, 8, 16, 4] },
-          { name: 'Neutral %', data: [10, 6, 10, 4] }
-        ],
-        xaxis: { categories: ['House AC Repair', 'Cool Air USA', 'Fuss Free AC', 'A+ ESC'], labels: { style: { colors: "#7d8a9a", fontSize: "10px" } } },
-        yaxis: { min: 0, max: 100, labels: { style: { colors: "#7d8a9a" } } },
-        colors: ['#34d399', '#f87171', '#7d8a9a'],
-        plotOptions: { bar: { borderRadius: 4, columnWidth: "50%" } },
-        legend: { labels: { colors: "#7d8a9a" } },
-        grid: { borderColor: "#222c39" },
-        tooltip: { theme: "dark" }
+        legend: { show: false },
+        tooltip: { theme: "dark", y: { formatter: (v, opts) => { const r = rs[opts.dataPointIndex] || {}; return v + " negative · avg " + (r.avg_rating != null ? r.avg_rating + "★" : "—") + (r.top_theme ? " · " + r.top_theme : ""); } } }
       });
       ch.render(); MC.charts.ai_ti_sentiment = ch;
-    }
-
-    $("ai-ti-pressure-table").innerHTML = table(
-      ["Competitor", "Map pack wins (#kw)", "AI citations", "Avg local rank", "Threat level", "Trend (30d)"],
-      [
-        ["<strong>Cool Air USA</strong><br/><span style='color:var(--dim); font-size:10px;'>coolairusa.com</span>", "18", "12", "2.1", "<span class='pill bad'>🔥 Apex threat</span>", "<span class='delta up'>▲ +22% map</span>"],
-        ["<strong>Fuss Free AC</strong><br/><span style='color:var(--dim); font-size:10px;'>fussfreeac.com</span>", "12", "9", "2.9", "<span class='pill warn'>⚠️ Map dinosaur</span>", "<span class='delta down'>▼ -5% AI</span>"],
-        ["<strong>A+ ESC Air Conditioning</strong><br/><span style='color:var(--dim); font-size:10px;'>aescairconditioning.com</span>", "6", "14", "3.5", "<span class='pill ok'>⚡ AI Upstart</span>", "<span class='delta up'>▲ +120% AI</span>"],
-        ["<strong>House AC Repair (client)</strong>", "9", "3", "3.2", "<span class='pill warn'>Exposed in AI</span>", "<span class='delta down'>▼ -2 positions</span>"]
-      ]
-    );
-
-    const carousel = $("ai-ti-screenshots");
-    if (carousel) {
-      carousel.innerHTML = "";
-      const stepNames = ['Homepage', 'Cool Air USA GBP', 'Fuss Free AC', 'Service pricing', 'Local pack', 'AI Overviews'];
-      for (let i = 0; i < 6; i++) {
-        const hue = (i * 45) % 360;
-        const svg = `<svg width="220" height="140" viewBox="0 0 220 140" xmlns="http://www.w3.org/2000/svg">
-                        <rect width="220" height="140" fill="hsl(${hue}, 40%, 18%)" stroke="#222c39" stroke-width="2" rx="10"/>
-                        <text x="50%" y="45%" dominant-baseline="middle" text-anchor="middle" font-size="12" fill="#38bdf8" font-family="'JetBrains Mono', monospace" font-weight="bold">Screenshot</text>
-                        <text x="50%" y="65%" dominant-baseline="middle" text-anchor="middle" font-size="10" fill="#e6edf3" font-family="'JetBrains Mono', monospace">Step ${i+1}: ${stepNames[i]}</text>
-                     </svg>`;
-        const img = document.createElement('img');
-        img.src = 'data:image/svg+xml,' + encodeURIComponent(svg);
-        img.style.height = '130px';
-        img.style.borderRadius = '12px';
-        img.style.boxShadow = '0 4px 10px rgba(0,0,0,0.3)';
-        img.style.cursor = 'pointer';
-        img.title = `Step ${i+1}: ${stepNames[i]}`;
-        carousel.appendChild(img);
-      }
+    } else if (sentEl) {
+      sentEl.innerHTML = `<div class="mc-empty">no review data yet</div>`;
     }
   };
 
@@ -571,16 +433,6 @@
     const sample = d.sample || {}, summary = d.summary || {}, comps = d.competitors || [];
     $("ci-source").textContent = `${sample.source || "review export"} / ${sample.sampled_reviews || 0} rows`;
     $("ci-demo").textContent = d.demo_note || "directional demo";
-    // Active Threat Intel strip — REAL crawl telemetry from the live Firecrawl AEO crawl + SERP saturation
-    const t = d.crawl_telemetry || {};
-    const _set = (id, v) => { const el = $(id); if (el) el.textContent = v; };
-    _set("ti-trace", "crawl: " + (t.trace || "not run"));
-    _set("ti-pressure", "Competitor pressure: " + (t.competitor_pressure || "—"));
-    _set("ti-bots", t.bots_probed ?? "—");
-    _set("ti-allowed", t.bots_allowed ?? "—");
-    _set("ti-blocked", t.bots_blocked ?? "—");
-    _set("ti-entities", (t.entities_found != null ? `${t.entities_found}/${t.entities_total}` : "—"));
-    _set("ti-size", (t.content_kb != null ? `${t.content_kb}KB` : "—"));
     $("ci-kpis").innerHTML = [
       ["Competitors", summary.competitors],
       ["Profile reviews", compactNum(summary.profile_reviews)],
