@@ -3,7 +3,7 @@ version: 1
 gsc:
   site_url: "sc-domain:houseacrepair.com"    # Domain property (verified: SA has siteFullUser here)
 ga4:
-  property_id: "375236321"                   # GA4 Admin -> Property Settings -> Property ID (numeric)
+  property_id: "513224934"                   # houseacrepair.com GA4 property (SA-verified via Admin API)
 bing:
   site_url: "https://houseacrepair.com/"     # verified Bing Webmaster site
 clarity:
