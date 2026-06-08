@@ -211,18 +211,14 @@ function setView(v){
   $("view-mc").classList.toggle("mc-hide", v !== "mc");
   $("view-si").classList.toggle("mc-hide", v !== "si");
   $("view-ai").classList.toggle("mc-hide", v !== "ai");
-  $("view-aeo").classList.toggle("mc-hide", v !== "aeo");
   $("view-ci").classList.toggle("mc-hide", v !== "ci");
   $("view-ti").classList.toggle("mc-hide", v !== "ti");
-  $("view-dd").classList.toggle("mc-hide", v !== "dd");
   $("view-board").classList.toggle("mc-hide", !isBoard);
   $("nav-mc").classList.toggle("active", v === "mc");
   $("nav-si").classList.toggle("active", v === "si");
   $("nav-ai").classList.toggle("active", v === "ai");
-  $("nav-aeo").classList.toggle("active", v === "aeo");
   $("nav-ci").classList.toggle("active", v === "ci");
   $("nav-ti").classList.toggle("active", v === "ti");
-  $("nav-dd").classList.toggle("active", v === "dd");
   $("nav-board").classList.toggle("active", isBoard);
   document.querySelectorAll(".board-only").forEach(el => el.classList.toggle("mc-hide", !isBoard));
   if(window.mcShow) window.mcShow(isBoard ? null : v);   // start/stop the active dashboard poll
@@ -231,10 +227,8 @@ function setView(v){
 $("nav-mc").onclick = () => setView("mc");
 $("nav-si").onclick = () => setView("si");
 $("nav-ai").onclick = () => setView("ai");
-$("nav-aeo").onclick = () => setView("aeo");
 $("nav-ci").onclick = () => setView("ci");
 $("nav-ti").onclick = () => setView("ti");
-$("nav-dd").onclick = () => setView("dd");
 $("nav-board").onclick = () => setView("board");
 
 setInterval(refresh, 3000);    // board poll (no-ops while the board view is hidden)
