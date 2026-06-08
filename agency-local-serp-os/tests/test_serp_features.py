@@ -98,6 +98,15 @@ def test_client_listing_inside_aggregator_stays_owned_tier():
     assert s["ownership_class"] == "controlled"
 
 
+def test_handles_string_subitems_and_refs_from_live_data():
+    # live DataForSEO returns some nested items / references as plain strings (not dicts).
+    # classify must not crash on them (regression from a real run).
+    item = {"type": "people_also_ask", "items": ["how much does ac repair cost", {"url": "https://x.com"}],
+            "references": ["competitor.com", {"domain": "mybiz.com"}]}
+    slots = sf.classify([item], "organic_mobile", ASSETS, COMP, aggregators=[])
+    assert slots and slots[0]["feature_type"] == "people_also_ask"
+
+
 def test_controlled_and_influenced_tiers():
     assert sf.classify([_item("organic", domain="mybiz.gbp")], "organic_mobile",
                        ASSETS, COMP)[0]["ownership_class"] == "controlled"

@@ -42,14 +42,20 @@ def _aggregators():
 def _refs(item):
     out = []
     for ref in (item.get("references") or []):
-        d = ref.get("domain") or ref.get("url") or ""
+        if isinstance(ref, dict):                       # live data: references may be strings
+            d = ref.get("domain") or ref.get("url") or ""
+        else:
+            d = str(ref or "")
         if d: out.append(d.lower())
     return out
 
 def _haystack(item):
     parts = [item.get("url") or "", item.get("domain") or ""]
-    for el in (item.get("items") or []):
-        parts += [el.get("url") or "", el.get("domain") or ""]
+    for el in (item.get("items") or []):                # live data: sub-items may be plain strings
+        if isinstance(el, dict):
+            parts += [el.get("url") or "", el.get("domain") or ""]
+        elif isinstance(el, str):
+            parts.append(el)
     parts += _refs(item)
     return " ".join(parts).lower()
 
