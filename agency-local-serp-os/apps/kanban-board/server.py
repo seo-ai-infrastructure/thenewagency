@@ -215,14 +215,17 @@ def _safe_wo_path(automation, filename):
     raise FileNotFoundError(filename)
 
 def reorder_inbox(automation, order):
-    """Rewrite order_index 0..N on the named inbox WOs (advisory triage order)."""
+    """Rewrite order_index 0..N on the named inbox WOs (advisory triage order).
+    Validates the whole list before writing so a bad filename can't leave partial state.
+    Filenames not present in the inbox are skipped (they may have moved since the client read)."""
     if automation not in INBOX_DIR.values():
         raise ValueError("unknown automation")
+    for filename in order:
+        if filename != pathlib.Path(filename).name or not filename.endswith(".json"):
+            raise ValueError("bad filename")
     inbox = ROOT/"automations"/automation/"inbox"
     written = 0
     for i, filename in enumerate(order):
-        if filename != pathlib.Path(filename).name or not filename.endswith(".json"):
-            raise ValueError("bad filename")
         p = inbox/filename
         if not p.exists():
             continue

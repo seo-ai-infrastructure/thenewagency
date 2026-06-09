@@ -112,3 +112,16 @@ def test_reorder_inbox_rejects_bad_inputs():
     with pytest.raises(ValueError): srv.reorder_inbox("not-an-automation", ["wo_x.json"])
     with pytest.raises(ValueError): srv.reorder_inbox("zernio-publisher", ["../evil.json"])
     with pytest.raises(ValueError): srv.reorder_inbox("zernio-publisher", ["wo_x.txt"])
+
+
+def test_reorder_inbox_rejects_before_any_write():
+    srv = _srv()
+    inbox = ROOT / "automations" / "zernio-publisher" / "inbox"; inbox.mkdir(parents=True, exist_ok=True)
+    f1 = inbox / "wo_ro_partial.json"
+    f1.write_text(json.dumps({"work_order_id": "wo_ro_partial", "order_index": 9}))
+    try:
+        with pytest.raises(ValueError):
+            srv.reorder_inbox("zernio-publisher", ["wo_ro_partial.json", "../evil.json"])
+        assert json.loads(f1.read_text())["order_index"] == 9
+    finally:
+        f1.unlink(missing_ok=True)
