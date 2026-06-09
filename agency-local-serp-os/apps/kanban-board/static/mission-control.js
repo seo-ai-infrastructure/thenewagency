@@ -63,6 +63,8 @@
           <span class="mc-title" id="mc-title">Command Center</span>
           <select id="mc-client" class="mc-sel"></select>
           <span class="mc-spacer"></span>
+          <button id="mc-csv" class="mc-btn" type="button" title="Download takeover data as CSV">⬇ CSV</button>
+          <button id="mc-print" class="mc-btn" type="button" title="Print / save as PDF report">🖨 Report</button>
           <span id="mc-fresh" class="mc-chip">—</span><span id="mc-cost" class="mc-chip">—</span>
         </div>
         <div class="mc-health-band">
@@ -102,7 +104,36 @@
         </div>
       </div>`;
     $("mc-client").onchange = e => window.mcSetClient(e.target.value);
+    $("mc-print").onclick = () => window.print();
+    $("mc-csv").onclick = exportMcCsv;
+    if (!MC.catalog) fetch("/api/catalog").then(r => r.json()).then(c => { MC.catalog = c; if (MC.view === "mc") refresh(); }).catch(() => {});
   };
+  async function createWorkOrder(client, workflow_id, target, reason, btn) {
+    btn.disabled = true; btn.textContent = "creating…";
+    try {
+      const r = await fetch("/api/create", { method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ client, workflow_id, target, period: new Date().toISOString().slice(0, 10),
+          task_params: { reason, source: "command-center" } }) });
+      const j = await r.json();
+      if (j.ok) { btn.textContent = "✓ " + String(j.work_order_id).slice(-10); btn.classList.add("wo-ok"); }
+      else { btn.textContent = "✗ " + (j.error || "failed"); btn.disabled = false; }
+    } catch (e) { btn.textContent = "✗ error"; btn.disabled = false; }
+  }
+  function downloadCSV(filename, headers, rows) {
+    const q = v => `"${String(v ?? "").replace(/"/g, '""')}"`;
+    const csv = [headers.map(q).join(","), ...rows.map(r => r.map(q).join(","))].join("\r\n");
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(new Blob([csv], { type: "text/csv;charset=utf-8" }));
+    a.download = filename; document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+  }
+  function exportMcCsv() {
+    const d = MC.last || {}, lb = ((d.analytics || {}).takeover_leaderboard) || [];
+    const rows = lb.map(r => [r.keyword, r.appearances, r.meets_goal ? "yes" : "no", (r.features || []).join("; ")]);
+    if (!rows.length) { alert("No takeover data to export yet."); return; }
+    const client = (d.client || "client").replace(/[^a-z0-9]+/gi, "-");
+    downloadCSV(`takeover-${client}.csv`, ["Keyword", "Appearances", "Meets goal", "Features held"], rows);
+  }
   RENDER.mc = function (d) {
     $("mc-title").textContent = d.title || "Command Center";
     clientSelect("mc-client", d.clients, d.client);
@@ -261,14 +292,25 @@
       ch.render(); MC.charts.mc_trend = ch;
     } else if (trEl) trEl.innerHTML = `<div class="mc-empty">Need ≥2 tracker runs for a trend.</div>`;
 
-    // Top opportunities — biggest gaps weighted by lead value
+    // Top opportunities — biggest gaps weighted by lead value (one-click → Kanban work order)
     const opps = an.opportunities || [];
-    $("mc-opps").innerHTML = opps.length ? opps.map(o => `
-      <div class="act ${o.gap >= 2 ? "high" : "med"}">
+    const wf = ((MC.catalog || {})[d.client] || {}).workflows || [];
+    const wfOpts = wf.map(w => `<option value="${esc(w.id)}">${esc(w.id)}</option>`).join("");
+    $("mc-opps").innerHTML = opps.length ? opps.map(o => {
+      const reason = `Takeover gap ${o.gap} on “${o.keyword}” (${o.os}) — claim ${(o.unclaimed || []).join(", ") || "features"}`;
+      const ctrl = wfOpts
+        ? `<div class="wo-row"><select class="wo-pick mc-sel">${wfOpts}</select>
+             <button class="mc-btn wo-go" data-kw="${esc(o.keyword)}" data-reason="${esc(reason)}">+ Work order</button></div>`
+        : `<div class="a-src">priority score ${o.score}</div>`;
+      return `<div class="act ${o.gap >= 2 ? "high" : "med"}">
         <div class="a-top"><span class="a-title">${esc(o.keyword)} <span style="color:var(--dim);font-size:10px">(${esc(o.os)})</span></span><span class="a-metric">gap ${o.gap} · ${esc(o.lead_value || "—")}</span></div>
         <div class="a-detail">holds ${o.appearances} — claim: ${esc((o.unclaimed || []).join(", ") || "extend placements")}</div>
-        <div class="a-src">priority score ${o.score}</div></div>`).join("")
-      : `<div class="mc-empty">Every tracked SERP is at goal 🎉</div>`;
+        ${ctrl}</div>`;
+    }).join("") : `<div class="mc-empty">Every tracked SERP is at goal 🎉</div>`;
+    $("mc-opps").querySelectorAll(".wo-go").forEach(btn => btn.onclick = () => {
+      const sel = btn.parentElement.querySelector(".wo-pick");
+      createWorkOrder(d.client, sel.value, btn.dataset.kw, btn.dataset.reason, btn);
+    });
   };
 
   /* ============================ SEARCH INTELLIGENCE ============================ */
@@ -718,7 +760,7 @@
   /* ============================ controller ============================ */
   async function refresh() {
     if (!MC.view) return;
-    try { const d = await fetchView(MC.view); killCharts(); RENDER[MC.view](d); } catch (e) { /* keep last view */ }
+    try { const d = await fetchView(MC.view); killCharts(); RENDER[MC.view](d); MC.last = d; } catch (e) { /* keep last view */ }
   }
   window.mcSetClient = function (id) { MC.client = id; refresh(); };
   window.mcShow = function (view) {            // 'mc' | 'si' | 'ai' | null (none)

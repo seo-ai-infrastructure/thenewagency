@@ -152,6 +152,24 @@
 .mc-chip.ok{box-shadow:inset 0 0 0 1px rgba(52,211,153,.08)}
 .pill{white-space:nowrap}
 
+/* toolbar buttons (CSV / Report) */
+.mc-btn{background:var(--card);color:var(--ink);border:1px solid var(--line);border-radius:7px;padding:5px 11px;font-size:11.5px;font-family:'JetBrains Mono',monospace;cursor:pointer;transition:border-color .15s ease,background .15s ease}
+.mc-btn:hover{border-color:#2b3a4d;background:#10161f}
+.wo-row{display:flex;gap:7px;align-items:center;margin-top:8px}
+.wo-row .wo-pick{flex:1;min-width:0;font-size:10.5px;padding:4px 7px}
+.wo-go.wo-ok{border-color:#34d39966;color:#86efac;background:rgba(52,211,153,.10)}
+
+/* print / save-as-PDF report (white-label) */
+@media print{
+  body{background:#fff!important;color:#000!important}
+  .mc-nav,.board-only,#nav-board,.mc-btn,.mc-sel,.mc-spacer,.sidebar,nav,aside{display:none!important}
+  .view.mc-hide{display:block!important}      /* print whatever's active; others stay hidden via JS */
+  .panel,.kpi,.src,.card,.act,.brief-item,.corr-cell{break-inside:avoid;box-shadow:none!important;border-color:#ccc!important}
+  .panel,.kpi,.src{background:#fff!important}
+  .k-val,.big,.s-val,.brief-text,.hs-c-top{color:#000!important}
+  *{-webkit-print-color-adjust:exact;print-color-adjust:exact}
+}
+
 /* Intelligence layer: health score + briefing */
 .mc-health-band{display:grid;grid-template-columns:minmax(300px,1fr) 1.4fr;gap:13px;margin-top:6px}
 @media(max-width:980px){.mc-health-band{grid-template-columns:1fr}}

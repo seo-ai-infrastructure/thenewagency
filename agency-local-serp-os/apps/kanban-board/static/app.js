@@ -223,13 +223,20 @@ function setView(v){
   document.querySelectorAll(".board-only").forEach(el => el.classList.toggle("mc-hide", !isBoard));
   if(window.mcShow) window.mcShow(isBoard ? null : v);   // start/stop the active dashboard poll
   if(isBoard) refresh();                                  // board just became visible -> pull state now
+  try { if (location.hash !== "#" + v) history.replaceState(null, "", "#" + v); } catch(e){}  // deep-linkable
 }
+const VALID_VIEWS = ["mc","si","ai","ci","ti","board"];
 $("nav-mc").onclick = () => setView("mc");
 $("nav-si").onclick = () => setView("si");
 $("nav-ai").onclick = () => setView("ai");
 $("nav-ci").onclick = () => setView("ci");
 $("nav-ti").onclick = () => setView("ti");
 $("nav-board").onclick = () => setView("board");
+window.addEventListener("hashchange", () => {
+  const h = (location.hash || "").replace("#","");
+  if (VALID_VIEWS.includes(h)) setView(h);
+});
 
 setInterval(refresh, 3000);    // board poll (no-ops while the board view is hidden)
-setView("mc");                 // Command Center is the main / default landing view
+const _initial = (location.hash || "").replace("#","");   // open the deep-linked tab if present
+setView(VALID_VIEWS.includes(_initial) ? _initial : "mc"); // else Command Center (default landing)
