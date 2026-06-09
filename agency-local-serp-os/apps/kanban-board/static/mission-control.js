@@ -336,7 +336,9 @@
           <div id="si-trend" style="min-height:320px"></div>
         </div>
         <div class="panel" style="margin-top:13px">
-          <h3>Local map-pack geo-grid <span style="font-weight:400;color:var(--dim);font-size:11px;" id="si-geo-meta">— Share of Local Voice across a rank grid</span> <span class="h-accent"></span></h3>
+          <h3>Local map-pack geo-grid
+            <select id="si-geo-kw" class="mc-sel" style="margin-left:8px;font-size:11px;padding:4px 8px"></select>
+            <span style="font-weight:400;color:var(--dim);font-size:11px;" id="si-geo-meta">— Share of Local Voice across a rank grid</span> <span class="h-accent"></span></h3>
           <div id="si-geogrid"></div>
         </div>
         <div class="panel" style="margin-top:13px">
@@ -347,6 +349,7 @@
         </div>
       </div>`;
     $("si-client").onchange = e => window.mcSetClient(e.target.value);
+    $("si-geo-kw").onchange = e => { MC.geoKw = e.target.value; if (MC.lastGeo) drawGeoMap(MC.lastGeo); };
   };
   function perfKpis(p) {
     const t = (p && p.totals) || {};
@@ -388,29 +391,48 @@
   };
   const geoRankColor = v => v == null ? "#9ca3af" : v <= 3 ? "#34d399" : v <= 7 ? "#38bdf8" : v <= 10 ? "#fbbf24" : "#f87171";
   function renderGeoGrid(g) {
+    MC.lastGeo = g;
+    const host = $("si-geogrid"), sel = $("si-geo-kw");
+    if (!host) return;
+    const kws = (g && g.keywords) || [];
+    if (sel) {                                   // populate the per-keyword dropdown
+      sel.style.display = kws.length ? "" : "none";
+      const sig = kws.join("|");
+      if (sel.dataset.sig !== sig) {
+        sel.innerHTML = kws.map(k => `<option value="${esc(k)}">${esc(k)}</option>`).join("");
+        sel.dataset.sig = sig;
+      }
+      if (!MC.geoKw || !kws.includes(MC.geoKw)) MC.geoKw = kws[0];
+      if (MC.geoKw) sel.value = MC.geoKw;
+    }
+    drawGeoMap(g);
+  }
+  function drawGeoMap(g) {
     const host = $("si-geogrid"), meta = $("si-geo-meta");
     if (!host) return;
-    if (!g || !g.available || !((g.points || []).length || (g.matrix || []).length)) {
+    const kws = (g && g.keywords) || [];
+    const kw = (MC.geoKw && kws.includes(MC.geoKw)) ? MC.geoKw : kws[0];
+    const grid = (g && g.grids && kw) ? g.grids[kw] : null;
+    if (!g || !g.available || !grid || !((grid.points || []).length || (grid.matrix || []).length)) {
       if (MC.geomap) { try { MC.geomap.remove(); } catch (e) {} MC.geomap = null; }
       MC.geomapSig = null;
-      host.innerHTML = `<div class="mc-empty">No geo-grid pull yet — run <code>automations/geo-grid</code>.</div>`;
+      host.innerHTML = `<div class="mc-empty">No geo-grid pull yet — run <code>automations/geo-grid --all</code>.</div>`;
       if (meta) meta.textContent = "— Share of Local Voice across a rank grid"; return;
     }
-    // Skip rebuild on the 20s poll when the data (and the live map) are unchanged — avoids map flicker.
-    if (g.pulled && MC.geomapSig === g.pulled && MC.geomap && document.getElementById("si-geomap")) return;
+    const sig = (g.pulled || "") + "|" + kw;
+    if (MC.geomapSig === sig && MC.geomap && document.getElementById("si-geomap")) return;  // no-op on poll
     if (MC.geomap) { try { MC.geomap.remove(); } catch (e) {} MC.geomap = null; }
 
-    const s = g.solv || {};
+    const s = grid.solv || {};
     const kpiHtml = `<div class="mc-kpis" style="grid-template-columns:repeat(4,1fr);margin-bottom:12px">${
       [["SoLV", s.solv != null ? Math.round(s.solv * 100) + "%" : "—"],
        ["Ranked points", `${s.points_ranked ?? "—"}/${s.points_total ?? "—"}`],
        ["Top-3 points", s.top3_points ?? "—"], ["Avg rank", s.avg_rank ?? "—"]]
         .map(([l, v]) => `<div class="kpi"><div class="k-label">${esc(l)}</div><div class="k-val">${esc(v)}</div></div>`).join("")}</div>`;
     const legend = `<div class="legend-row" style="margin-top:8px"><span><i style="background:#34d399"></i>1–3</span><span><i style="background:#38bdf8"></i>4–7</span><span><i style="background:#fbbf24"></i>8–10</span><span><i style="background:#f87171"></i>11+</span><span><i style="background:#9ca3af"></i>absent</span></div>`;
-    const pts = (g.points || []).filter(p => p.lat != null && p.lng != null);
+    const pts = (grid.points || []).filter(p => p.lat != null && p.lng != null);
 
     if (window.L && pts.length) {
-      // Real map-pack geo-grid: OpenStreetMap tiles with a colored rank pin at each point's lat/lng
       host.innerHTML = kpiHtml + `<div id="si-geomap" class="geo-map"></div>` + legend;
       const map = L.map("si-geomap", { scrollWheelZoom: false });
       L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
@@ -422,16 +444,15 @@
         L.marker([p.lat, p.lng], { icon }).addTo(map).bindTooltip(v == null ? "absent" : "rank " + v);
       });
       try { map.fitBounds(pts.map(p => [p.lat, p.lng]), { padding: [28, 28] }); } catch (e) {}
-      MC.geomap = map; MC.geomapSig = g.pulled;
+      MC.geomap = map; MC.geomapSig = sig;
       setTimeout(() => { try { map.invalidateSize(); } catch (e) {} }, 150);
     } else {
-      // Fallback (no Leaflet / offline): the numeric rank grid
-      const cells = (g.matrix || []).map(row => `<div class="geo-row">` + row.map(v =>
+      const cells = (grid.matrix || []).map(row => `<div class="geo-row">` + row.map(v =>
         `<div class="geo-cell" style="background:${geoRankColor(v)}" title="rank ${v == null ? "absent" : v}">${v == null ? "·" : v}</div>`).join("") + `</div>`).join("");
       host.innerHTML = kpiHtml + `<div class="geo-grid-wrap">${cells}</div>` + legend;
       MC.geomapSig = null;
     }
-    if (meta) meta.textContent = `— “${g.keyword}” · ${g.size}×${g.size} grid · ${g.location || ""}`;
+    if (meta) meta.textContent = `— “${kw}” · ${grid.size}×${grid.size} grid · ${g.location || ""}`;
   }
   function renderDailyTrend(dt) {
     const el = $("si-trend"), meta = $("si-trend-meta");

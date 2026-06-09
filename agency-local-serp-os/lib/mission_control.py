@@ -480,20 +480,24 @@ def geo_grid_view(root, client=None):
     the client's local rank at that grid point; available=False until a pull has run."""
     root = pathlib.Path(root)
     client, clients = _resolve_client(root, client)
-    doc = _load_json(root / "clients" / str(client) / "signals" / "geo_grid.json")
+    doc = _load_json(root / "clients" / str(client) / "signals" / "geo_grid.json") or {}
     center = None
-    cstr = (doc or {}).get("center")
+    cstr = doc.get("center")
     if cstr:
         try:
             parts = str(cstr).split(",")
             center = {"lat": float(parts[0]), "lng": float(parts[1])}
         except Exception:
             center = None
-    return {"generated": _now().isoformat(), "client": client, "available": bool(doc),
-            "keyword": (doc or {}).get("keyword"), "size": (doc or {}).get("size"),
-            "location": (doc or {}).get("location"), "pulled": (doc or {}).get("pulled"),
-            "matrix": (doc or {}).get("matrix") or [], "solv": (doc or {}).get("solv") or {},
-            "points": (doc or {}).get("points") or [], "center": center}
+    # Normalize to a per-keyword map. New files carry {grids: {kw: {...}}}; migrate the older
+    # single-keyword shape so existing pulls keep working with the keyword dropdown.
+    grids = doc.get("grids")
+    if not grids and doc.get("keyword"):
+        grids = {doc["keyword"]: {k: doc.get(k) for k in ("keyword", "size", "step", "points", "matrix", "solv")}}
+    grids = grids or {}
+    return {"generated": _now().isoformat(), "client": client, "available": bool(grids),
+            "keywords": sorted(grids), "grids": grids, "center": center,
+            "location": doc.get("location"), "pulled": doc.get("pulled")}
 
 
 def search_intelligence(root, client=None):
