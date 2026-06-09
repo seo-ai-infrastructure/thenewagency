@@ -495,11 +495,39 @@ def geo_grid_view(root, client=None):
     if not grids and doc.get("keyword"):
         grids = {doc["keyword"]: {k: doc.get(k) for k in ("keyword", "size", "step", "points", "matrix", "solv")}}
     grids = grids or {}
-    for grid in grids.values():
+    snaps = (_load_json(root / "clients" / str(client) / "signals" / "geo_grid_history.json") or {}).get("snapshots") or []
+    for kw, grid in grids.items():
         _enrich_geo_moves(grid)
+        grid["history"] = _geo_history_series(kw, grid, snaps, doc.get("pulled"))
+        grid["pulled"] = grid.get("pulled") or doc.get("pulled")
     return {"generated": _now().isoformat(), "client": client, "available": bool(grids),
             "keywords": sorted(grids), "grids": grids, "center": center,
             "location": doc.get("location"), "pulled": doc.get("pulled")}
+
+
+def _compact_points(points):
+    return [{"row": p.get("row"), "col": p.get("col"), "rank_absolute": p.get("rank_absolute")}
+            for p in (points or [])]
+
+
+def _geo_history_series(kw, grid, snaps, doc_pulled):
+    """Ascending [{pulled, points}] for one keyword: the archived snapshots, plus the current pull
+    and the immediately-prior pull synthesized from the main file (so the date picker has baselines
+    even before the history archive accumulates)."""
+    series, seen = [], set()
+    for sn in snaps:
+        g = (sn.get("grids") or {}).get(kw)
+        p = sn.get("pulled")
+        if g and p and p not in seen:
+            series.append({"pulled": p, "points": _compact_points(g.get("points"))}); seen.add(p)
+    prev_pulled = grid.get("prev_pulled")
+    if grid.get("prev_points") and prev_pulled and prev_pulled not in seen:
+        series.append({"pulled": prev_pulled, "points": _compact_points(grid["prev_points"])}); seen.add(prev_pulled)
+    cur = grid.get("pulled") or doc_pulled
+    if cur and cur not in seen:
+        series.append({"pulled": cur, "points": _compact_points(grid.get("points"))})
+    series.sort(key=lambda s: s.get("pulled") or "")
+    return series
 
 
 def _enrich_geo_moves(grid):
@@ -1136,6 +1164,148 @@ def command_center(root, client=None):
         "freshness": freshness(root, sig_date, last_run),
         "cost": cost_block(root, last_run),
     }
+
+
+def dashboard_csv(root, client=None):
+    """FULL multi-section CSV of the entire dashboard for one client — emailable to clients.
+
+    One labeled '## Section' block per dashboard panel, assembled from the exact same projections
+    the UI renders (command center + search intelligence + AI search + AEO + competition). No
+    network, no writes. Excel-friendly (a BOM is added by the server response)."""
+    import io, csv
+    root = pathlib.Path(root)
+    client, _ = _resolve_client(root, client)
+    cc = command_center(root, client)
+    si = search_intelligence(root, client)
+    ai = ai_search(root, client)
+    ae = aeo(root, client)
+    comp = competition_intell(root, client)
+
+    buf = io.StringIO()
+    w = csv.writer(buf, lineterminator="\r\n")
+
+    def section(title, headers=None, rows=None):
+        w.writerow(["## " + title])
+        if headers:
+            w.writerow(headers)
+        for r in (rows or []):
+            w.writerow(["" if c is None else c for c in r])
+        w.writerow([])
+
+    # ---- Command Center ----
+    h, fr, co = cc.get("health") or {}, cc.get("freshness") or {}, cc.get("cost") or {}
+    section("Report", ["Field", "Value"], [
+        ["Client", client], ["Generated (UTC)", cc.get("generated")],
+        ["Health score", f"{h.get('overall')} ({h.get('grade')})"],
+        ["Signals date", fr.get("signals_date")], ["Signals age (days)", fr.get("signals_age_days")],
+        ["Tracker run", fr.get("tracker_run_id")], ["Tracker finished", fr.get("tracker_finished_at")],
+        ["Last run cost", co.get("last_run_cost")], ["Last run calls", co.get("n_calls")]])
+    section("Health score components", ["Pillar", "Score", "Weight", "Detail"],
+            [[c.get("label"), c.get("score"), c.get("weight"), c.get("detail")] for c in h.get("components", [])])
+
+    sb = cc.get("saturation") or {}
+    section("SERP saturation — summary", ["Metric", "Value"], [
+        ["Goal (min presence)", sb.get("goal_min")], ["Tracked SERPs", sb.get("n_serps")],
+        ["SERPs meeting goal", sb.get("n_meeting_goal")], ["% meeting goal", sb.get("pct_meeting_goal")],
+        ["Avg presence per SERP", sb.get("avg_presence")]])
+    section("SERP saturation — by lane", ["Lane", "SERPs", "Meeting goal", "% meeting goal", "Avg presence"],
+            [[ln, v.get("n_serps"), v.get("n_meeting_goal"), v.get("pct_meeting_goal"), v.get("avg_presence")]
+             for ln, v in (sb.get("by_lane") or {}).items()])
+
+    om = cc.get("ownership_matrix") or {}
+    feats = om.get("features") or []
+    section("Feature ownership — keyword × feature", ["Keyword", "Location", "Distinct features held"] + feats,
+            [[r.get("keyword"), r.get("location"), r.get("distinct_features_present")]
+             + [(r.get("cells") or {}).get(f, "") for f in feats] for r in om.get("rows", [])])
+
+    an = cc.get("analytics") or {}
+    section("Takeover leaderboard", ["Keyword", "Appearances", "Meets goal", "Goal min", "Lead value", "Features held"],
+            [[r.get("keyword"), r.get("appearances"), "yes" if r.get("meets_goal") else "no", r.get("goal_min"),
+              r.get("lead_value"), "; ".join(r.get("features") or [])] for r in an.get("takeover_leaderboard", [])])
+    section("SERP-feature share of voice",
+            ["Feature", "Client", "Competitor", "Aggregator", "Unmatched", "Total", "Client share"],
+            [[b.get("feature"), b.get("client"), b.get("competitor"), b.get("aggregator"), b.get("unmatched"),
+              b.get("total"), b.get("client_share")] for b in an.get("feature_sov", [])])
+    section("Top opportunities", ["Keyword", "OS", "Gap to goal", "Appearances", "Lead value", "Unclaimed features", "Score"],
+            [[o.get("keyword"), o.get("os"), o.get("gap"), o.get("appearances"), o.get("lead_value"),
+              "; ".join(o.get("unclaimed") or []), o.get("score")] for o in an.get("opportunities", [])])
+    section("Cross-source action skyline", ["Source", "Severity", "Title", "Detail", "Metric"],
+            [[i.get("source"), i.get("severity"), i.get("title"), i.get("detail"), i.get("metric")]
+             for i in cc.get("action_skyline", [])])
+    section("Connected sources", ["Source", "Status", "Headline", "Value", "Delta", "Other metrics"],
+            [[c.get("label"), c.get("status"), (c.get("headline") or {}).get("label"),
+              (c.get("headline") or {}).get("value"), ((c.get("headline") or {}).get("delta") or {}).get("abs"),
+              "; ".join(f"{m.get('label')}: {m.get('value')}" for m in (c.get("metrics") or []))]
+             for c in cc.get("source_cards", [])])
+    section("Intelligence briefing", ["Category", "Severity", "Insight"],
+            [[i.get("category"), i.get("severity"), i.get("text")] for i in (cc.get("briefing") or {}).get("items", [])])
+
+    # ---- Search Intelligence ----
+    sp = si.get("search_performance") or {}
+    section("Search performance — totals", ["Source", "Clicks", "Impressions", "CTR", "Avg position", "Queries"],
+            [[lbl, (((sp.get(k) or {}).get("totals")) or {}).get("clicks"),
+              (((sp.get(k) or {}).get("totals")) or {}).get("impressions"),
+              (((sp.get(k) or {}).get("totals")) or {}).get("ctr"),
+              (((sp.get(k) or {}).get("totals")) or {}).get("avg_position"),
+              (((sp.get(k) or {}).get("totals")) or {}).get("queries")]
+             for k, lbl in (("gsc", "Google Search Console"), ("bing", "Bing"))])
+    section("Striking distance (positions 5–15)", ["Query", "Position", "Impressions", "Clicks"],
+            [[r.get("query"), r.get("position"), r.get("impressions"), r.get("clicks")]
+             for r in si.get("striking_distance", [])])
+    kr = si.get("keyword_rankings") or {}
+    for lane, lbl in (("local_finder", "Local-finder rankings"), ("organic_mobile", "Organic-mobile rankings")):
+        section(lbl, ["Keyword", "Location", "OS", "Lead value", "Present", "Best rank", "Best competitor rank", "Features held"],
+                [[r.get("keyword"), r.get("location"), r.get("os"), r.get("lead_value"),
+                  "yes" if r.get("present") else "no", r.get("best_rank"), r.get("best_competitor_rank"),
+                  "; ".join(r.get("features_held") or [])] for r in kr.get(lane, [])])
+
+    # ---- Local geo-grid ----
+    grids = (si.get("geo_grid") or {}).get("grids") or {}
+    section("Local geo-grid — SoLV by keyword",
+            ["Keyword", "SoLV", "Ranked points", "Total points", "Top-3 points", "Avg rank", "Pulled"],
+            [[kw, (g.get("solv") or {}).get("solv"), (g.get("solv") or {}).get("points_ranked"),
+              (g.get("solv") or {}).get("points_total"), (g.get("solv") or {}).get("top3_points"),
+              (g.get("solv") or {}).get("avg_rank"), g.get("pulled")] for kw, g in grids.items()])
+    section("Local geo-grid — grid points", ["Keyword", "Row", "Col", "Lat", "Lng", "Rank", "Move vs prev"],
+            [[kw, p.get("row"), p.get("col"), p.get("lat"), p.get("lng"), p.get("rank_absolute"),
+              (p.get("move") or {}).get("type")]
+             for kw, g in grids.items() for p in (g.get("points") or [])])
+
+    # ---- AI search ----
+    section("AI search — citation summary", ["Metric", "Value"],
+            [["AI queries tracked", ai.get("n_queries")], ["Queries citing you", ai.get("n_cited")],
+             ["Citation share", ai.get("citation_share")]])
+    section("AI search — queries", ["Keyword", "Location", "OS", "Lane", "You cited", "Cited sources", "Cited competitors"],
+            [[q.get("keyword"), q.get("location"), q.get("os"), q.get("query_class"),
+              "yes" if q.get("client_cited") else "no", "; ".join(q.get("cited_sources") or []),
+              "; ".join(q.get("cited_competitors") or [])] for q in ai.get("queries", [])])
+    section("AI engine visibility", ["Engine", "Asked", "Mentions", "Mention rate"],
+            [[e.get("label"), e.get("asked"), e.get("mentions"), e.get("rate")]
+             for e in (ai.get("ai_visibility") or {}).get("engines", [])])
+    section("AI — cited competitors", ["Domain", "Citations"],
+            [[c.get("domain"), c.get("count")] for c in ai.get("cited_competitors_leaderboard", [])])
+
+    # ---- AEO ----
+    cq = ae.get("conquest_queue") or {}
+    section("AEO — conquest queue", ["Kind", "Area", "Subsystem", "Gap", "Suggested action", "Note"],
+            [[x.get("kind"), x.get("area"), x.get("subsystem"), x.get("gap"),
+              x.get("suggested_action"), x.get("note")]
+             for x in (cq.get("citation") or []) + (cq.get("aggregator") or [])])
+
+    # ---- Competition ----
+    section("Competition — competitors",
+            ["Name", "Profile reviews", "Rating", "Sample 365d", "Velocity share %", "Est jobs (low)",
+             "Est jobs (high)", "Revenue $M (low)", "Revenue $M (high)", "Negative reviews"],
+            [[c.get("name"), c.get("profile_reviews"), c.get("rating"), c.get("sample_reviews_365"),
+              c.get("review_velocity_share"), c.get("estimated_jobs_low"), c.get("estimated_jobs_high"),
+              c.get("revenue_low_m"), c.get("revenue_high_m"), c.get("negative_reviews")]
+             for c in comp.get("competitors", [])])
+    section("Competition — issue angles", ["Issue", "Severity", "Marketing angle", "Signal"],
+            [[a.get("issue"), a.get("severity"), a.get("angle"), a.get("signal")] for a in comp.get("issue_angles", [])])
+    section("Competition — benchmarks", ["Label", "Value"],
+            [[b.get("label"), b.get("value")] for b in comp.get("benchmarks", [])])
+
+    return buf.getvalue()
 
 
 def _bare(d):

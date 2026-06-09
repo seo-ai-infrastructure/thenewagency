@@ -103,6 +103,23 @@ def main():
            "pulled": pulled, "keywords": sorted(grids), "grids": grids}
     out_p.parent.mkdir(parents=True, exist_ok=True)
     out_p.write_text(json.dumps(out, indent=2))
+
+    # Append a compact snapshot to history so the dashboard can compare against older pulls.
+    hist_p = out_p.parent / "geo_grid_history.json"
+    hist = {"snapshots": []}
+    if hist_p.exists():
+        try:
+            hist = json.loads(hist_p.read_text())
+        except Exception:
+            hist = {"snapshots": []}
+    snap = {"pulled": pulled, "grids": {kw: {
+        "points": [{"row": p["row"], "col": p["col"], "rank_absolute": p["rank_absolute"]}
+                   for p in grids[kw]["points"]],
+        "solv": grids[kw]["solv"]} for kw in kws}}
+    hist.setdefault("snapshots", []).append(snap)
+    hist["snapshots"] = hist["snapshots"][-60:]          # keep the last 60 pulls
+    hist_p.write_text(json.dumps(hist, indent=2))
+
     print(f"[geo-grid] {client}: {len(kws)} keyword(s) this run, {len(grids)} total "
           f"-> clients/{client}/signals/geo_grid.json")
 

@@ -218,9 +218,11 @@ class Handler(BaseHTTPRequestHandler):
         if origin and urllib.parse.urlparse(origin).hostname not in ("127.0.0.1", "localhost"):
             return False
         return True
-    def _send(self, code, obj, ctype="application/json"):
+    def _send(self, code, obj, ctype="application/json", extra_headers=None):
         body = obj if isinstance(obj, bytes) else json.dumps(obj).encode()
         self.send_response(code); self.send_header("Content-Type", ctype)
+        for k, v in (extra_headers or {}).items():
+            self.send_header(k, v)
         self.send_header("Content-Length", str(len(body))); self.end_headers()
         self.wfile.write(body)
     def _body(self):
@@ -248,6 +250,14 @@ class Handler(BaseHTTPRequestHandler):
             p = STATIC/"vendor"/"leaflet"/"leaflet.css"
             if not p.exists(): return self._send(404, {"error": "vendor asset missing"})
             return self._send(200, p.read_bytes(), "text/css")
+        if path == "/api/mc/export.csv":                  # FULL dashboard CSV (client deliverable)
+            qs = urllib.parse.parse_qs(urllib.parse.urlparse(self.path).query)
+            client = (qs.get("client") or [None])[0]
+            csv_text = mission_control.dashboard_csv(ROOT, client)
+            slug = "".join(c if c.isalnum() else "-" for c in (client or "client").lower()).strip("-") or "client"
+            fn = f"dashboard-{slug}.csv"
+            return self._send(200, ("﻿" + csv_text).encode("utf-8"), "text/csv; charset=utf-8",
+                              {"Content-Disposition": f'attachment; filename="{fn}"'})
         if path.startswith("/api/mc/"):                  # read-only dashboard projections
             qs = urllib.parse.parse_qs(urllib.parse.urlparse(self.path).query)
             client = (qs.get("client") or [None])[0]

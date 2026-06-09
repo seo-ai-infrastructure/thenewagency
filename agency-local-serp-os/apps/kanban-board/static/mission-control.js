@@ -63,7 +63,7 @@
           <span class="mc-title" id="mc-title">Command Center</span>
           <select id="mc-client" class="mc-sel"></select>
           <span class="mc-spacer"></span>
-          <button id="mc-csv" class="mc-btn" type="button" title="Download takeover data as CSV">⬇ CSV</button>
+          <button id="mc-csv" class="mc-btn" type="button" title="Download the FULL dashboard as a CSV report (all panels)">⬇ CSV</button>
           <button id="mc-print" class="mc-btn" type="button" title="Print / save as PDF report">🖨 Report</button>
           <span id="mc-fresh" class="mc-chip">—</span><span id="mc-cost" class="mc-chip">—</span>
         </div>
@@ -128,11 +128,12 @@
     setTimeout(() => URL.revokeObjectURL(a.href), 1000);
   }
   function exportMcCsv() {
-    const d = MC.last || {}, lb = ((d.analytics || {}).takeover_leaderboard) || [];
-    const rows = lb.map(r => [r.keyword, r.appearances, r.meets_goal ? "yes" : "no", (r.features || []).join("; ")]);
-    if (!rows.length) { alert("No takeover data to export yet."); return; }
-    const client = (d.client || "client").replace(/[^a-z0-9]+/gi, "-");
-    downloadCSV(`takeover-${client}.csv`, ["Keyword", "Appearances", "Meets goal", "Features held"], rows);
+    // FULL dashboard CSV (every panel), assembled server-side so it's complete regardless of which
+    // tabs were opened. Sent as an attachment with a BOM for Excel.
+    const client = (MC.last || {}).client || MC.client;
+    const url = "/api/mc/export.csv" + (client ? "?client=" + encodeURIComponent(client) : "");
+    const a = document.createElement("a");
+    a.href = url; a.download = ""; document.body.appendChild(a); a.click(); a.remove();
   }
   RENDER.mc = function (d) {
     $("mc-title").textContent = d.title || "Command Center";
@@ -338,6 +339,7 @@
         <div class="panel" style="margin-top:13px">
           <h3>Local map-pack geo-grid
             <select id="si-geo-kw" class="mc-sel" style="margin-left:8px;font-size:11px;padding:4px 8px"></select>
+            <select id="si-geo-base" class="mc-sel" style="margin-left:6px;font-size:11px;padding:4px 8px" title="Compare ranks against an older pull"></select>
             <span style="font-weight:400;color:var(--dim);font-size:11px;" id="si-geo-meta">— Share of Local Voice across a rank grid</span> <span class="h-accent"></span></h3>
           <div id="si-geogrid"></div>
         </div>
@@ -349,7 +351,8 @@
         </div>
       </div>`;
     $("si-client").onchange = e => window.mcSetClient(e.target.value);
-    $("si-geo-kw").onchange = e => { MC.geoKw = e.target.value; if (MC.lastGeo) drawGeoMap(MC.lastGeo); };
+    $("si-geo-kw").onchange = e => { MC.geoKw = e.target.value; MC.geoBaseline = null; if (MC.lastGeo) drawGeoMap(MC.lastGeo); };
+    $("si-geo-base").onchange = e => { MC.geoBaseline = e.target.value; if (MC.lastGeo) drawGeoMap(MC.lastGeo); };
   };
   function perfKpis(p) {
     const t = (p && p.totals) || {};
@@ -399,6 +402,21 @@
     if (t === "down") return { html: `<div class="geo-badge down">▼${d}</div>`, tip: ` · down ${d}` };
     return { html: "", tip: "" };
   }
+  const geoKey = p => p.row + "," + p.col;
+  function computeGeoMoves(curPts, basePts) {     // client-side diff vs a chosen baseline pull
+    const prev = {}; (basePts || []).forEach(p => { prev[geoKey(p)] = p.rank_absolute; });
+    const moveBy = {}, tally = { up: 0, down: 0, new: 0, lost: 0 };
+    (curPts || []).forEach(p => {
+      const pr = prev[geoKey(p)], cur = p.rank_absolute;
+      let mv = null;
+      if (pr == null && cur == null) mv = null;
+      else if (pr == null) { mv = { type: "new" }; tally.new++; }
+      else if (cur == null) { mv = { type: "lost" }; tally.lost++; }
+      else { const dd = pr - cur; mv = { type: dd > 0 ? "up" : dd < 0 ? "down" : "same", delta: Math.abs(dd) }; if (dd > 0) tally.up++; else if (dd < 0) tally.down++; }
+      if (mv) moveBy[geoKey(p)] = mv;
+    });
+    return { moveBy, tally };
+  }
   function renderGeoGrid(g) {
     MC.lastGeo = g;
     const host = $("si-geogrid"), sel = $("si-geo-kw");
@@ -417,7 +435,7 @@
     drawGeoMap(g);
   }
   function drawGeoMap(g) {
-    const host = $("si-geogrid"), meta = $("si-geo-meta");
+    const host = $("si-geogrid"), meta = $("si-geo-meta"), baseSel = $("si-geo-base");
     if (!host) return;
     const kws = (g && g.keywords) || [];
     const kw = (MC.geoKw && kws.includes(MC.geoKw)) ? MC.geoKw : kws[0];
@@ -425,10 +443,32 @@
     if (!g || !g.available || !grid || !((grid.points || []).length || (grid.matrix || []).length)) {
       if (MC.geomap) { try { MC.geomap.remove(); } catch (e) {} MC.geomap = null; }
       MC.geomapSig = null;
+      if (baseSel) baseSel.style.display = "none";
       host.innerHTML = `<div class="mc-empty">No geo-grid pull yet — run <code>automations/geo-grid --all</code>.</div>`;
       if (meta) meta.textContent = "— Share of Local Voice across a rank grid"; return;
     }
-    const sig = (g.pulled || "") + "|" + kw;
+    // ---- baselines (older pulls) for the "Compare vs" date picker ----
+    const curPulled = grid.pulled || g.pulled || "";
+    const history = (grid.history || []).filter(h => (h.points || []).length);
+    const baselines = history.filter(h => (h.pulled || "") < curPulled);
+    if (baseSel) {
+      if (baselines.length) {
+        baseSel.style.display = "";
+        const bsig = kw + "::" + baselines.map(b => b.pulled).join("|");
+        if (baseSel.dataset.sig !== bsig) {
+          baseSel.innerHTML = baselines.slice().reverse().map(b =>
+            `<option value="${esc(b.pulled)}">vs ${esc(String(b.pulled).slice(0, 10))}</option>`).join("");
+          baseSel.dataset.sig = bsig;
+        }
+        if (!MC.geoBaseline || !baselines.some(b => b.pulled === MC.geoBaseline))
+          MC.geoBaseline = baselines[baselines.length - 1].pulled;   // default: most-recent older pull
+        baseSel.value = MC.geoBaseline;
+      } else { baseSel.style.display = "none"; MC.geoBaseline = null; baseSel.dataset.sig = ""; }
+    }
+    const baseEntry = baselines.find(b => b.pulled === MC.geoBaseline) || null;
+    const mv = baseEntry ? computeGeoMoves(grid.points, baseEntry.points) : { moveBy: {}, tally: null };
+
+    const sig = curPulled + "|" + kw + "|" + (MC.geoBaseline || "");
     if (MC.geomapSig === sig && MC.geomap && document.getElementById("si-geomap")) return;  // no-op on poll
     if (MC.geomap) { try { MC.geomap.remove(); } catch (e) {} MC.geomap = null; }
 
@@ -448,7 +488,7 @@
         { maxZoom: 19, attribution: "&copy; OpenStreetMap" }).addTo(map);
       pts.forEach(p => {
         const v = p.rank_absolute;
-        const b = geoBadge(p.move);
+        const b = geoBadge(mv.moveBy[geoKey(p)] || (baseEntry ? null : p.move));
         const icon = L.divIcon({ className: "geo-pin-wrap", iconSize: [34, 34], iconAnchor: [17, 17],
           html: `<div class="geo-pin-inner"><div class="geo-pin" style="background:${geoRankColor(v)}">${v == null ? "·" : v}</div>${b.html}</div>` });
         L.marker([p.lat, p.lng], { icon }).addTo(map).bindTooltip((v == null ? "absent" : "rank " + v) + b.tip);
@@ -464,13 +504,13 @@
     }
     if (meta) {
       let txt = `— “${kw}” · ${grid.size}×${grid.size} grid · ${g.location || ""}`;
-      const m = grid.moves;
-      if (m && m.since) {
-        const since = String(m.since).slice(0, 10);
-        const parts = [];
-        if (m.up) parts.push(`▲${m.up}`); if (m.down) parts.push(`▼${m.down}`);
-        if (m.new) parts.push(`${m.new} new`); if (m.lost) parts.push(`${m.lost} lost`);
+      if (baseEntry && mv.tally) {
+        const t = mv.tally, since = String(baseEntry.pulled).slice(0, 10), parts = [];
+        if (t.up) parts.push(`▲${t.up}`); if (t.down) parts.push(`▼${t.down}`);
+        if (t.new) parts.push(`${t.new} new`); if (t.lost) parts.push(`${t.lost} lost`);
         txt += ` · vs ${since}: ${parts.length ? parts.join(" ") : "no change"}`;
+      } else if (history.length <= 1) {
+        txt += ` · first pull — re-run to compare over time`;
       }
       meta.textContent = txt;
     }
