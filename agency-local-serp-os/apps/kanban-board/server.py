@@ -295,6 +295,31 @@ def attach_link(automation, filename, label, url):
     tmp = path.with_suffix(".json.tmp"); tmp.write_text(json.dumps(wo, indent=2)); tmp.replace(path)
     return atts
 
+def fractional_board(client=None):
+    """Swimlane data: one lane per CloakBrowser persona (roster from browser/profiles.yaml),
+    with that persona's cloakbrowser work-orders bucketed into the four state columns."""
+    cols = ("queued", "progress", "done", "held")
+    identities = {}
+    for pf in sorted(ROOT.glob("clients/*/browser/profiles.yaml")):
+        c = pf.parts[pf.parts.index("clients")+1]
+        if client and c != client: continue
+        for p in (yaml.safe_load(pf.read_text()) or {}).get("profiles", []):
+            pid = p["profile_id"]
+            identities[pid] = {"profile_id": pid, "client": c, "label": pid,
+                               "paused": bool(p.get("paused")),
+                               "columns": {k: [] for k in cols}}
+    by = board_scan.grouped(ROOT)
+    for col in cols:
+        for card in by.get(col, []):
+            if card.get("system") != "cloakbrowser": continue
+            if client and card.get("client") != client: continue
+            pid = card.get("profile_id") or "?"
+            lane = identities.setdefault(pid, {"profile_id": pid, "client": card.get("client", ""),
+                       "label": pid, "paused": False, "columns": {k: [] for k in cols}})
+            lane["columns"][col].append(card)
+    return {"generated": now_iso(),
+            "identities": sorted(identities.values(), key=lambda x: x["profile_id"])}
+
 # ---------------- HTTP ----------------
 class Handler(BaseHTTPRequestHandler):
     def _guard(self):

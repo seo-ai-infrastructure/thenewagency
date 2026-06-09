@@ -215,3 +215,13 @@ def test_attach_link_rejects_protocol_relative_url():
             srv.attach_link("zernio-publisher", "wo_att_2.json", "x", "//evil.com/x")
     finally:
         f.unlink(missing_ok=True)
+
+
+def test_fractional_board_lists_browser_personas():
+    srv = _srv()
+    fb = srv.fractional_board()
+    ids = {i["profile_id"] for i in fb["identities"]}
+    assert "example-hvac-client-cb-agent" in ids
+    lane = next(i for i in fb["identities"] if i["profile_id"] == "example-hvac-client-cb-agent")
+    assert set(lane["columns"].keys()) == {"queued", "progress", "done", "held"}
+    assert lane["client"] == "example-hvac-client"
