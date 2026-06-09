@@ -52,6 +52,7 @@ async function onDragEnd(evt){
   if(card.dataset.kind !== "wo") return;
   const fromCol = evt.from.closest(".col").dataset.col;
   const toCol   = evt.to.closest(".col").dataset.col;
+  if(!(toCol in COL_FOLDER)){ refresh(); return; }   // e.g. NEEDS APPROVAL — no folder, snap back (gate not bypassable)
   const automation = card.dataset.automation, filename = card.dataset.filename;
   if(fromCol !== toCol){
     const r = await apiCall("/api/move", {automation, filename, to: COL_FOLDER[toCol]});
