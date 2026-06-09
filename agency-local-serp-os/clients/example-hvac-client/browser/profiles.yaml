@@ -7,10 +7,10 @@ profiles:
 - profile_id: example-hvac-client-cb-agent
   fingerprint_id: cloak_fp_example-hvac-client-cb-agent
   user_data_dir: ~/cloak-profiles/example-hvac-client-cb-agent
-  proxy_ref: proxy_hvac_01                # set PROXY_HVAC_01 in .env (sticky residential, near service area)
-  expected_account: "REPLACE-after-first-login"   # e.g. the FB Page name / handle the guard checks
-  verify_url: "https://www.facebook.com/"          # a page that shows the logged-in identity
+  # proxy_ref: proxy_hvac_01              # TEMP no-proxy for manual login; restore + set PROXY_HVAC_01 (sticky residential, near service area) before live posting
+  expected_account: "Thick-Resort540"              # Reddit handle the wrong-account guard checks
+  verify_url: "https://www.reddit.com/api/me.json" # login-gated; returns "name":"<handle>" when signed in
   allowed_workflows: [facebook_post, reddit_post, quora_answer_post, linkedin_post, tiktok_upload, youtube_upload,
                       reddit_comment, facebook_comment, linkedin_comment, youtube_comment,
-                      pinterest_pin, eventbrite_create, patch_article, nextdoor_post]
+                      pinterest_pin, eventbrite_create, patch_article, nextdoor_post, agent_engagement]
   paused: false

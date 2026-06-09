@@ -149,3 +149,26 @@ workflows:
   customer_facing: true
   approval_required: true
   description: Publish a pre-approved post to Nextdoor (human-like).
+# --- Daily/weekly HUMAN-LIKE ACCOUNT ACTIVITY (warming + genuine engagement) ---
+# UNGATED on purpose: this is how a fractional-employee account stays healthy and human — it
+# read-browses and engages ORGANICALLY only. It must never post brand content, mention the
+# business, drop links, mass-vote, or fake engagement (those are blocked_action_classes). Brand
+# posts stay on the separate gated reddit_post/etc. workflows.
+- workflow_id: agent_engagement
+  execution_method: cloakbrowser
+  kind: agent_task
+  agent_goal: >
+    Act like a real local person casually using Reddit for about params.minutes minutes on the
+    already-logged-in account. Browse the home feed and the communities in params.communities; read
+    posts and comments you genuinely find interesting, scrolling and dwelling naturally. ONLY where
+    you genuinely find a post helpful or relatable, upvote it — at most params.max_upvotes total,
+    genuine reactions only, never indiscriminate or mass voting. You MAY join 1-2 clearly relevant
+    local/HVAC communities. If (and ONLY if) you can add a genuinely helpful, on-topic comment as a
+    normal community member, leave at most params.max_comments thoughtful comment(s) — no links, no
+    business or brand mention, no self-promotion, not an ad, not spam. Do NOT post brand content, do
+    NOT message anyone, do NOT vote-manipulate. Then summarize exactly what you did (subs viewed,
+    upvotes, any comment) and confirm you stayed within the limits and posted nothing promotional.
+  action_class: organic_community_engagement
+  customer_facing: false
+  approval_required: false
+  description: Daily/weekly human-like Reddit activity for a fractional-employee account (ungated, organic).

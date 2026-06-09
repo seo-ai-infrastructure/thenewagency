@@ -31,6 +31,7 @@ CREATORS = {
     "quora":      {"label": "Quora answer",           "script": "automations/article-writer/run.py",  "args": ["--kind", "quora"],    "input": "--topic", "slug": True},
     "facebook":   {"label": "Facebook post",          "script": "automations/article-writer/run.py",  "args": ["--kind", "facebook"], "input": "--topic", "slug": True},
     "reddit":     {"label": "Reddit post",            "script": "automations/article-writer/run.py",  "args": ["--kind", "reddit"],   "input": "--topic", "slug": True},
+    "reddit_image": {"label": "Reddit post + image (Higgsfield)", "script": "automations/article-writer/run.py", "args": ["--kind", "reddit", "--image"], "input": "--topic", "slug": True, "bg": True},
     "edge_html":  {"label": "Edge HTML + Schema",     "script": "scripts/gen_edge_html.py",            "args": [],                      "input": "--topic", "slug": True},
     "podcast":    {"label": "Podcast episode",        "script": "automations/podcast-producer/run.py", "args": [],                      "input": "--topic", "slug": True},
     "tool":       {"label": "Custom tool / widget",   "script": "automations/tool-builder/run.py",     "args": [],                      "input": "--tool",  "slug": True},
@@ -111,7 +112,7 @@ def catalog():
         for wf_path in sorted(ROOT.glob(f"clients/*/{area}/workflows.yaml")):
             client = wf_path.parts[wf_path.parts.index("clients")+1]
             base = wf_path.parent
-            entry = out.setdefault(client, {"workflows": [], "profiles": {}, "locations": []})
+            entry = out.setdefault(client, {"workflows": [], "profiles": {}, "locations": [], "subreddits": []})
             for w in (yaml.safe_load(wf_path.read_text()) or {}).get("workflows", []):
                 entry["workflows"].append({"id": w["workflow_id"], "area": area,
                     "execution_method": w.get("execution_method"),
@@ -121,6 +122,11 @@ def catalog():
             if pf.exists():
                 for p in (yaml.safe_load(pf.read_text()) or {}).get("profiles", []):
                     entry["profiles"].setdefault(area, []).append(p["profile_id"])
+            sr = base/"subreddits.yaml"      # reddit_post targets: name -> task_params.target
+            if sr.exists():
+                for s in (yaml.safe_load(sr.read_text()) or {}).get("subreddits", []):
+                    entry["subreddits"].append({"name": s.get("name"),
+                        "title": s.get("title") or s.get("name"), "url": s.get("url", "")})
             gb = base/"google_business.yaml"
             if gb.exists():
                 g = yaml.safe_load(gb.read_text()) or {}
@@ -295,18 +301,31 @@ def attach_link(automation, filename, label, url):
     tmp = path.with_suffix(".json.tmp"); tmp.write_text(json.dumps(wo, indent=2)); tmp.replace(path)
     return atts
 
+_SCHED_CACHE = {}
+def _engagement_freqs(c):
+    """{frequency: active} for this client's agent_engagement schedules (daily/weekly human activity)."""
+    sp = ROOT/"clients"/c/"browser"/"schedules.yaml"
+    freqs = {}
+    if sp.exists():
+        for s in (yaml.safe_load(sp.read_text()) or {}).get("schedules", []):
+            if s.get("workflow_id") == "agent_engagement":
+                freqs[s.get("frequency")] = bool(s.get("active", True))
+    return freqs
+
 def fractional_board(client=None):
     """Swimlane data: one lane per CloakBrowser persona (roster from browser/profiles.yaml),
-    with that persona's cloakbrowser work-orders bucketed into the four state columns."""
+    with that persona's cloakbrowser work-orders bucketed into the four state columns. Each lane
+    also reports which daily/weekly engagement runs are scheduled (the per-employee 'actions')."""
     cols = ("queued", "progress", "done", "held")
-    identities = {}
+    identities = {}; sched = {}
+    def acts(c): return sched.setdefault(c, _engagement_freqs(c))
     for pf in sorted(ROOT.glob("clients/*/browser/profiles.yaml")):
         c = pf.parts[pf.parts.index("clients")+1]
         if client and c != client: continue
         for p in (yaml.safe_load(pf.read_text()) or {}).get("profiles", []):
             pid = p["profile_id"]
             identities[pid] = {"profile_id": pid, "client": c, "label": pid,
-                               "paused": bool(p.get("paused")),
+                               "paused": bool(p.get("paused")), "actions": acts(c),
                                "columns": {k: [] for k in cols}}
     by = board_scan.grouped(ROOT)
     for col in cols:
@@ -315,10 +334,25 @@ def fractional_board(client=None):
             if client and card.get("client") != client: continue
             pid = card.get("profile_id") or "?"
             lane = identities.setdefault(pid, {"profile_id": pid, "client": card.get("client", ""),
-                       "label": pid, "paused": False, "columns": {k: [] for k in cols}})
+                       "label": pid, "paused": False, "actions": acts(card.get("client", "")),
+                       "columns": {k: [] for k in cols}})
             lane["columns"][col].append(card)
     return {"generated": now_iso(),
             "identities": sorted(identities.values(), key=lambda x: x["profile_id"])}
+
+def agent_action(client, profile_id, kind):
+    """Trigger an organic engagement run (daily|weekly) for one fractional-employee persona on
+    demand. Reuses the params from that frequency's agent_engagement schedule. Ungated — it runs on
+    the next cloakbrowser-runner pass (launch -> verify -> human-like browse/upvote/1 comment)."""
+    if kind not in ("daily", "weekly"):
+        raise ValueError("kind must be daily or weekly")
+    params = {}
+    sp = ROOT/"clients"/client/"browser"/"schedules.yaml"
+    if sp.exists():
+        for s in (yaml.safe_load(sp.read_text()) or {}).get("schedules", []):
+            if s.get("workflow_id") == "agent_engagement" and s.get("frequency") == kind:
+                params = s.get("task_params", {}); break
+    return build_work_order(client, "agent_engagement", profile_id, today(), params)
 
 # ---------------- HTTP ----------------
 class Handler(BaseHTTPRequestHandler):
@@ -450,6 +484,9 @@ class Handler(BaseHTTPRequestHandler):
             if path == "/api/create_content":
                 return self._send(200, create_content(b["client"], b["task"], b.get("topic", ""),
                                                        b.get("slug", ""), b.get("target", "")))
+            if path == "/api/agent_action":
+                wid, rel = agent_action(b["client"], b["profile_id"], b.get("kind", "daily"))
+                return self._send(200, {"ok": True, "work_order_id": wid, "inbox": rel})
             if path == "/api/move":
                 rel = move_wo(b["automation"], b["filename"], b["to"])
                 return self._send(200, {"ok": True, "moved_to": rel})

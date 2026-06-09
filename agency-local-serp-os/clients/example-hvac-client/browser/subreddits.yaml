@@ -1,0 +1,12 @@
+version: 1
+# Target subreddits for this client's CloakBrowser persona (example-hvac-client-cb-agent).
+# The reddit_post workflow posts the APPROVED text to the subreddit named in task_params.target,
+# as a genuine, rule-respecting contribution (the agent never edits approved copy, never spams).
+# `name` is what goes into params.target. Keep this list to subreddits where the account is in
+# good standing and where helpful/disclosed content is welcome.
+subreddits:
+- name: r/Laudy
+  url: https://www.reddit.com/r/Laudy/
+  title: Fort Lauderdale (r/Laudy)
+  notes: Fort Lauderdale local community. Be genuinely neighborly/helpful; disclose affiliation; no overt ads.
+  allow_self_promo: false
