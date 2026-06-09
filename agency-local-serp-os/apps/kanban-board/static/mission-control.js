@@ -474,6 +474,10 @@
         <div class="panel" style="margin-top:13px"><h3>AI queries — uncited first (the action list) <span class="h-accent"></span></h3>
           <div id="ai-queries"></div></div>
 
+        <div class="panel" style="margin-top:13px"><h3>Multi-engine AI visibility <span style="font-weight:400;color:var(--dim);font-size:11px;" id="aiv-meta">— are you recommended by ChatGPT / Claude / Google AI?</span> <span class="h-accent"></span></h3>
+          <div id="aiv-engines" class="aiv-engines"></div>
+          <div id="aiv-matrix" style="margin-top:10px"></div></div>
+
         <!-- Threat Intelligence Report Section -->
         <div class="panel" style="margin-top:16px; border-color:#38bdf833;">
           <h3 style="color:#38bdf8;"><i class="fas fa-shield-alt" style="margin-right:6px;"></i> Active Threat Intel: houseacrepair.com <span class="h-accent"></span></h3>
@@ -509,6 +513,30 @@
     return items.map(i => `<div class="lb"><span class="lb-d">${esc(i.domain)}</span>
       <span class="lb-bar"><span style="width:${Math.round(i.count / max * 100)}%"></span></span><b>${i.count}</b></div>`).join("");
   }
+  function renderAiVisibility(av) {
+    const eng = $("aiv-engines"), mx = $("aiv-matrix"), meta = $("aiv-meta");
+    if (!eng || !mx) return;
+    if (!av || !av.available) {
+      eng.innerHTML = `<div class="mc-empty">No AI-visibility probe yet — run <code>automations/ai-visibility</code>.</div>`;
+      mx.innerHTML = ""; return;
+    }
+    const rate = v => v >= 0.5 ? "#34d399" : v >= 0.2 ? "#fbbf24" : "#f87171";
+    eng.innerHTML = (av.engines || []).map(e => {
+      const p = Math.round((e.rate || 0) * 100);
+      return `<div class="aiv-eng"><div class="aiv-eng-top"><span>${esc(e.label)}</span><b style="color:${rate(e.rate)}">${p}%</b></div>
+        <div class="hs-bar"><span style="width:${p}%;background:${rate(e.rate)}"></span></div>
+        <div class="hs-c-detail">${e.mentions}/${e.asked} queries recommend you</div></div>`;
+    }).join("");
+    const keys = av.engine_keys || [];
+    const labels = {}; (av.engines || []).forEach(e => labels[e.engine] = e.label);
+    mx.innerHTML = table(["Query", ...keys.map(k => labels[k] || k)],
+      (av.matrix || []).map(row => [esc(row.keyword), ...keys.map(k => {
+        const c = row.cells[k];
+        if (!c) return "—";
+        return c.mentioned ? `<span class="pill ok" title="${esc(c.snippet || "")}">recommended</span>` : `<span class="pill bad">absent</span>`;
+      })]));
+    if (meta) meta.textContent = `— overall ${Math.round((av.overall_rate || 0) * 100)}% of AI answers recommend you`;
+  }
   RENDER.ai = function (d) {
     clientSelect("ai-client", d.clients, d.client);
     const pct = Math.round((d.citation_share || 0) * 100);
@@ -519,6 +547,7 @@
       (d.queries || []).map(q => [esc(q.keyword), esc(q.query_class),
         q.client_cited ? `<span class="pill ok">yes</span>` : `<span class="pill bad">no</span>`,
         esc((q.cited_sources || []).join(", ") || "—")]));
+    renderAiVisibility(d.ai_visibility);
 
     // ---- Active Threat Intel: REAL data only (strip + pressure table + review sentiment) ----
     const ti = d.threat_intel || {};

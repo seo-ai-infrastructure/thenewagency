@@ -617,6 +617,47 @@ def _threat_intel(root, client, records):
             "ranking_threats": ranking_threats}
 
 
+def ai_visibility(root, client=None):
+    """Multi-engine AI brand visibility: are we recommended when a real user asks an AI engine?
+    Folds the ChatGPT/Claude probe (ai-visibility automation) together with Google AI Mode
+    citations from the live DataForSEO tracker into one per-engine + per-keyword view."""
+    root = pathlib.Path(root)
+    client, clients = _resolve_client(root, client)
+    doc = _load_json(root / "clients" / str(client) / "signals" / "ai_visibility.json")
+    records = latest_tracker_records(root)
+    g = defaultdict(lambda: {"mentioned": False})
+    for r in records:
+        if r.get("query_class") == "ai_mode" or r.get("feature_type") == "ai_mode_response":
+            kw = r.get("keyword")
+            if r.get("client_cited") or r.get("ownership_class") == "influenced":
+                g[kw]["mentioned"] = True
+            else:
+                g[kw].setdefault("mentioned", False)
+    google_rows = [{"keyword": k, "engine": "google_ai", "engine_label": "Google AI",
+                    "mentioned": v["mentioned"], "snippet": None} for k, v in g.items()]
+    rows = list((doc or {}).get("results") or []) + google_rows
+    engs = {}
+    for r in rows:
+        e = engs.setdefault(r["engine"], {"engine": r["engine"], "label": r.get("engine_label", r["engine"]),
+                                          "asked": 0, "mentions": 0})
+        e["asked"] += 1
+        e["mentions"] += 1 if r.get("mentioned") else 0
+    for e in engs.values():
+        e["rate"] = round(e["mentions"] / e["asked"], 3) if e["asked"] else 0.0
+    eng_keys = sorted(engs)
+    matrix = []
+    for kw in sorted({r["keyword"] for r in rows}):
+        cells = {r["engine"]: {"mentioned": r.get("mentioned"), "snippet": r.get("snippet")}
+                 for r in rows if r["keyword"] == kw}
+        matrix.append({"keyword": kw, "cells": cells})
+    tot_a = sum(e["asked"] for e in engs.values())
+    tot_m = sum(e["mentions"] for e in engs.values())
+    return {"generated": _now().isoformat(), "client": client, "available": bool(rows),
+            "pulled": (doc or {}).get("pulled"),
+            "engines": [engs[k] for k in eng_keys], "engine_keys": eng_keys, "matrix": matrix,
+            "overall_rate": round(tot_m / tot_a, 3) if tot_a else 0.0}
+
+
 def ai_search(root, client=None):
     root = pathlib.Path(root)
     client, clients = _resolve_client(root, client)
@@ -647,6 +688,7 @@ def ai_search(root, client=None):
         "queries": queries,
         "cited_competitors_leaderboard": [{"domain": d, "count": c} for d, c in comp.most_common(10)],
         "cited_sources_leaderboard": [{"domain": d, "count": c} for d, c in src.most_common(10)],
+        "ai_visibility": ai_visibility(root, client),
         "threat_intel": _threat_intel(root, client, records),
     }
 
