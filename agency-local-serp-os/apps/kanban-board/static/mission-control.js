@@ -18,7 +18,7 @@
   window.MC = MC;
   function killCharts() { for (const k in MC.charts) { try { MC.charts[k].destroy(); } catch (e) {} } MC.charts = {}; }
 
-  const ENDPOINT = { mc: "/api/mc/command_center", si: "/api/mc/search_intelligence", ai: "/api/mc/ai_search", aeo: "/api/mc/aeo", ci: "/api/mc/competition_intell", ti: "/api/mc/threat_intelligence" };
+  const ENDPOINT = { mc: "/api/mc/command_center", si: "/api/mc/search_intelligence", ai: "/api/mc/ai_search", ci: "/api/mc/competition_intell", ti: "/api/mc/threat_intelligence" };
   const SHELL = {}, RENDER = {};
 
   async function fetchView(view) {
@@ -63,7 +63,16 @@
           <span class="mc-title" id="mc-title">Command Center</span>
           <select id="mc-client" class="mc-sel"></select>
           <span class="mc-spacer"></span>
+          <button id="mc-csv" class="mc-btn" type="button" title="Download the FULL dashboard as a CSV report (all panels)">⬇ CSV</button>
+          <button id="mc-print" class="mc-btn" type="button" title="Print / save as PDF report">🖨 Report</button>
           <span id="mc-fresh" class="mc-chip">—</span><span id="mc-cost" class="mc-chip">—</span>
+        </div>
+        <div class="mc-health-band">
+          <div class="panel hs-panel"><h3>Search health score <span class="h-accent"></span></h3>
+            <div class="hs-wrap"><div class="hs-ring" id="mc-hs-ring"></div>
+              <div class="hs-comps" id="mc-hs-comps"></div></div></div>
+          <div class="panel"><h3>Intelligence briefing <span style="font-weight:400;color:var(--dim);font-size:11px;">— live, from your data</span> <span class="h-accent"></span></h3>
+            <div id="mc-briefing" class="briefing"></div></div>
         </div>
         <div class="mc-hero">
           <div class="panel"><h3>SERP Saturation — multi-presence goal <span class="h-accent"></span></h3>
@@ -95,7 +104,37 @@
         </div>
       </div>`;
     $("mc-client").onchange = e => window.mcSetClient(e.target.value);
+    $("mc-print").onclick = () => window.print();
+    $("mc-csv").onclick = exportMcCsv;
+    if (!MC.catalog) fetch("/api/catalog").then(r => r.json()).then(c => { MC.catalog = c; if (MC.view === "mc") refresh(); }).catch(() => {});
   };
+  async function createWorkOrder(client, workflow_id, target, reason, btn) {
+    btn.disabled = true; btn.textContent = "creating…";
+    try {
+      const r = await fetch("/api/create", { method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ client, workflow_id, target, period: new Date().toISOString().slice(0, 10),
+          task_params: { reason, source: "command-center" } }) });
+      const j = await r.json();
+      if (j.ok) { btn.textContent = "✓ " + String(j.work_order_id).slice(-10); btn.classList.add("wo-ok"); }
+      else { btn.textContent = "✗ " + (j.error || "failed"); btn.disabled = false; }
+    } catch (e) { btn.textContent = "✗ error"; btn.disabled = false; }
+  }
+  function downloadCSV(filename, headers, rows) {
+    const q = v => `"${String(v ?? "").replace(/"/g, '""')}"`;
+    const csv = [headers.map(q).join(","), ...rows.map(r => r.map(q).join(","))].join("\r\n");
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(new Blob([csv], { type: "text/csv;charset=utf-8" }));
+    a.download = filename; document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+  }
+  function exportMcCsv() {
+    // FULL dashboard CSV (every panel), assembled server-side so it's complete regardless of which
+    // tabs were opened. Sent as an attachment with a BOM for Excel.
+    const client = (MC.last || {}).client || MC.client;
+    const url = "/api/mc/export.csv" + (client ? "?client=" + encodeURIComponent(client) : "");
+    const a = document.createElement("a");
+    a.href = url; a.download = ""; document.body.appendChild(a); a.click(); a.remove();
+  }
   RENDER.mc = function (d) {
     $("mc-title").textContent = d.title || "Command Center";
     clientSelect("mc-client", d.clients, d.client);
@@ -105,6 +144,33 @@
     const c = d.cost || {}, cc = $("mc-cost");
     cc.textContent = c.circuit_open ? "DataForSEO circuit OPEN" : `last run $${fmt(c.last_run_cost)}`;
     cc.className = "mc-chip " + (c.circuit_open ? "bad" : "");
+
+    // ---- Search health score + intelligence briefing ----
+    const h = d.health || {}, hcolor = v => v >= 70 ? "#34d399" : v >= 40 ? "#fbbf24" : "#f87171";
+    const ring = $("mc-hs-ring");
+    if (ring) {
+      if (HAS_APEX() && h.overall != null) {
+        const ch = new ApexCharts(ring, {
+          chart: { type: "radialBar", height: 190, sparkline: { enabled: true } },
+          series: [h.overall], colors: [hcolor(h.overall)],
+          plotOptions: { radialBar: { hollow: { size: "56%" }, track: { background: "#1b2531" },
+            dataLabels: { name: { offsetY: 22, color: "#7d8a9a", fontSize: "12px", formatter: () => "GRADE " + (h.grade || "—") },
+              value: { offsetY: -12, color: "#e6edf3", fontSize: "34px", fontWeight: 700, formatter: v => Math.round(v) } } } }
+        });
+        ch.render(); MC.charts.mc_hs_ring = ch;
+      } else { ring.innerHTML = `<div style="font-size:40px;font-weight:700;text-align:center;padding-top:60px">${fmt(h.overall)}<div style="font-size:12px;color:var(--dim)">${esc(h.grade || "")}</div></div>`; }
+    }
+    $("mc-hs-comps").innerHTML = (h.components || []).map(cp => {
+      const sc = cp.score, w = sc == null ? 0 : sc;
+      return `<div class="hs-comp"><div class="hs-c-top"><span>${esc(cp.label)}</span><b style="color:${cp.score == null ? "var(--dim)" : hcolor(sc)}">${sc == null ? "n/a" : sc}</b></div>
+        <div class="hs-bar"><span style="width:${w}%;background:${hcolor(w)}"></span></div>
+        <div class="hs-c-detail">${esc(cp.detail)}</div></div>`;
+    }).join("");
+    const sevPill = { good: "ok", warn: "warn", info: "" };
+    $("mc-briefing").innerHTML = ((d.briefing || {}).items || []).map(it =>
+      `<div class="brief-item brief-${esc(it.severity)}"><span class="brief-cat">${esc(it.category)}</span>
+        <span class="brief-text">${esc(it.text)}</span></div>`).join("")
+      || `<div class="mc-empty">No briefing yet.</div>`;
 
     const s = d.saturation || {}, pct = Math.round((s.pct_meeting_goal || 0) * 100);
     $("mc-goal-big").innerHTML = `${fmt(s.n_meeting_goal)}<small>/${fmt(s.n_serps)} SERPs</small>`;
@@ -227,14 +293,25 @@
       ch.render(); MC.charts.mc_trend = ch;
     } else if (trEl) trEl.innerHTML = `<div class="mc-empty">Need ≥2 tracker runs for a trend.</div>`;
 
-    // Top opportunities — biggest gaps weighted by lead value
+    // Top opportunities — biggest gaps weighted by lead value (one-click → Kanban work order)
     const opps = an.opportunities || [];
-    $("mc-opps").innerHTML = opps.length ? opps.map(o => `
-      <div class="act ${o.gap >= 2 ? "high" : "med"}">
+    const wf = ((MC.catalog || {})[d.client] || {}).workflows || [];
+    const wfOpts = wf.map(w => `<option value="${esc(w.id)}">${esc(w.id)}</option>`).join("");
+    $("mc-opps").innerHTML = opps.length ? opps.map(o => {
+      const reason = `Takeover gap ${o.gap} on “${o.keyword}” (${o.os}) — claim ${(o.unclaimed || []).join(", ") || "features"}`;
+      const ctrl = wfOpts
+        ? `<div class="wo-row"><select class="wo-pick mc-sel">${wfOpts}</select>
+             <button class="mc-btn wo-go" data-kw="${esc(o.keyword)}" data-reason="${esc(reason)}">+ Work order</button></div>`
+        : `<div class="a-src">priority score ${o.score}</div>`;
+      return `<div class="act ${o.gap >= 2 ? "high" : "med"}">
         <div class="a-top"><span class="a-title">${esc(o.keyword)} <span style="color:var(--dim);font-size:10px">(${esc(o.os)})</span></span><span class="a-metric">gap ${o.gap} · ${esc(o.lead_value || "—")}</span></div>
         <div class="a-detail">holds ${o.appearances} — claim: ${esc((o.unclaimed || []).join(", ") || "extend placements")}</div>
-        <div class="a-src">priority score ${o.score}</div></div>`).join("")
-      : `<div class="mc-empty">Every tracked SERP is at goal 🎉</div>`;
+        ${ctrl}</div>`;
+    }).join("") : `<div class="mc-empty">Every tracked SERP is at goal 🎉</div>`;
+    $("mc-opps").querySelectorAll(".wo-go").forEach(btn => btn.onclick = () => {
+      const sel = btn.parentElement.querySelector(".wo-pick");
+      createWorkOrder(d.client, sel.value, btn.dataset.kw, btn.dataset.reason, btn);
+    });
   };
 
   /* ============================ SEARCH INTELLIGENCE ============================ */
@@ -254,8 +331,28 @@
           <div class="panel"><h3>Striking distance — quick wins (pos 5–15) <span class="h-accent"></span></h3><div id="si-striking"></div></div>
           <div class="panel"><h3>Keyword rankings vs competitors <span class="h-accent"></span></h3><div id="si-ranks"></div></div>
         </div>
+        <div class="panel" style="margin-top:13px">
+          <h3>Daily performance trends <span style="font-weight:400;color:var(--dim);font-size:11px;" id="si-trend-meta"></span> <span class="h-accent"></span></h3>
+          <div class="sub" style="margin-bottom:6px">Daily GSC clicks &amp; impressions with Google algorithm-update markers and z-score anomaly flags.</div>
+          <div id="si-trend" style="min-height:320px"></div>
+        </div>
+        <div class="panel" style="margin-top:13px">
+          <h3>Local map-pack geo-grid
+            <select id="si-geo-kw" class="mc-sel" style="margin-left:8px;font-size:11px;padding:4px 8px"></select>
+            <select id="si-geo-base" class="mc-sel" style="margin-left:6px;font-size:11px;padding:4px 8px" title="Compare ranks against an older pull"></select>
+            <span style="font-weight:400;color:var(--dim);font-size:11px;" id="si-geo-meta">— Share of Local Voice across a rank grid</span> <span class="h-accent"></span></h3>
+          <div id="si-geogrid"></div>
+        </div>
+        <div class="panel" style="margin-top:13px">
+          <h3>GSC metric correlation matrix <span class="h-accent"></span></h3>
+          <div class="sub" style="margin-bottom:8px">How your GSC metrics relate across queries — diagonal = each metric's distribution, off-diagonal = scatter with Pearson r.</div>
+          <div class="corr-legend" id="si-corr-legend"></div>
+          <div id="si-corr"></div>
+        </div>
       </div>`;
     $("si-client").onchange = e => window.mcSetClient(e.target.value);
+    $("si-geo-kw").onchange = e => { MC.geoKw = e.target.value; MC.geoBaseline = null; if (MC.lastGeo) drawGeoMap(MC.lastGeo); };
+    $("si-geo-base").onchange = e => { MC.geoBaseline = e.target.value; if (MC.lastGeo) drawGeoMap(MC.lastGeo); };
   };
   function perfKpis(p) {
     const t = (p && p.totals) || {};
@@ -291,7 +388,206 @@
        fmt(r.best_rank), fmt(r.best_competitor_rank), esc((r.features_held || []).join(", ") || "—")]));
     $("si-ranks").innerHTML = `<div class="sub-h">Local Finder</div>${rk(kr.local_finder)}
       <div class="sub-h">Organic Mobile</div>${rk(kr.organic_mobile)}`;
+    renderDailyTrend(d.daily_trend);
+    renderGeoGrid(d.geo_grid);
+    renderCorrelation(d.gsc_correlation);
   };
+  const geoRankColor = v => v == null ? "#9ca3af" : v <= 3 ? "#34d399" : v <= 7 ? "#38bdf8" : v <= 10 ? "#fbbf24" : "#f87171";
+  function geoBadge(mv) {
+    if (!mv || mv.type === "same") return { html: "", tip: "" };
+    const t = mv.type, d = mv.delta;
+    if (t === "new") return { html: `<div class="geo-badge new">new</div>`, tip: " · new" };
+    if (t === "lost") return { html: `<div class="geo-badge lost">lost</div>`, tip: " · lost" };
+    if (t === "up") return { html: `<div class="geo-badge up">▲${d}</div>`, tip: ` · up ${d}` };
+    if (t === "down") return { html: `<div class="geo-badge down">▼${d}</div>`, tip: ` · down ${d}` };
+    return { html: "", tip: "" };
+  }
+  const geoKey = p => p.row + "," + p.col;
+  function computeGeoMoves(curPts, basePts) {     // client-side diff vs a chosen baseline pull
+    const prev = {}; (basePts || []).forEach(p => { prev[geoKey(p)] = p.rank_absolute; });
+    const moveBy = {}, tally = { up: 0, down: 0, new: 0, lost: 0 };
+    (curPts || []).forEach(p => {
+      const pr = prev[geoKey(p)], cur = p.rank_absolute;
+      let mv = null;
+      if (pr == null && cur == null) mv = null;
+      else if (pr == null) { mv = { type: "new" }; tally.new++; }
+      else if (cur == null) { mv = { type: "lost" }; tally.lost++; }
+      else { const dd = pr - cur; mv = { type: dd > 0 ? "up" : dd < 0 ? "down" : "same", delta: Math.abs(dd) }; if (dd > 0) tally.up++; else if (dd < 0) tally.down++; }
+      if (mv) moveBy[geoKey(p)] = mv;
+    });
+    return { moveBy, tally };
+  }
+  function renderGeoGrid(g) {
+    MC.lastGeo = g;
+    const host = $("si-geogrid"), sel = $("si-geo-kw");
+    if (!host) return;
+    const kws = (g && g.keywords) || [];
+    if (sel) {                                   // populate the per-keyword dropdown
+      sel.style.display = kws.length ? "" : "none";
+      const sig = kws.join("|");
+      if (sel.dataset.sig !== sig) {
+        sel.innerHTML = kws.map(k => `<option value="${esc(k)}">${esc(k)}</option>`).join("");
+        sel.dataset.sig = sig;
+      }
+      if (!MC.geoKw || !kws.includes(MC.geoKw)) MC.geoKw = kws[0];
+      if (MC.geoKw) sel.value = MC.geoKw;
+    }
+    drawGeoMap(g);
+  }
+  function drawGeoMap(g) {
+    const host = $("si-geogrid"), meta = $("si-geo-meta"), baseSel = $("si-geo-base");
+    if (!host) return;
+    const kws = (g && g.keywords) || [];
+    const kw = (MC.geoKw && kws.includes(MC.geoKw)) ? MC.geoKw : kws[0];
+    const grid = (g && g.grids && kw) ? g.grids[kw] : null;
+    if (!g || !g.available || !grid || !((grid.points || []).length || (grid.matrix || []).length)) {
+      if (MC.geomap) { try { MC.geomap.remove(); } catch (e) {} MC.geomap = null; }
+      MC.geomapSig = null;
+      if (baseSel) baseSel.style.display = "none";
+      host.innerHTML = `<div class="mc-empty">No geo-grid pull yet — run <code>automations/geo-grid --all</code>.</div>`;
+      if (meta) meta.textContent = "— Share of Local Voice across a rank grid"; return;
+    }
+    // ---- baselines (older pulls) for the "Compare vs" date picker ----
+    const curPulled = grid.pulled || g.pulled || "";
+    const history = (grid.history || []).filter(h => (h.points || []).length);
+    const baselines = history.filter(h => (h.pulled || "") < curPulled);
+    if (baseSel) {
+      if (baselines.length) {
+        baseSel.style.display = "";
+        const bsig = kw + "::" + baselines.map(b => b.pulled).join("|");
+        if (baseSel.dataset.sig !== bsig) {
+          baseSel.innerHTML = baselines.slice().reverse().map(b =>
+            `<option value="${esc(b.pulled)}">vs ${esc(String(b.pulled).slice(0, 10))}</option>`).join("");
+          baseSel.dataset.sig = bsig;
+        }
+        if (!MC.geoBaseline || !baselines.some(b => b.pulled === MC.geoBaseline))
+          MC.geoBaseline = baselines[baselines.length - 1].pulled;   // default: most-recent older pull
+        baseSel.value = MC.geoBaseline;
+      } else { baseSel.style.display = "none"; MC.geoBaseline = null; baseSel.dataset.sig = ""; }
+    }
+    const baseEntry = baselines.find(b => b.pulled === MC.geoBaseline) || null;
+    const mv = baseEntry ? computeGeoMoves(grid.points, baseEntry.points) : { moveBy: {}, tally: null };
+
+    const sig = curPulled + "|" + kw + "|" + (MC.geoBaseline || "");
+    if (MC.geomapSig === sig && MC.geomap && document.getElementById("si-geomap")) return;  // no-op on poll
+    if (MC.geomap) { try { MC.geomap.remove(); } catch (e) {} MC.geomap = null; }
+
+    const s = grid.solv || {};
+    const kpiHtml = `<div class="mc-kpis" style="grid-template-columns:repeat(4,1fr);margin-bottom:12px">${
+      [["SoLV", s.solv != null ? Math.round(s.solv * 100) + "%" : "—"],
+       ["Ranked points", `${s.points_ranked ?? "—"}/${s.points_total ?? "—"}`],
+       ["Top-3 points", s.top3_points ?? "—"], ["Avg rank", s.avg_rank ?? "—"]]
+        .map(([l, v]) => `<div class="kpi"><div class="k-label">${esc(l)}</div><div class="k-val">${esc(v)}</div></div>`).join("")}</div>`;
+    const legend = `<div class="legend-row" style="margin-top:8px"><span><i style="background:#34d399"></i>1–3</span><span><i style="background:#38bdf8"></i>4–7</span><span><i style="background:#fbbf24"></i>8–10</span><span><i style="background:#f87171"></i>11+</span><span><i style="background:#9ca3af"></i>absent</span></div>`;
+    const pts = (grid.points || []).filter(p => p.lat != null && p.lng != null);
+
+    if (window.L && pts.length) {
+      host.innerHTML = kpiHtml + `<div id="si-geomap" class="geo-map"></div>` + legend;
+      const map = L.map("si-geomap", { scrollWheelZoom: false });
+      L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
+        { maxZoom: 19, attribution: "&copy; OpenStreetMap" }).addTo(map);
+      pts.forEach(p => {
+        const v = p.rank_absolute;
+        const b = geoBadge(mv.moveBy[geoKey(p)] || (baseEntry ? null : p.move));
+        const icon = L.divIcon({ className: "geo-pin-wrap", iconSize: [34, 34], iconAnchor: [17, 17],
+          html: `<div class="geo-pin-inner"><div class="geo-pin" style="background:${geoRankColor(v)}">${v == null ? "·" : v}</div>${b.html}</div>` });
+        L.marker([p.lat, p.lng], { icon }).addTo(map).bindTooltip((v == null ? "absent" : "rank " + v) + b.tip);
+      });
+      try { map.fitBounds(pts.map(p => [p.lat, p.lng]), { padding: [28, 28] }); } catch (e) {}
+      MC.geomap = map; MC.geomapSig = sig;
+      setTimeout(() => { try { map.invalidateSize(); } catch (e) {} }, 150);
+    } else {
+      const cells = (grid.matrix || []).map(row => `<div class="geo-row">` + row.map(v =>
+        `<div class="geo-cell" style="background:${geoRankColor(v)}" title="rank ${v == null ? "absent" : v}">${v == null ? "·" : v}</div>`).join("") + `</div>`).join("");
+      host.innerHTML = kpiHtml + `<div class="geo-grid-wrap">${cells}</div>` + legend;
+      MC.geomapSig = null;
+    }
+    if (meta) {
+      let txt = `— “${kw}” · ${grid.size}×${grid.size} grid · ${g.location || ""}`;
+      if (baseEntry && mv.tally) {
+        const t = mv.tally, since = String(baseEntry.pulled).slice(0, 10), parts = [];
+        if (t.up) parts.push(`▲${t.up}`); if (t.down) parts.push(`▼${t.down}`);
+        if (t.new) parts.push(`${t.new} new`); if (t.lost) parts.push(`${t.lost} lost`);
+        txt += ` · vs ${since}: ${parts.length ? parts.join(" ") : "no change"}`;
+      } else if (history.length <= 1) {
+        txt += ` · first pull — re-run to compare over time`;
+      }
+      meta.textContent = txt;
+    }
+  }
+  function renderDailyTrend(dt) {
+    const el = $("si-trend"), meta = $("si-trend-meta");
+    if (!el) return;
+    if (!dt || !dt.available || !(dt.days || []).length) {
+      el.innerHTML = `<div class="mc-empty">No daily GSC pull yet — run <code>automations/gsc-daily-trend</code> to populate this.</div>`;
+      if (meta) meta.textContent = ""; return;
+    }
+    const days = dt.days;
+    if (!HAS_APEX()) { el.innerHTML = `<div class="mc-empty">${days.length} days loaded.</div>`; return; }
+    const cats = days.map(d => d.date);
+    const updColor = t => t === "spam" ? "#a78bfa" : t === "discover" ? "#34d399" : "#f59e0b";
+    const xann = (dt.markers || []).map(m => ({ x: m.date, borderColor: updColor(m.type), strokeDashArray: 4,
+      label: { text: m.label, orientation: "horizontal", style: { color: "#fff", background: updColor(m.type), fontSize: "8px" } } }));
+    const pann = (dt.anomalies || []).map(a => ({ x: a.date, y: a.clicks,
+      marker: { size: 5, fillColor: a.direction === "drop" ? "#f87171" : "#34d399", strokeColor: "#fff" },
+      label: { text: (a.direction === "drop" ? "▼" : "▲"), style: { fontSize: "9px", color: "#fff", background: a.direction === "drop" ? "#f87171" : "#34d399" } } }));
+    const ch = new ApexCharts(el, {
+      chart: { type: "line", height: 320, background: "transparent", toolbar: { show: false } },
+      theme: { mode: "dark" },
+      series: [{ name: "Clicks", type: "area", data: days.map(d => d.clicks || 0) },
+               { name: "Impressions", type: "line", data: days.map(d => d.impressions || 0) }],
+      colors: ["#38bdf8", "#34d399"], stroke: { width: [2, 1.5], curve: "smooth" },
+      fill: { type: ["gradient", "solid"], gradient: { opacityFrom: 0.4, opacityTo: 0.05 } },
+      dataLabels: { enabled: false },
+      xaxis: { categories: cats, tickAmount: 14, labels: { style: { colors: "#7d8a9a", fontSize: "9px" }, rotate: -40, hideOverlappingLabels: true } },
+      yaxis: [{ seriesName: "Clicks", title: { text: "Clicks", style: { color: "#7d8a9a" } }, labels: { style: { colors: "#7d8a9a" } } },
+              { seriesName: "Impressions", opposite: true, title: { text: "Impressions", style: { color: "#7d8a9a" } }, labels: { style: { colors: "#7d8a9a" } } }],
+      grid: { borderColor: "#222c39" }, legend: { labels: { colors: "#7d8a9a" } },
+      annotations: { xaxis: xann, points: pann }, tooltip: { theme: "dark", shared: true }
+    });
+    ch.render(); MC.charts.si_trend = ch;
+    if (meta) meta.textContent = `${days.length} days · ${dt.anomalies.length} anomalies · ${(dt.markers || []).length} algorithm updates`;
+  }
+  function _hist(vals, n) {
+    if (!vals.length) return new Array(n).fill(0);
+    const mn = Math.min(...vals), mx = Math.max(...vals), w = (mx - mn) / n || 1;
+    const counts = new Array(n).fill(0);
+    vals.forEach(v => { let i = Math.floor((v - mn) / w); if (i >= n) i = n - 1; if (i < 0) i = 0; counts[i]++; });
+    return counts;
+  }
+  const rColor = r => r >= 0.7 ? "#34d399" : r >= 0.4 ? "#fbbf24" : r > -0.4 ? "#7d8a9a" : r > -0.7 ? "#fb923c" : "#f87171";
+  function renderCorrelation(c) {
+    const host = $("si-corr"); if (!host) return;
+    if (!c || !(c.points || []).length) { host.innerHTML = `<div class="mc-empty">No GSC rows to correlate.</div>`; return; }
+    const M = c.metrics, LABEL = { clicks: "Clicks", impressions: "Impressions", ctr: "CTR %", position: "Avg Position" }, n = M.length;
+    $("si-corr-legend").innerHTML = [["#34d399", "Strong + (≥0.7)"], ["#fbbf24", "Medium + (0.4–0.7)"],
+      ["#7d8a9a", "Weak (−0.4–0.4)"], ["#fb923c", "Medium − (−0.7–−0.4)"], ["#f87171", "Strong − (≤−0.7)"]]
+      .map(([col, t]) => `<span><i style="background:${col}"></i>${t}</span>`).join("");
+    let html = `<div class="corr-grid" style="grid-template-columns:84px repeat(${n},1fr)"><div class="corr-corner"></div>`;
+    M.forEach(m => html += `<div class="corr-head">${esc(LABEL[m])}</div>`);
+    M.forEach((ry, ri) => { html += `<div class="corr-head corr-rhead">${esc(LABEL[ry])}</div>`;
+      M.forEach((cx, ci) => html += `<div class="corr-cell" id="corr-${ri}-${ci}"></div>`); });
+    host.innerHTML = html + `</div>`;
+    if (!HAS_APEX()) return;
+    M.forEach((ry, ri) => M.forEach((cx, ci) => {
+      const el = $(`corr-${ri}-${ci}`); if (!el) return;
+      if (ri === ci) {
+        const ch = new ApexCharts(el, { chart: { type: "bar", height: 116, sparkline: { enabled: true } },
+          series: [{ data: _hist(c.points.map(p => p[ry]), 12) }], colors: ["#38bdf8"],
+          plotOptions: { bar: { columnWidth: "88%" } }, tooltip: { enabled: false } });
+        ch.render(); MC.charts[`corr_${ri}_${ci}`] = ch;
+        const tag = document.createElement("div"); tag.className = "corr-r"; tag.style.color = "#7d8a9a"; tag.textContent = "dist"; el.appendChild(tag);
+      } else {
+        const r = ((c.r[ry] || {})[cx]) ?? 0;
+        const ch = new ApexCharts(el, { chart: { type: "scatter", height: 116, sparkline: { enabled: true } },
+          series: [{ name: `${LABEL[cx]} × ${LABEL[ry]}`, data: c.points.map(p => [p[cx], p[ry]]) }],
+          colors: [rColor(r)], markers: { size: 2.4 }, xaxis: { type: "numeric" },
+          tooltip: { enabled: false }, grid: { show: false } });
+        ch.render(); MC.charts[`corr_${ri}_${ci}`] = ch;
+        const tag = document.createElement("div"); tag.className = "corr-r"; tag.style.color = rColor(r); tag.textContent = "r " + r; el.appendChild(tag);
+      }
+    }));
+  }
 
   /* ============================ AI SEARCH ============================ */
   SHELL.ai = function () {
@@ -311,6 +607,10 @@
         </div>
         <div class="panel" style="margin-top:13px"><h3>AI queries — uncited first (the action list) <span class="h-accent"></span></h3>
           <div id="ai-queries"></div></div>
+
+        <div class="panel" style="margin-top:13px"><h3>Multi-engine AI visibility <span style="font-weight:400;color:var(--dim);font-size:11px;" id="aiv-meta">— are you recommended by ChatGPT / Claude / Google AI?</span> <span class="h-accent"></span></h3>
+          <div id="aiv-engines" class="aiv-engines"></div>
+          <div id="aiv-matrix" style="margin-top:10px"></div></div>
 
         <!-- Threat Intelligence Report Section -->
         <div class="panel" style="margin-top:16px; border-color:#38bdf833;">
@@ -334,13 +634,8 @@
             <div id="ai-ti-pressure-table" style="margin-top:8px;"></div>
           </div>
 
-          <div class="kpi" style="padding:14px; margin-bottom:8px;">
-            <h4 class="sub-h" style="margin-top:0; color:#38bdf8;">Competitor review sentiment <span style="font-weight:400; color:var(--dim); font-size:11px;">— negative reviews mined per competitor (live watchdog)</span></h4>
-            <div id="ai-ti-sentiment" style="height:260px; margin-top:10px;"></div>
-          </div>
-
           <div style="text-align: center; font-size: 10px; color: var(--dim); border-top: 1px solid var(--line); padding-top: 12px; margin-top: 14px;" id="ti-foot">
-            Sourced from the live Firecrawl AEO crawl, the DataForSEO SERP tracker, and the competitor-review watchdog. No synthetic figures.
+            Sourced from the live Firecrawl AEO crawl and the DataForSEO SERP tracker. Competitor review sentiment lives on the Threat Intelligence tab.
           </div>
         </div>
       </div>`;
@@ -352,6 +647,30 @@
     return items.map(i => `<div class="lb"><span class="lb-d">${esc(i.domain)}</span>
       <span class="lb-bar"><span style="width:${Math.round(i.count / max * 100)}%"></span></span><b>${i.count}</b></div>`).join("");
   }
+  function renderAiVisibility(av) {
+    const eng = $("aiv-engines"), mx = $("aiv-matrix"), meta = $("aiv-meta");
+    if (!eng || !mx) return;
+    if (!av || !av.available) {
+      eng.innerHTML = `<div class="mc-empty">No AI-visibility probe yet — run <code>automations/ai-visibility</code>.</div>`;
+      mx.innerHTML = ""; return;
+    }
+    const rate = v => v >= 0.5 ? "#34d399" : v >= 0.2 ? "#fbbf24" : "#f87171";
+    eng.innerHTML = (av.engines || []).map(e => {
+      const p = Math.round((e.rate || 0) * 100);
+      return `<div class="aiv-eng"><div class="aiv-eng-top"><span>${esc(e.label)}</span><b style="color:${rate(e.rate)}">${p}%</b></div>
+        <div class="hs-bar"><span style="width:${p}%;background:${rate(e.rate)}"></span></div>
+        <div class="hs-c-detail">${e.mentions}/${e.asked} queries recommend you</div></div>`;
+    }).join("");
+    const keys = av.engine_keys || [];
+    const labels = {}; (av.engines || []).forEach(e => labels[e.engine] = e.label);
+    mx.innerHTML = table(["Query", ...keys.map(k => labels[k] || k)],
+      (av.matrix || []).map(row => [esc(row.keyword), ...keys.map(k => {
+        const c = row.cells[k];
+        if (!c) return "—";
+        return c.mentioned ? `<span class="pill ok" title="${esc(c.snippet || "")}">recommended</span>` : `<span class="pill bad">absent</span>`;
+      })]));
+    if (meta) meta.textContent = `— overall ${Math.round((av.overall_rate || 0) * 100)}% of AI answers recommend you`;
+  }
   RENDER.ai = function (d) {
     clientSelect("ai-client", d.clients, d.client);
     const pct = Math.round((d.citation_share || 0) * 100);
@@ -362,6 +681,7 @@
       (d.queries || []).map(q => [esc(q.keyword), esc(q.query_class),
         q.client_cited ? `<span class="pill ok">yes</span>` : `<span class="pill bad">no</span>`,
         esc((q.cited_sources || []).join(", ") || "—")]));
+    renderAiVisibility(d.ai_visibility);
 
     // ---- Active Threat Intel: REAL data only (strip + pressure table + review sentiment) ----
     const ti = d.threat_intel || {};
@@ -387,98 +707,7 @@
                             String(t.keywords), t.avg_rank != null ? String(t.avg_rank) : "—",
                             tlBadge(t.threat_level)]))
       : `<div class="mc-empty">no rival domains in the tracked SERPs yet</div>`;
-
-    // Review-sentiment chart — negative reviews mined per competitor (live watchdog)
-    const rs = ti.review_sentiment || [];
-    const sentEl = $("ai-ti-sentiment");
-    if (HAS_APEX() && rs.length && sentEl) {
-      const ch = new ApexCharts(sentEl, {
-        chart: { type: "bar", height: 260, background: "transparent", toolbar: { show: false } },
-        theme: { mode: "dark" },
-        series: [{ name: "Negative reviews mined", data: rs.map(r => r.negatives || 0) }],
-        xaxis: { categories: rs.map(r => r.competitor), labels: { style: { colors: "#7d8a9a", fontSize: "10px" } } },
-        yaxis: { labels: { style: { colors: "#7d8a9a" } } },
-        colors: ["#f87171"],
-        plotOptions: { bar: { borderRadius: 4, columnWidth: "45%" } },
-        dataLabels: { enabled: true, style: { colors: ["#e6edf3"] } },
-        grid: { borderColor: "#222c39" },
-        legend: { show: false },
-        tooltip: { theme: "dark", y: { formatter: (v, opts) => { const r = rs[opts.dataPointIndex] || {}; return v + " negative · avg " + (r.avg_rating != null ? r.avg_rating + "★" : "—") + (r.top_theme ? " · " + r.top_theme : ""); } } }
-      });
-      ch.render(); MC.charts.ai_ti_sentiment = ch;
-    } else if (sentEl) {
-      sentEl.innerHTML = `<div class="mc-empty">no review data yet</div>`;
-    }
-  };
-
-  /* ============================ AEO ============================ */
-  SHELL.aeo = function () {
-    const host = $("view-aeo"); if (host.dataset.built) return; host.dataset.built = "1";
-    host.innerHTML = `
-      <div class="mc-wrap">
-        <div class="mc-controls"><span class="mc-title">AEO — Answer Engine Optimization</span>
-          <select id="aeo-client" class="mc-sel"></select><span class="mc-spacer"></span>
-          <span id="aeo-crawl" class="mc-chip">crawl: not run</span></div>
-        <div class="mc-hero">
-          <div class="panel"><h3>AEO win-rate vs competitors <span class="h-accent"></span></h3>
-            <div class="mc-gaugewrap"><div id="aeo-gauge" style="width:150px;height:150px"></div>
-              <div class="mc-goal" style="flex:1"><div class="big" id="aeo-big">—</div>
-                <div class="sub" id="aeo-sub">explicit-entity coverage vs competitors</div>
-                <div id="aeo-missing" class="legend-row"></div></div></div></div>
-          <div class="panel"><h3>Crawlability — what AI bots retrieve <span class="h-accent"></span></h3>
-            <div class="mc-kpis" id="aeo-crawlkpis"></div><div id="aeo-bots"></div></div>
-        </div>
-        <div class="panel" style="margin-top:13px">
-          <h3>Citation &amp; aggregator conquest → Kanban <span class="h-accent"></span></h3>
-          <div class="sky" id="aeo-queue"></div></div>
-      </div>`;
-    $("aeo-client").onchange = e => window.mcSetClient(e.target.value);
-  };
-  RENDER.aeo = function (d) {
-    clientSelect("aeo-client", d.clients, d.client);
-    const cr = $("aeo-crawl");
-    cr.textContent = d.crawl_run ? `crawl ${(d.crawl_generated_at || "").slice(0, 10)}` : "crawl: not run";
-    cr.className = "mc-chip " + (d.crawl_run ? "ok" : "");
-
-    const ev = d.evaluation;
-    if (ev && ev.win_rate !== null && ev.win_rate !== undefined) {
-      const pct = Math.round(ev.win_rate * 100);
-      $("aeo-big").innerHTML = `${pct}%<small> win-rate</small>`;
-      $("aeo-sub").textContent = `you cover ${Math.round((ev.client_coverage || 0) * 100)}% of key entities · beat/tie ${ev.wins}/${Object.keys(ev.competitors || {}).length} competitors`;
-      $("aeo-gauge").innerHTML = ""; gauge($("aeo-gauge"), pct, "#f59e0b");
-      $("aeo-missing").innerHTML = (ev.missing_entities || []).length
-        ? `<span style="color:var(--dim)">missing:</span> ` + ev.missing_entities.map(m => `<span class="pill bad">${esc(m)}</span>`).join(" ")
-        : `<span class="pill ok">all key entities present</span>`;
-    } else {
-      $("aeo-big").textContent = "—";
-      $("aeo-sub").textContent = "Run the crawl simulator to score entity coverage vs competitors.";
-      $("aeo-gauge").innerHTML = ""; $("aeo-missing").innerHTML = "";
-    }
-
-    const c = d.crawlability;
-    if (c) {
-      const mp = c.markdown_purity || {}, ec = c.entity_clarity || {};
-      $("aeo-crawlkpis").innerHTML = [
-        ["Markdown purity", Math.round((mp.purity || 0) * 100) + "%"],
-        ["Entity clarity", Math.round((ec.clarity || 0) * 100) + "%"],
-        ["llms.txt", c.llms_txt_present ? "yes" : "no"],
-      ].map(([l, v]) => `<div class="kpi"><div class="k-label">${l}</div><div class="k-val">${v}</div></div>`).join("");
-      $("aeo-bots").innerHTML = table(["AI bot", "Access", "Robots-blocked"],
-        (c.bots || []).map(b => [esc(b.bot),
-          b.accessible ? `<span class="pill ok">ok</span>` : `<span class="pill bad">blocked</span>`,
-          b.blocked_by_robots ? `<span class="pill warn">yes</span>` : "no"]));
-    } else {
-      $("aeo-crawlkpis").innerHTML = "";
-      $("aeo-bots").innerHTML = `<div class="mc-empty">No crawl yet — run automations/ai-crawl-simulator.</div>`;
-    }
-
-    const q = d.conquest_queue || { citation: [], aggregator: [] };
-    const items = [...(q.citation || []).map(x => ({ ...x, sev: "high" })),
-                   ...(q.aggregator || []).map(x => ({ ...x, sev: "med" }))];
-    $("aeo-queue").innerHTML = items.length ? items.map(a => `<div class="act ${a.sev}">
-      <div class="a-top"><span class="a-title">${esc((a.gap || {}).keyword)}</span><span class="a-metric">${esc(a.subsystem)}</span></div>
-      <div class="a-detail">${esc(a.suggested_action)}</div><div class="a-src">${esc(a.kind)}</div></div>`).join("")
-      : `<div class="mc-empty">No AI-citation or aggregator gaps right now.</div>`;
+    // (Competitor review sentiment moved to the Threat Intelligence tab.)
   };
 
   /* ============================ REAL-TIME FEEDBACK ============================ */
@@ -691,238 +920,10 @@
       </div>`).join("");
   };
 
-  /* ============================ DEEP DIVE SIMULATOR ============================ */
-  SHELL.dd = function () {
-    const host = $("view-dd"); if (host.dataset.built) return; host.dataset.built = "1";
-    host.innerHTML = `
-      <div class="mc-wrap">
-        <div class="mc-controls"><span class="mc-title">Interactive Deep Dive: "God Mode" Simulators</span></div>
-        <div class="ci-chart-grid" style="grid-template-columns: 1fr;">
-          
-          <!-- Proximity Decay Curve -->
-          <div class="panel">
-            <h3>Local Map Pack Proximity Decay Curve <span class="h-accent"></span></h3>
-            <div style="display:flex; gap: 2rem; margin-top: 1rem;">
-              <div style="flex:1;">
-                <label style="display:block; margin-bottom: 0.5rem; font-weight: 600;">Asset Optimization Level (0-100)</label>
-                <input type="range" id="dd-opt" min="0" max="100" value="85" style="width:100%;">
-                <div style="display:flex; justify-content: space-between; font-size: 0.8rem; color: #64748b; margin-bottom: 1.5rem;">
-                  <span>Basic (0)</span><span id="dd-opt-val">85</span><span>Hyper-optimized (100)</span>
-                </div>
-
-                <label style="display:block; margin-bottom: 0.5rem; font-weight: 600;">Competitor Density</label>
-                <select id="dd-comp" class="mc-sel" style="width:100%; margin-bottom: 1.5rem;">
-                  <option value="1">Low Density (Rural/Suburbs)</option>
-                  <option value="3" selected>Medium Density (City limits)</option>
-                  <option value="5">High Density (Downtown Core)</option>
-                </select>
-
-                <div class="mc-chip warn" style="margin-top: 2rem;">
-                  Proximity Math: SoV = Opt Level / (Distance ^ (Competitor Density * 0.5))
-                </div>
-              </div>
-              <div style="flex:2;">
-                <div id="dd-chart" class="ci-chart" style="height: 350px;"></div>
-              </div>
-            </div>
-          </div>
-
-          <!-- Pipeline Revenue Calculator -->
-          <div class="panel">
-            <h3>Pipeline Revenue Calculator <span class="h-accent"></span></h3>
-            <div style="display:flex; gap: 2rem; margin-top: 1rem;">
-              <div style="flex:1;">
-                <label style="display:block; margin-bottom: 0.5rem; font-weight: 600;">Target Search Volume (Monthly)</label>
-                <input type="number" id="dd-rev-sv" value="5000" class="mc-sel" style="width:100%; margin-bottom: 1.5rem;">
-
-                <label style="display:block; margin-bottom: 0.5rem; font-weight: 600;">Average Lead Value ($)</label>
-                <input type="number" id="dd-rev-val" value="500" class="mc-sel" style="width:100%; margin-bottom: 1.5rem;">
-
-                <label style="display:block; margin-bottom: 0.5rem; font-weight: 600;">Current Share of Voice (%)</label>
-                <input type="range" id="dd-rev-csov" min="0" max="100" value="15" style="width:100%;">
-                <div style="display:flex; justify-content: space-between; font-size: 0.8rem; color: #64748b; margin-bottom: 1.5rem;">
-                  <span>0%</span><span id="dd-rev-csov-val">15%</span><span>100%</span>
-                </div>
-
-                <label style="display:block; margin-bottom: 0.5rem; font-weight: 600;">Target Share of Voice (%)</label>
-                <input type="range" id="dd-rev-tsov" min="0" max="100" value="45" style="width:100%;">
-                <div style="display:flex; justify-content: space-between; font-size: 0.8rem; color: #64748b; margin-bottom: 1.5rem;">
-                  <span>0%</span><span id="dd-rev-tsov-val">45%</span><span>100%</span>
-                </div>
-              </div>
-              <div style="flex:2;">
-                <div id="dd-rev-chart" class="ci-chart" style="height: 300px;"></div>
-                <div id="dd-rev-delta" style="text-align:center; font-size: 1.5rem; font-weight: 700; color: #10b981; margin-top: 1rem;"></div>
-              </div>
-            </div>
-          </div>
-
-          <!-- Reputation Shock Simulator -->
-          <div class="panel">
-            <h3>Reputation Shock Simulator <span class="h-accent"></span></h3>
-            <div style="display:flex; gap: 2rem; margin-top: 1rem;">
-              <div style="flex:1;">
-                <label style="display:block; margin-bottom: 0.5rem; font-weight: 600;">Current Star Rating</label>
-                <input type="range" id="dd-rep-curr" min="30" max="50" value="48" style="width:100%;">
-                <div style="display:flex; justify-content: space-between; font-size: 0.8rem; color: #64748b; margin-bottom: 1.5rem;">
-                  <span>3.0</span><span id="dd-rep-curr-val">4.8</span><span>5.0</span>
-                </div>
-
-                <label style="display:block; margin-bottom: 0.5rem; font-weight: 600;">Projected Star Rating (Post-Attack)</label>
-                <input type="range" id="dd-rep-proj" min="30" max="50" value="41" style="width:100%;">
-                <div style="display:flex; justify-content: space-between; font-size: 0.8rem; color: #64748b; margin-bottom: 1.5rem;">
-                  <span>3.0</span><span id="dd-rep-proj-val">4.1</span><span>5.0</span>
-                </div>
-
-                <div class="mc-chip alert" style="margin-top: 2rem;">
-                  Reputation Math: Map Pack CTR drops exponentially below 4.5 stars.
-                </div>
-              </div>
-              <div style="flex:2;">
-                <div id="dd-rep-chart" class="ci-chart" style="height: 350px;"></div>
-              </div>
-            </div>
-          </div>
-
-        </div>
-      </div>
-    `;
-
-    // Render interactive charts
-    if (HAS_APEX) {
-      
-      // 1. Proximity Curve
-      const renderCurve = () => {
-        const opt = parseInt($("dd-opt").value);
-        $("dd-opt-val").innerText = opt;
-        const comp = parseFloat($("dd-comp").value);
-        
-        let dataPoints = [];
-        let categories = [];
-        for (let d = 1; d <= 25; d++) {
-          let sov = (opt / Math.pow(d, comp * 0.4)).toFixed(1);
-          sov = Math.min(100, Math.max(0, sov)); // Cap 0-100
-          dataPoints.push(sov);
-          categories.push(d + "m");
-        }
-
-        if (window.ddChartInstance) {
-          window.ddChartInstance.updateSeries([{ data: dataPoints }]);
-        } else {
-          const opts = Object.assign({}, baseChartOpts, {
-            chart: { type: 'area', height: 350, toolbar: { show: false }, background: 'transparent' },
-            colors: ['#8b5cf6'],
-            stroke: { curve: 'smooth', width: 2 },
-            fill: { type: 'gradient', gradient: { shadeIntensity: 1, opacityFrom: 0.7, opacityTo: 0.1, stops: [0, 100] } },
-            series: [{ name: 'Share of Voice (%)', data: dataPoints }],
-            xaxis: { categories: categories, title: { text: 'Distance from Centroid (Miles)', style: { color: '#64748b' } } },
-            yaxis: { max: 100, title: { text: 'Share of Voice (%)', style: { color: '#64748b' } } }
-          });
-          window.ddChartInstance = new ApexCharts($("dd-chart"), opts);
-          window.ddChartInstance.render();
-        }
-      };
-
-      // 2. Revenue Calculator
-      const renderRev = () => {
-        const sv = parseInt($("dd-rev-sv").value) || 0;
-        const val = parseInt($("dd-rev-val").value) || 0;
-        const csov = parseInt($("dd-rev-csov").value);
-        const tsov = parseInt($("dd-rev-tsov").value);
-        
-        $("dd-rev-csov-val").innerText = csov + "%";
-        $("dd-rev-tsov-val").innerText = tsov + "%";
-
-        const currRev = (sv * (csov/100) * 0.10 * val).toFixed(0); // assume 10% conversion of captured clicks
-        const tarRev = (sv * (tsov/100) * 0.10 * val).toFixed(0);
-        const delta = tarRev - currRev;
-
-        $("dd-rev-delta").innerText = delta >= 0 ? `Projected Gain: +$${Number(delta).toLocaleString()}/mo` : `Projected Loss: -$${Math.abs(delta).toLocaleString()}/mo`;
-        $("dd-rev-delta").style.color = delta >= 0 ? '#10b981' : '#ef4444';
-
-        if (window.ddRevChartInstance) {
-          window.ddRevChartInstance.updateSeries([{ data: [currRev, tarRev] }]);
-        } else {
-          const opts = Object.assign({}, baseChartOpts, {
-            chart: { type: 'bar', height: 300, toolbar: { show: false }, background: 'transparent' },
-            colors: ['#38bdf8', '#10b981'],
-            plotOptions: { bar: { borderRadius: 4, distributed: true, horizontal: false } },
-            series: [{ name: 'Pipeline ($)', data: [currRev, tarRev] }],
-            xaxis: { categories: ['Current Pipeline', 'Target Pipeline'], labels: { style: { colors: '#fff' } } },
-            yaxis: { title: { text: 'Monthly Revenue ($)', style: { color: '#64748b' } } }
-          });
-          window.ddRevChartInstance = new ApexCharts($("dd-rev-chart"), opts);
-          window.ddRevChartInstance.render();
-        }
-      };
-
-      // 3. Reputation Shock
-      const renderRep = () => {
-        const curr = parseInt($("dd-rep-curr").value) / 10;
-        const proj = parseInt($("dd-rep-proj").value) / 10;
-        
-        $("dd-rep-curr-val").innerText = curr.toFixed(1);
-        $("dd-rep-proj-val").innerText = proj.toFixed(1);
-
-        let dataPoints = [];
-        let categories = [];
-        // Simulate rating drop from 5.0 to 3.0
-        for (let r = 50; r >= 30; r--) {
-          let rating = r / 10;
-          let ctr = 100;
-          if (rating < 4.5) ctr = ctr * Math.pow(0.7, (4.5 - rating)*10); // exponential decay below 4.5
-          dataPoints.push(ctr.toFixed(1));
-          categories.push(rating.toFixed(1));
-        }
-
-        // Add annotations for curr and proj
-        const annotations = {
-          xaxis: [
-            { x: curr.toFixed(1), borderColor: '#38bdf8', label: { style: { color: '#fff', background: '#38bdf8' }, text: 'Current' } },
-            { x: proj.toFixed(1), borderColor: '#ef4444', label: { style: { color: '#fff', background: '#ef4444' }, text: 'Projected' } }
-          ]
-        };
-
-        if (window.ddRepChartInstance) {
-          window.ddRepChartInstance.updateOptions({ annotations: annotations });
-          window.ddRepChartInstance.updateSeries([{ data: dataPoints }]);
-        } else {
-          const opts = Object.assign({}, baseChartOpts, {
-            chart: { type: 'area', height: 350, toolbar: { show: false }, background: 'transparent' },
-            colors: ['#fbbf24'],
-            stroke: { curve: 'stepline', width: 2 },
-            fill: { type: 'gradient', gradient: { shadeIntensity: 1, opacityFrom: 0.7, opacityTo: 0.1, stops: [0, 100] } },
-            series: [{ name: 'Relative CTR (%)', data: dataPoints }],
-            xaxis: { categories: categories, title: { text: 'Star Rating', style: { color: '#64748b' } } },
-            yaxis: { max: 100, title: { text: 'Relative CTR (%)', style: { color: '#64748b' } } },
-            annotations: annotations
-          });
-          window.ddRepChartInstance = new ApexCharts($("dd-rep-chart"), opts);
-          window.ddRepChartInstance.render();
-        }
-      };
-
-      $("dd-opt").addEventListener("input", renderCurve);
-      $("dd-comp").addEventListener("change", renderCurve);
-      $("dd-rev-sv").addEventListener("input", renderRev);
-      $("dd-rev-val").addEventListener("input", renderRev);
-      $("dd-rev-csov").addEventListener("input", renderRev);
-      $("dd-rev-tsov").addEventListener("input", renderRev);
-      $("dd-rep-curr").addEventListener("input", renderRep);
-      $("dd-rep-proj").addEventListener("input", renderRep);
-      
-      setTimeout(() => { renderCurve(); renderRev(); renderRep(); }, 100);
-    }
-  };
-
-  RENDER.dd = function(d) {
-    // DD simulator is purely client-side interactive, no data binding required
-  };
-
   /* ============================ controller ============================ */
   async function refresh() {
     if (!MC.view) return;
-    try { const d = await fetchView(MC.view); killCharts(); RENDER[MC.view](d); } catch (e) { /* keep last view */ }
+    try { const d = await fetchView(MC.view); killCharts(); RENDER[MC.view](d); MC.last = d; } catch (e) { /* keep last view */ }
   }
   window.mcSetClient = function (id) { MC.client = id; refresh(); };
   window.mcShow = function (view) {            // 'mc' | 'si' | 'ai' | null (none)

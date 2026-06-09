@@ -91,3 +91,137 @@ def test_csrf_guard_blocks_cross_site():
     f.headers = {"Sec-Fetch-Site": "same-origin"};          assert srv.Handler._csrf_ok(f) is True
     f.headers = {"Origin": "http://127.0.0.1:8787"};        assert srv.Handler._csrf_ok(f) is True
     f.headers = {};                                          assert srv.Handler._csrf_ok(f) is True  # curl/no browser
+
+
+def test_reorder_inbox_writes_sequential_order_index():
+    srv = _srv()
+    inbox = ROOT / "automations" / "zernio-publisher" / "inbox"; inbox.mkdir(parents=True, exist_ok=True)
+    f1 = inbox / "wo_ro_1.json"; f1.write_text(json.dumps({"work_order_id": "wo_ro_1", "order_index": 9}))
+    f2 = inbox / "wo_ro_2.json"; f2.write_text(json.dumps({"work_order_id": "wo_ro_2", "order_index": 9}))
+    try:
+        n = srv.reorder_inbox("zernio-publisher", ["wo_ro_2.json", "wo_ro_1.json"])
+        assert n == 2
+        assert json.loads(f2.read_text())["order_index"] == 0
+        assert json.loads(f1.read_text())["order_index"] == 1
+    finally:
+        f1.unlink(missing_ok=True); f2.unlink(missing_ok=True)
+
+
+def test_reorder_inbox_rejects_bad_inputs():
+    srv = _srv()
+    with pytest.raises(ValueError): srv.reorder_inbox("not-an-automation", ["wo_x.json"])
+    with pytest.raises(ValueError): srv.reorder_inbox("zernio-publisher", ["../evil.json"])
+    with pytest.raises(ValueError): srv.reorder_inbox("zernio-publisher", ["wo_x.txt"])
+
+
+def test_reorder_inbox_rejects_before_any_write():
+    srv = _srv()
+    inbox = ROOT / "automations" / "zernio-publisher" / "inbox"; inbox.mkdir(parents=True, exist_ok=True)
+    f1 = inbox / "wo_ro_partial.json"
+    f1.write_text(json.dumps({"work_order_id": "wo_ro_partial", "order_index": 9}))
+    try:
+        with pytest.raises(ValueError):
+            srv.reorder_inbox("zernio-publisher", ["wo_ro_partial.json", "../evil.json"])
+        assert json.loads(f1.read_text())["order_index"] == 9
+    finally:
+        f1.unlink(missing_ok=True)
+
+
+def test_wo_detail_assembles_history_and_logs():
+    srv = _srv()
+    sub = ROOT / "automations" / "zernio-publisher"
+    f = sub / "inbox" / "wo_det_1.json"; f.parent.mkdir(parents=True, exist_ok=True)
+    f.write_text(json.dumps({"work_order_id": "wo_det_1", "execution_method": "google_business_api",
+                             "client_id": "c", "workflow_id": "wf",
+                             "attachments": [{"label": "brief", "url": "https://x/y"}]}))
+    hist = sub / "history" / "runs.jsonl"; hist_before = hist.read_text() if hist.exists() else None
+    hist.parent.mkdir(parents=True, exist_ok=True)
+    with hist.open("a") as h:
+        h.write(json.dumps({"work_order_id": "wo_det_1", "ts": "2026-06-09T00:00:00+00:00",
+                            "status": "done", "task_report": {"ok": True}}) + "\n")
+    try:
+        d = srv.wo_detail("zernio-publisher", "wo_det_1.json")
+        assert d["editable"] is True and d["folder"] == "inbox"
+        assert d["wo"]["work_order_id"] == "wo_det_1"
+        assert len(d["history"]) == 1 and d["history"][0]["status"] == "done"
+        assert "done" in d["logs"] and "\"ok\": true" in d["logs"]
+        assert d["attachments"] == [{"label": "brief", "url": "https://x/y"}]
+    finally:
+        f.unlink(missing_ok=True)
+        if hist_before is not None: hist.write_text(hist_before)
+        else: hist.unlink(missing_ok=True)
+
+
+def test_wo_detail_rejects_traversal():
+    srv = _srv()
+    with pytest.raises(ValueError): srv.wo_detail("zernio-publisher", "../../etc/passwd")
+    with pytest.raises(ValueError): srv.wo_detail("not-an-automation", "wo_x.json")
+
+
+def test_save_wo_validates_and_writes_inbox_only():
+    srv = _srv()
+    inbox = ROOT / "automations" / "zernio-publisher" / "inbox"; inbox.mkdir(parents=True, exist_ok=True)
+    f = inbox / "wo_save_1.json"
+    f.write_text(json.dumps({"work_order_id": "wo_save_1", "execution_method": "google_business_api",
+                             "client_id": "c", "workflow_id": "wf"}))
+    try:
+        good = {"work_order_id": "wo_save_1", "execution_method": "google_business_api",
+                "client_id": "c", "workflow_id": "wf2"}
+        srv.save_wo("zernio-publisher", "wo_save_1.json", good)
+        assert json.loads(f.read_text())["workflow_id"] == "wf2"
+        with pytest.raises(ValueError):
+            srv.save_wo("zernio-publisher", "wo_save_1.json", {"work_order_id": "wo_save_1"})
+        with pytest.raises(ValueError):
+            srv.save_wo("zernio-publisher", "wo_save_1.json", {**good, "work_order_id": "wo_other"})
+    finally:
+        f.unlink(missing_ok=True)
+
+
+def test_save_wo_refuses_non_inbox():
+    srv = _srv()
+    done = ROOT / "automations" / "zernio-publisher" / "done"; done.mkdir(parents=True, exist_ok=True)
+    f = done / "wo_save_done.json"
+    f.write_text(json.dumps({"work_order_id": "wo_save_done", "execution_method": "google_business_api",
+                             "client_id": "c", "workflow_id": "wf"}))
+    try:
+        with pytest.raises(ValueError):
+            srv.save_wo("zernio-publisher", "wo_save_done.json",
+                        {"work_order_id": "wo_save_done", "execution_method": "google_business_api",
+                         "client_id": "c", "workflow_id": "wf"})
+    finally:
+        f.unlink(missing_ok=True)
+
+
+def test_attach_link_appends_and_validates_url():
+    srv = _srv()
+    inbox = ROOT / "automations" / "zernio-publisher" / "inbox"; inbox.mkdir(parents=True, exist_ok=True)
+    f = inbox / "wo_att_1.json"; f.write_text(json.dumps({"work_order_id": "wo_att_1"}))
+    try:
+        atts = srv.attach_link("zernio-publisher", "wo_att_1.json", "spec", "https://example/spec")
+        assert atts == [{"label": "spec", "url": "https://example/spec"}]
+        assert json.loads(f.read_text())["attachments"][0]["url"] == "https://example/spec"
+        with pytest.raises(ValueError):
+            srv.attach_link("zernio-publisher", "wo_att_1.json", "bad", "javascript:alert(1)")
+    finally:
+        f.unlink(missing_ok=True)
+
+
+def test_attach_link_rejects_protocol_relative_url():
+    srv = _srv()
+    inbox = ROOT / "automations" / "zernio-publisher" / "inbox"; inbox.mkdir(parents=True, exist_ok=True)
+    f = inbox / "wo_att_2.json"; f.write_text(json.dumps({"work_order_id": "wo_att_2"}))
+    try:
+        with pytest.raises(ValueError):
+            srv.attach_link("zernio-publisher", "wo_att_2.json", "x", "//evil.com/x")
+    finally:
+        f.unlink(missing_ok=True)
+
+
+def test_fractional_board_lists_browser_personas():
+    srv = _srv()
+    fb = srv.fractional_board()
+    ids = {i["profile_id"] for i in fb["identities"]}
+    assert "example-hvac-client-cb-agent" in ids
+    lane = next(i for i in fb["identities"] if i["profile_id"] == "example-hvac-client-cb-agent")
+    assert set(lane["columns"].keys()) == {"queued", "progress", "done", "held"}
+    assert lane["client"] == "example-hvac-client"

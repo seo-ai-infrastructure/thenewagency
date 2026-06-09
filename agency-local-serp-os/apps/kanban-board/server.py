@@ -199,6 +199,127 @@ def move_wo(automation, filename, to):
                             "reason": "manual_override via board"}) + "\n")
     return str(dst.relative_to(ROOT))
 
+COL_FOLDER = {"queued": "inbox", "progress": "working", "done": "done", "held": "failed"}
+
+def _safe_wo_path(automation, filename):
+    """Resolve a WO file by basename across the four state folders. Traversal-proof."""
+    if automation not in INBOX_DIR.values():
+        raise ValueError("unknown automation")
+    if filename != pathlib.Path(filename).name or not filename.endswith(".json"):
+        raise ValueError("bad filename")
+    sub = ROOT/"automations"/automation
+    for folder in ("inbox", "working", "done", "failed"):
+        cand = sub/folder/filename
+        if cand.exists():
+            return sub, folder, cand
+    raise FileNotFoundError(filename)
+
+def reorder_inbox(automation, order):
+    """Rewrite order_index 0..N on the named inbox WOs (advisory triage order).
+    Validates the whole list before writing so a bad filename can't leave partial state.
+    Filenames not present in the inbox are skipped (they may have moved since the client read)."""
+    if automation not in INBOX_DIR.values():
+        raise ValueError("unknown automation")
+    for filename in order:
+        if filename != pathlib.Path(filename).name or not filename.endswith(".json"):
+            raise ValueError("bad filename")
+    inbox = ROOT/"automations"/automation/"inbox"
+    written = 0
+    for i, filename in enumerate(order):
+        p = inbox/filename
+        if not p.exists():
+            continue
+        wo = json.loads(p.read_text()); wo["order_index"] = i
+        tmp = p.with_suffix(".json.tmp"); tmp.write_text(json.dumps(wo, indent=2)); tmp.replace(p)
+        written += 1
+    return written
+
+def wo_detail(automation, filename):
+    """Full detail for one WO: the JSON, its history records, derived log text, attachments.
+    Logs are derived from history (path-safe) — no arbitrary evidence-file reads in v1."""
+    sub, folder, path = _safe_wo_path(automation, filename)
+    wo = json.loads(path.read_text())
+    wid = wo.get("work_order_id", filename[:-5])
+    history = []
+    h = sub/"history"/"runs.jsonl"
+    if h.exists():
+        for line in h.read_text().splitlines():
+            try: r = json.loads(line)
+            except Exception: continue
+            if r.get("work_order_id") == wid: history.append(r)
+    chunks = []
+    for r in history:
+        c = f"[{r.get('ts','')}] {r.get('status','')}"
+        if r.get("reason"): c += f" — {r['reason']}"
+        if r.get("stage"):  c += f" (stage: {r['stage']})"
+        if r.get("task_report") is not None:
+            c += "\n" + json.dumps(r["task_report"], indent=2)
+        chunks.append(c)
+    return {"wo": wo, "folder": folder, "editable": folder == "inbox",
+            "history": history, "logs": "\n\n".join(chunks),
+            "attachments": wo.get("attachments", [])}
+
+REQUIRED_WO = ("execution_method", "client_id", "workflow_id", "work_order_id")
+
+def save_wo(automation, filename, wo):
+    """Overwrite an inbox WO. Validated, traversal-proof, atomic. Inbox-only (gated/in-flight = RO)."""
+    sub, folder, path = _safe_wo_path(automation, filename)
+    if folder != "inbox":
+        raise ValueError("only inbox work orders are editable")
+    if not isinstance(wo, dict):
+        raise ValueError("work order must be a JSON object")
+    for k in REQUIRED_WO:
+        if not wo.get(k):
+            raise ValueError(f"missing required field: {k}")
+    wid = str(wo["work_order_id"])
+    if wid != pathlib.Path(wid).name or "/" in wid or "\\" in wid:
+        raise ValueError("work_order_id must not contain path separators")
+    if wid + ".json" != filename:
+        raise ValueError("work_order_id must match the filename (rename not supported)")
+    tmp = path.with_suffix(".json.tmp"); tmp.write_text(json.dumps(wo, indent=2)); tmp.replace(path)
+    return str(path.relative_to(ROOT))
+
+def attach_link(automation, filename, label, url):
+    """Append an attachment reference {label,url} to a WO. Links only — no upload store."""
+    # attachments are a lightweight annotation — allowed on WOs in any folder, unlike save_wo (inbox-only)
+    sub, folder, path = _safe_wo_path(automation, filename)
+    url = (url or "").strip()
+    is_http = url.startswith("http://") or url.startswith("https://")
+    is_relative = url.startswith("/") and not url.startswith("//")   # repo-relative, not protocol-relative
+    if not (is_http or is_relative):
+        raise ValueError("attachment url must be http(s) or a repo-relative path")
+    wo = json.loads(path.read_text())
+    atts = wo.get("attachments") or []
+    atts.append({"label": (label or url).strip(), "url": url})
+    wo["attachments"] = atts
+    tmp = path.with_suffix(".json.tmp"); tmp.write_text(json.dumps(wo, indent=2)); tmp.replace(path)
+    return atts
+
+def fractional_board(client=None):
+    """Swimlane data: one lane per CloakBrowser persona (roster from browser/profiles.yaml),
+    with that persona's cloakbrowser work-orders bucketed into the four state columns."""
+    cols = ("queued", "progress", "done", "held")
+    identities = {}
+    for pf in sorted(ROOT.glob("clients/*/browser/profiles.yaml")):
+        c = pf.parts[pf.parts.index("clients")+1]
+        if client and c != client: continue
+        for p in (yaml.safe_load(pf.read_text()) or {}).get("profiles", []):
+            pid = p["profile_id"]
+            identities[pid] = {"profile_id": pid, "client": c, "label": pid,
+                               "paused": bool(p.get("paused")),
+                               "columns": {k: [] for k in cols}}
+    by = board_scan.grouped(ROOT)
+    for col in cols:
+        for card in by.get(col, []):
+            if card.get("system") != "cloakbrowser": continue
+            if client and card.get("client") != client: continue
+            pid = card.get("profile_id") or "?"
+            lane = identities.setdefault(pid, {"profile_id": pid, "client": card.get("client", ""),
+                       "label": pid, "paused": False, "columns": {k: [] for k in cols}})
+            lane["columns"][col].append(card)
+    return {"generated": now_iso(),
+            "identities": sorted(identities.values(), key=lambda x: x["profile_id"])}
+
 # ---------------- HTTP ----------------
 class Handler(BaseHTTPRequestHandler):
     def _guard(self):
@@ -218,9 +339,11 @@ class Handler(BaseHTTPRequestHandler):
         if origin and urllib.parse.urlparse(origin).hostname not in ("127.0.0.1", "localhost"):
             return False
         return True
-    def _send(self, code, obj, ctype="application/json"):
+    def _send(self, code, obj, ctype="application/json", extra_headers=None):
         body = obj if isinstance(obj, bytes) else json.dumps(obj).encode()
         self.send_response(code); self.send_header("Content-Type", ctype)
+        for k, v in (extra_headers or {}).items():
+            self.send_header(k, v)
         self.send_header("Content-Length", str(len(body))); self.end_headers()
         self.wfile.write(body)
     def _body(self):
@@ -236,10 +359,34 @@ class Handler(BaseHTTPRequestHandler):
         if path == "/styles.css": return self._file("styles.css", "text/css")
         if path == "/mission-control.js": return self._file("mission-control.js", "application/javascript")
         if path == "/mission-control.css": return self._file("mission-control.css", "text/css")
+        if path == "/board-common.js": return self._file("board-common.js", "application/javascript")
+        if path == "/board.js": return self._file("board.js", "application/javascript")
+        if path == "/order-modal.js": return self._file("order-modal.js", "application/javascript")
+        if path == "/fractional.js": return self._file("fractional.js", "application/javascript")
         if path == "/vendor/apexcharts.min.js":          # vendored chart lib (fixed name, no traversal)
             p = STATIC/"vendor"/"apexcharts.min.js"
             if not p.exists(): return self._send(404, {"error": "vendor asset missing"})
             return self._send(200, p.read_bytes(), "application/javascript")
+        if path == "/vendor/leaflet/leaflet.js":          # vendored map lib (fixed name, no traversal)
+            p = STATIC/"vendor"/"leaflet"/"leaflet.js"
+            if not p.exists(): return self._send(404, {"error": "vendor asset missing"})
+            return self._send(200, p.read_bytes(), "application/javascript")
+        if path == "/vendor/leaflet/leaflet.css":
+            p = STATIC/"vendor"/"leaflet"/"leaflet.css"
+            if not p.exists(): return self._send(404, {"error": "vendor asset missing"})
+            return self._send(200, p.read_bytes(), "text/css")
+        if path == "/vendor/sortable/Sortable.min.js":     # vendored drag lib (fixed name, no traversal)
+            p = STATIC/"vendor"/"sortable"/"Sortable.min.js"
+            if not p.exists(): return self._send(404, {"error": "vendor asset missing"})
+            return self._send(200, p.read_bytes(), "application/javascript")
+        if path == "/api/mc/export.csv":                  # FULL dashboard CSV (client deliverable)
+            qs = urllib.parse.parse_qs(urllib.parse.urlparse(self.path).query)
+            client = (qs.get("client") or [None])[0]
+            csv_text = mission_control.dashboard_csv(ROOT, client)
+            slug = "".join(c if c.isalnum() else "-" for c in (client or "client").lower()).strip("-") or "client"
+            fn = f"dashboard-{slug}.csv"
+            return self._send(200, ("﻿" + csv_text).encode("utf-8"), "text/csv; charset=utf-8",
+                              {"Content-Disposition": f'attachment; filename="{fn}"'})
         if path.startswith("/api/mc/"):                  # read-only dashboard projections
             qs = urllib.parse.parse_qs(urllib.parse.urlparse(self.path).query)
             client = (qs.get("client") or [None])[0]
@@ -261,6 +408,16 @@ class Handler(BaseHTTPRequestHandler):
             return self._send(200, {"generated": now_iso(),
                                     "counts": {k: len(by.get(k, [])) for k, *_ in board_scan.COLS},
                                     "columns": cols, "calendar": calendar, "clients": clients})
+        if path == "/api/fractional":
+            qs = urllib.parse.parse_qs(urllib.parse.urlparse(self.path).query)
+            return self._send(200, fractional_board((qs.get("client") or [None])[0]))
+        if path == "/api/wo":
+            qs = urllib.parse.parse_qs(urllib.parse.urlparse(self.path).query)
+            try:
+                return self._send(200, wo_detail((qs.get("automation") or [""])[0],
+                                                 (qs.get("filename") or [""])[0]))
+            except Exception as e:
+                return self._send(400, {"error": f"{type(e).__name__}: {e}"})
         if path == "/api/catalog": return self._send(200, catalog())
         if path == "/api/tasks": return self._send(200, tasks_list())
         return self._send(404, {"error": "not found"})
@@ -296,6 +453,15 @@ class Handler(BaseHTTPRequestHandler):
             if path == "/api/move":
                 rel = move_wo(b["automation"], b["filename"], b["to"])
                 return self._send(200, {"ok": True, "moved_to": rel})
+            if path == "/api/reorder":
+                n = reorder_inbox(b["automation"], b.get("order") or [])
+                return self._send(200, {"ok": True, "reordered": n})
+            if path == "/api/wo/save":
+                rel = save_wo(b["automation"], b["filename"], b["wo"])
+                return self._send(200, {"ok": True, "file": rel})
+            if path == "/api/wo/attach":
+                atts = attach_link(b["automation"], b["filename"], b.get("label", ""), b.get("url", ""))
+                return self._send(200, {"ok": True, "attachments": atts})
             return self._send(404, {"error": "not found"})
         except Exception as e:
             return self._send(400, {"error": f"{type(e).__name__}: {e}"})

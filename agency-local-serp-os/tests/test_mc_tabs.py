@@ -123,5 +123,19 @@ def test_competition_intell_demo_payload(tmp_path):
     assert any(a["issue"] == "Pricing / surprise charges" for a in ci["issue_angles"])
 
 
+def test_daily_anomalies_flags_spike_and_drop():
+    days = [{"date": f"2026-01-{i:02d}", "clicks": 10} for i in range(1, 20)]
+    days += [{"date": "2026-01-20", "clicks": 900}, {"date": "2026-01-21", "clicks": 0}]
+    an = {a["date"]: a for a in mc._daily_anomalies(days)}
+    assert an["2026-01-20"]["direction"] == "spike"
+
+
+def test_daily_trend_empty_when_no_pull(tmp_path):
+    dt = mc.daily_trend(_root(tmp_path), "c1")
+    assert dt["available"] is False and dt["days"] == [] and dt["client"] == "c1"
+    # algorithm-update markers always available even before a pull
+    assert any(m["type"] == "core" for m in dt["markers"])
+
+
 def test_competition_intell_validates_client(tmp_path):
     assert mc.competition_intell(_root(tmp_path), "../../x")["client"] == "c1"

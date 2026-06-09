@@ -393,6 +393,168 @@ def _keyword_rankings(records):
     return out
 
 
+def _pearson(xs, ys):
+    """Pearson correlation r for two equal-length numeric series (0.0 if degenerate). Stdlib only."""
+    n = len(xs)
+    if n < 2:
+        return 0.0
+    mx, my = sum(xs) / n, sum(ys) / n
+    cov = sum((x - mx) * (y - my) for x, y in zip(xs, ys))
+    vx = sum((x - mx) ** 2 for x in xs)
+    vy = sum((y - my) ** 2 for y in ys)
+    if vx <= 0 or vy <= 0:
+        return 0.0
+    return round(cov / (vx ** 0.5 * vy ** 0.5), 3)
+
+
+def _gsc_correlation(rows, cap=400):
+    """Per-query GSC metric relationships (clicks / impressions / CTR% / avg position) for the
+    correlation matrix: the raw points + a pairwise Pearson-r matrix. All real, from GSC rows."""
+    metrics = ["clicks", "impressions", "ctr", "position"]
+    pts = []
+    for r in rows[:cap]:
+        try:
+            pts.append({"clicks": float(r.get("clicks") or 0),
+                        "impressions": float(r.get("impressions") or 0),
+                        "ctr": float(r.get("ctr") or 0) * 100.0,
+                        "position": float(r.get("position") or 0)})
+        except (TypeError, ValueError):
+            continue
+    cols = {m: [p[m] for p in pts] for m in metrics}
+    rmat = {a: {b: _pearson(cols[a], cols[b]) for b in metrics} for a in metrics}
+    return {"metrics": metrics, "points": pts, "r": rmat, "n": len(pts)}
+
+
+# Public Google algorithm-update calendar (announced rollouts). Overlaid as markers on the
+# daily trend so traffic moves can be read against known updates.
+_ALGO_UPDATES = [
+    {"date": "2025-03-13", "label": "March 2025 core update", "type": "core"},
+    {"date": "2025-06-30", "label": "June 2025 core update", "type": "core"},
+    {"date": "2025-08-15", "label": "August 2025 spam update", "type": "spam"},
+    {"date": "2025-12-10", "label": "December 2025 core update", "type": "core"},
+    {"date": "2026-02-05", "label": "February 2026 Discover update", "type": "discover"},
+    {"date": "2026-03-13", "label": "March 2026 core update", "type": "core"},
+    {"date": "2026-03-26", "label": "March 2026 spam update", "type": "spam"},
+]
+
+
+def _daily_anomalies(days, z_thresh=2.0):
+    """Flag days whose clicks deviate >z_thresh standard deviations from the mean (spike/drop)."""
+    clicks = [d.get("clicks") or 0 for d in days]
+    n = len(clicks)
+    if n < 5:
+        return []
+    mean = sum(clicks) / n
+    sd = (sum((c - mean) ** 2 for c in clicks) / n) ** 0.5
+    if sd <= 0:
+        return []
+    out = []
+    for d in days:
+        z = ((d.get("clicks") or 0) - mean) / sd
+        if abs(z) >= z_thresh:
+            out.append({"date": d.get("date"), "clicks": d.get("clicks") or 0,
+                        "z": round(z, 2), "direction": "spike" if z > 0 else "drop"})
+    return out
+
+
+def daily_trend(root, client=None):
+    """Daily GSC clicks/impressions time-series (from the gsc-daily-trend collector) + the
+    algorithm-update calendar (clipped to the series range) + z-score anomaly flags. Returns
+    available=False with an empty series when no daily pull has run yet."""
+    root = pathlib.Path(root)
+    client, clients = _resolve_client(root, client)
+    p = root / "clients" / str(client) / "signals" / "gsc_daily.json"
+    doc = _load_json(p) if p.exists() else None
+    days = sorted((doc or {}).get("days") or [], key=lambda d: d.get("date", ""))
+    lo, hi = (days[0]["date"], days[-1]["date"]) if days else (None, None)
+    markers = [m for m in _ALGO_UPDATES if (lo is None or m["date"] >= lo) and (hi is None or m["date"] <= hi)]
+    return {"generated": _now().isoformat(), "client": client, "available": bool(days),
+            "site": (doc or {}).get("site"), "pulled": (doc or {}).get("pulled"),
+            "days": days, "markers": markers, "anomalies": _daily_anomalies(days),
+            "totals": {"clicks": sum(d.get("clicks") or 0 for d in days),
+                       "impressions": sum(d.get("impressions") or 0 for d in days)}}
+
+
+def geo_grid_view(root, client=None):
+    """Local map-pack geo-grid + Share of Local Voice (from the geo-grid collector). Each cell is
+    the client's local rank at that grid point; available=False until a pull has run."""
+    root = pathlib.Path(root)
+    client, clients = _resolve_client(root, client)
+    doc = _load_json(root / "clients" / str(client) / "signals" / "geo_grid.json") or {}
+    center = None
+    cstr = doc.get("center")
+    if cstr:
+        try:
+            parts = str(cstr).split(",")
+            center = {"lat": float(parts[0]), "lng": float(parts[1])}
+        except Exception:
+            center = None
+    # Normalize to a per-keyword map. New files carry {grids: {kw: {...}}}; migrate the older
+    # single-keyword shape so existing pulls keep working with the keyword dropdown.
+    grids = doc.get("grids")
+    if not grids and doc.get("keyword"):
+        grids = {doc["keyword"]: {k: doc.get(k) for k in ("keyword", "size", "step", "points", "matrix", "solv")}}
+    grids = grids or {}
+    snaps = (_load_json(root / "clients" / str(client) / "signals" / "geo_grid_history.json") or {}).get("snapshots") or []
+    for kw, grid in grids.items():
+        _enrich_geo_moves(grid)
+        grid["history"] = _geo_history_series(kw, grid, snaps, doc.get("pulled"))
+        grid["pulled"] = grid.get("pulled") or doc.get("pulled")
+    return {"generated": _now().isoformat(), "client": client, "available": bool(grids),
+            "keywords": sorted(grids), "grids": grids, "center": center,
+            "location": doc.get("location"), "pulled": doc.get("pulled")}
+
+
+def _compact_points(points):
+    return [{"row": p.get("row"), "col": p.get("col"), "rank_absolute": p.get("rank_absolute")}
+            for p in (points or [])]
+
+
+def _geo_history_series(kw, grid, snaps, doc_pulled):
+    """Ascending [{pulled, points}] for one keyword: the archived snapshots, plus the current pull
+    and the immediately-prior pull synthesized from the main file (so the date picker has baselines
+    even before the history archive accumulates)."""
+    series, seen = [], set()
+    for sn in snaps:
+        g = (sn.get("grids") or {}).get(kw)
+        p = sn.get("pulled")
+        if g and p and p not in seen:
+            series.append({"pulled": p, "points": _compact_points(g.get("points"))}); seen.add(p)
+    prev_pulled = grid.get("prev_pulled")
+    if grid.get("prev_points") and prev_pulled and prev_pulled not in seen:
+        series.append({"pulled": prev_pulled, "points": _compact_points(grid["prev_points"])}); seen.add(prev_pulled)
+    cur = grid.get("pulled") or doc_pulled
+    if cur and cur not in seen:
+        series.append({"pulled": cur, "points": _compact_points(grid.get("points"))})
+    series.sort(key=lambda s: s.get("pulled") or "")
+    return series
+
+
+def _enrich_geo_moves(grid):
+    """Tag each grid point with run-over-run movement vs the prior pull (new/lost/up/down) and a summary."""
+    prev_pts = grid.get("prev_points")
+    if not prev_pts:
+        return grid
+    prev = {(p.get("row"), p.get("col")): p.get("rank_absolute") for p in prev_pts}
+    tally = {"new": 0, "lost": 0, "up": 0, "down": 0}
+    for p in grid.get("points") or []:
+        pr, cur = prev.get((p.get("row"), p.get("col"))), p.get("rank_absolute")
+        if pr is None and cur is None:
+            mv = None
+        elif pr is None:
+            mv = {"type": "new"}; tally["new"] += 1
+        elif cur is None:
+            mv = {"type": "lost"}; tally["lost"] += 1
+        else:
+            d = pr - cur                                 # smaller rank = better
+            mv = {"type": "up" if d > 0 else "down" if d < 0 else "same", "delta": abs(d)}
+            if d > 0: tally["up"] += 1
+            elif d < 0: tally["down"] += 1
+        p["move"] = mv
+    grid["moves"] = {**tally, "since": grid.get("prev_pulled")}
+    return grid
+
+
 def search_intelligence(root, client=None):
     root = pathlib.Path(root)
     client, clients = _resolve_client(root, client)
@@ -452,6 +614,9 @@ def search_intelligence(root, client=None):
             "gsc": _perf(gsc, "impressions", "clicks", "position", gsc_conn),
             "bing": _perf(bing, "impressions", "clicks", "avg_impression_position", bing_conn)},
         "striking_distance": _striking_distance(gsc),
+        "gsc_correlation": _gsc_correlation(gsc),
+        "daily_trend": daily_trend(root, client),
+        "geo_grid": geo_grid_view(root, client),
         "keyword_rankings": kr,
     }
 
@@ -533,6 +698,47 @@ def _threat_intel(root, client, records):
             "ranking_threats": ranking_threats}
 
 
+def ai_visibility(root, client=None):
+    """Multi-engine AI brand visibility: are we recommended when a real user asks an AI engine?
+    Folds the ChatGPT/Claude probe (ai-visibility automation) together with Google AI Mode
+    citations from the live DataForSEO tracker into one per-engine + per-keyword view."""
+    root = pathlib.Path(root)
+    client, clients = _resolve_client(root, client)
+    doc = _load_json(root / "clients" / str(client) / "signals" / "ai_visibility.json")
+    records = latest_tracker_records(root)
+    g = defaultdict(lambda: {"mentioned": False})
+    for r in records:
+        if r.get("query_class") == "ai_mode" or r.get("feature_type") == "ai_mode_response":
+            kw = r.get("keyword")
+            if r.get("client_cited") or r.get("ownership_class") == "influenced":
+                g[kw]["mentioned"] = True
+            else:
+                g[kw].setdefault("mentioned", False)
+    google_rows = [{"keyword": k, "engine": "google_ai", "engine_label": "Google AI",
+                    "mentioned": v["mentioned"], "snippet": None} for k, v in g.items()]
+    rows = list((doc or {}).get("results") or []) + google_rows
+    engs = {}
+    for r in rows:
+        e = engs.setdefault(r["engine"], {"engine": r["engine"], "label": r.get("engine_label", r["engine"]),
+                                          "asked": 0, "mentions": 0})
+        e["asked"] += 1
+        e["mentions"] += 1 if r.get("mentioned") else 0
+    for e in engs.values():
+        e["rate"] = round(e["mentions"] / e["asked"], 3) if e["asked"] else 0.0
+    eng_keys = sorted(engs)
+    matrix = []
+    for kw in sorted({r["keyword"] for r in rows}):
+        cells = {r["engine"]: {"mentioned": r.get("mentioned"), "snippet": r.get("snippet")}
+                 for r in rows if r["keyword"] == kw}
+        matrix.append({"keyword": kw, "cells": cells})
+    tot_a = sum(e["asked"] for e in engs.values())
+    tot_m = sum(e["mentions"] for e in engs.values())
+    return {"generated": _now().isoformat(), "client": client, "available": bool(rows),
+            "pulled": (doc or {}).get("pulled"),
+            "engines": [engs[k] for k in eng_keys], "engine_keys": eng_keys, "matrix": matrix,
+            "overall_rate": round(tot_m / tot_a, 3) if tot_a else 0.0}
+
+
 def ai_search(root, client=None):
     root = pathlib.Path(root)
     client, clients = _resolve_client(root, client)
@@ -563,6 +769,7 @@ def ai_search(root, client=None):
         "queries": queries,
         "cited_competitors_leaderboard": [{"domain": d, "count": c} for d, c in comp.most_common(10)],
         "cited_sources_leaderboard": [{"domain": d, "count": c} for d, c in src.most_common(10)],
+        "ai_visibility": ai_visibility(root, client),
         "threat_intel": _threat_intel(root, client, records),
     }
 
@@ -808,6 +1015,115 @@ def _analytics(root, records):
             "opportunities": opps[:8], "trend": trend}
 
 
+# ---------------- intelligence layer (health score + briefing) ----------------
+def _grade(score):
+    return ("A" if score >= 85 else "B" if score >= 70 else "C" if score >= 55
+            else "D" if score >= 40 else "F")
+
+
+def health_score(root, client=None):
+    """North-star 0-100 health composed from four REAL pillars, each scored from live data:
+      SEO   (30%) — SERP-takeover goal attainment + avg appearances per page
+      GEO   (25%) — AI-surface citation share (AI Overviews + AI Mode)
+      AEO   (20%) — Firecrawl crawl win-rate + markdown purity + entity clarity
+      Local (25%) — share of tracked keywords where the client holds a local pack/finder slot
+    AEO is dropped from the weighting (not zeroed) when no crawl has run, so the score isn't
+    unfairly penalized for missing data."""
+    root = pathlib.Path(root)
+    client, clients = _resolve_client(root, client)
+    records = latest_tracker_records(root)
+    kws = {r["keyword"] for r in records if r.get("keyword")}
+    s = sat.summary(records) if records else {"pct_meeting_goal": 0.0, "avg_presence": 0.0,
+                                              "n_serps": 0, "n_meeting_goal": 0}
+    ai = defaultdict(list)
+    for r in records:
+        if r.get("feature_type") in ("ai_overview", "ai_mode_response"):
+            ai[(r["keyword"], r.get("location_name"), r.get("os"), r.get("query_class"))].append(r)
+    geo_share = (sum(1 for v in ai.values()
+                     if any(x.get("client_cited") or x.get("ownership_class") == "influenced" for x in v))
+                 / len(ai)) if ai else 0.0
+    crawl = _latest_crawl(root, client) or {}
+    ev, cr = crawl.get("evaluation") or {}, crawl.get("crawlability") or {}
+    aeo_parts = [p for p in (ev.get("win_rate"),
+                             (cr.get("markdown_purity") or {}).get("purity"),
+                             (cr.get("entity_clarity") or {}).get("clarity")) if isinstance(p, (int, float))]
+    local_kw = {r["keyword"] for r in records
+                if r.get("feature_type") in ("local_pack", "local_finder")
+                and r.get("ownership_class") in ("owned", "controlled")}
+    local_share = (len(local_kw) / len(kws)) if kws else 0.0
+
+    seo = round(100 * (0.6 * s["pct_meeting_goal"] + 0.4 * min(1.0, (s["avg_presence"] or 0) / 4.0)))
+    aeo = round(100 * sum(aeo_parts) / len(aeo_parts)) if aeo_parts else None
+    comps = [
+        {"key": "seo", "label": "SEO — SERP takeover", "score": seo, "weight": 0.30,
+         "detail": f"{s['n_meeting_goal']}/{s['n_serps']} SERPs at goal · avg {s['avg_presence']} appearances/page"},
+        {"key": "geo", "label": "GEO / AIO — AI citations", "score": round(100 * geo_share), "weight": 0.25,
+         "detail": f"cited in {round(geo_share * 100)}% of tracked AI surfaces"},
+        {"key": "aeo", "label": "AEO — answer readiness", "score": aeo, "weight": 0.20,
+         "detail": (f"win-rate {round((ev.get('win_rate') or 0) * 100)}% · purity "
+                    f"{round(((cr.get('markdown_purity') or {}).get('purity') or 0) * 100)}%") if aeo_parts
+                   else "no crawl yet — run ai-crawl-simulator"},
+        {"key": "local", "label": "Local — map presence", "score": round(100 * local_share), "weight": 0.25,
+         "detail": f"holds a local pack on {len(local_kw)}/{len(kws)} keywords"},
+    ]
+    avail = [c for c in comps if c["score"] is not None]
+    wsum = sum(c["weight"] for c in avail) or 1
+    overall = round(sum(c["score"] * c["weight"] for c in avail) / wsum)
+    return {"generated": _now().isoformat(), "client": client, "clients": clients,
+            "overall": overall, "grade": _grade(overall), "components": comps}
+
+
+def insights(root, client=None):
+    """Always-on intelligence briefing: the notable facts pulled straight from live data (no LLM
+    required, so it never fails or costs anything). Each item is categorized + severity-tagged."""
+    root = pathlib.Path(root)
+    client, clients = _resolve_client(root, client)
+    records = latest_tracker_records(root)
+    out = []
+    if records:
+        s = sat.summary(records)
+        an = _analytics(root, records)
+        ti = _threat_intel(root, client, records)
+        div = _divergence_matrix(records, _client_domain(root, client) or "houseacrepair.com")
+        lead = an["takeover_leaderboard"][0] if an["takeover_leaderboard"] else None
+        out.append({"category": "Takeover", "severity": "info",
+                    "text": f"{s['n_meeting_goal']}/{s['n_serps']} real SERPs meet the {s['goal_min']}+ goal "
+                            f"(avg {s['avg_presence']} appearances/page)."
+                            + (f" Strongest: “{lead['keyword']}” at {lead['appearances']}." if lead else "")})
+        you = next((d for d in div if d["is_client"]), None)
+        if you:
+            tip = " Press the AI-citation lead while closing the map-pack gap." if you["quadrant"] == "AI upstart" else ""
+            out.append({"category": "GEO/AIO", "severity": "good" if you["ai_dominance"] >= 0.5 else "info",
+                        "text": f"You're an “{you['quadrant']}” — AI dominance {you['ai_dominance']}, "
+                                f"map dominance {you['map_dominance']}.{tip}"})
+        if ti["ranking_threats"]:
+            t = ti["ranking_threats"][0]
+            out.append({"category": "Threat", "severity": "warn",
+                        "text": f"{t['domain']} holds {t['slots']} SERP slots across {t['keywords']} keywords "
+                                f"({t['threat_level']}) — the apex rival to displace."})
+        if ti["review_sentiment"] and str(ti["review_sentiment_source"]).startswith("live"):
+            tot = sum(r.get("negatives") or 0 for r in ti["review_sentiment"])
+            top = ti["review_sentiment"][0]
+            out.append({"category": "Reputation", "severity": "good",
+                        "text": f"{tot} competitor negatives mined ({top['competitor']} leads with {top['negatives']}) "
+                                f"— ready-made marketing angles."})
+        if an["opportunities"]:
+            o = an["opportunities"][0]
+            claim = ", ".join(o["unclaimed"][:3]) or "more features"
+            out.append({"category": "Opportunity", "severity": "warn",
+                        "text": f"Biggest gap: “{o['keyword']}” ({o['os']}) is {o['gap']} short of goal "
+                                f"— claim {claim}."})
+        crawl = _latest_crawl(root, client) or {}
+        ev = crawl.get("evaluation") or {}
+        if ev.get("win_rate") is not None:
+            out.append({"category": "AEO", "severity": "good" if ev["win_rate"] >= 0.5 else "warn",
+                        "text": f"AEO crawl win-rate {round(ev['win_rate'] * 100)}% vs competitors on entity coverage."})
+    else:
+        out.append({"category": "Setup", "severity": "warn",
+                    "text": "No tracker data yet — run the local-mobile-serp-feature-tracker to populate the briefing."})
+    return {"generated": _now().isoformat(), "client": client, "clients": clients, "items": out}
+
+
 # ---------------- assembly ----------------
 def _resolve_client(root, client):
     """Resolve a (possibly crafted/unknown) client to a real one — never used to build paths blindly."""
@@ -842,10 +1158,154 @@ def command_center(root, client=None):
         "ownership_matrix": ownership_matrix(records),
         "source_cards": source_cards(client, signals, sources, prev_signals),
         "action_skyline": action_skyline(saturation, signals),
+        "health": health_score(root, client),
+        "briefing": insights(root, client),
         "analytics": _analytics(root, records),
         "freshness": freshness(root, sig_date, last_run),
         "cost": cost_block(root, last_run),
     }
+
+
+def dashboard_csv(root, client=None):
+    """FULL multi-section CSV of the entire dashboard for one client — emailable to clients.
+
+    One labeled '## Section' block per dashboard panel, assembled from the exact same projections
+    the UI renders (command center + search intelligence + AI search + AEO + competition). No
+    network, no writes. Excel-friendly (a BOM is added by the server response)."""
+    import io, csv
+    root = pathlib.Path(root)
+    client, _ = _resolve_client(root, client)
+    cc = command_center(root, client)
+    si = search_intelligence(root, client)
+    ai = ai_search(root, client)
+    ae = aeo(root, client)
+    comp = competition_intell(root, client)
+
+    buf = io.StringIO()
+    w = csv.writer(buf, lineterminator="\r\n")
+
+    def section(title, headers=None, rows=None):
+        w.writerow(["## " + title])
+        if headers:
+            w.writerow(headers)
+        for r in (rows or []):
+            w.writerow(["" if c is None else c for c in r])
+        w.writerow([])
+
+    # ---- Command Center ----
+    h, fr, co = cc.get("health") or {}, cc.get("freshness") or {}, cc.get("cost") or {}
+    section("Report", ["Field", "Value"], [
+        ["Client", client], ["Generated (UTC)", cc.get("generated")],
+        ["Health score", f"{h.get('overall')} ({h.get('grade')})"],
+        ["Signals date", fr.get("signals_date")], ["Signals age (days)", fr.get("signals_age_days")],
+        ["Tracker run", fr.get("tracker_run_id")], ["Tracker finished", fr.get("tracker_finished_at")],
+        ["Last run cost", co.get("last_run_cost")], ["Last run calls", co.get("n_calls")]])
+    section("Health score components", ["Pillar", "Score", "Weight", "Detail"],
+            [[c.get("label"), c.get("score"), c.get("weight"), c.get("detail")] for c in h.get("components", [])])
+
+    sb = cc.get("saturation") or {}
+    section("SERP saturation — summary", ["Metric", "Value"], [
+        ["Goal (min presence)", sb.get("goal_min")], ["Tracked SERPs", sb.get("n_serps")],
+        ["SERPs meeting goal", sb.get("n_meeting_goal")], ["% meeting goal", sb.get("pct_meeting_goal")],
+        ["Avg presence per SERP", sb.get("avg_presence")]])
+    section("SERP saturation — by lane", ["Lane", "SERPs", "Meeting goal", "% meeting goal", "Avg presence"],
+            [[ln, v.get("n_serps"), v.get("n_meeting_goal"), v.get("pct_meeting_goal"), v.get("avg_presence")]
+             for ln, v in (sb.get("by_lane") or {}).items()])
+
+    om = cc.get("ownership_matrix") or {}
+    feats = om.get("features") or []
+    section("Feature ownership — keyword × feature", ["Keyword", "Location", "Distinct features held"] + feats,
+            [[r.get("keyword"), r.get("location"), r.get("distinct_features_present")]
+             + [(r.get("cells") or {}).get(f, "") for f in feats] for r in om.get("rows", [])])
+
+    an = cc.get("analytics") or {}
+    section("Takeover leaderboard", ["Keyword", "Appearances", "Meets goal", "Goal min", "Lead value", "Features held"],
+            [[r.get("keyword"), r.get("appearances"), "yes" if r.get("meets_goal") else "no", r.get("goal_min"),
+              r.get("lead_value"), "; ".join(r.get("features") or [])] for r in an.get("takeover_leaderboard", [])])
+    section("SERP-feature share of voice",
+            ["Feature", "Client", "Competitor", "Aggregator", "Unmatched", "Total", "Client share"],
+            [[b.get("feature"), b.get("client"), b.get("competitor"), b.get("aggregator"), b.get("unmatched"),
+              b.get("total"), b.get("client_share")] for b in an.get("feature_sov", [])])
+    section("Top opportunities", ["Keyword", "OS", "Gap to goal", "Appearances", "Lead value", "Unclaimed features", "Score"],
+            [[o.get("keyword"), o.get("os"), o.get("gap"), o.get("appearances"), o.get("lead_value"),
+              "; ".join(o.get("unclaimed") or []), o.get("score")] for o in an.get("opportunities", [])])
+    section("Cross-source action skyline", ["Source", "Severity", "Title", "Detail", "Metric"],
+            [[i.get("source"), i.get("severity"), i.get("title"), i.get("detail"), i.get("metric")]
+             for i in cc.get("action_skyline", [])])
+    section("Connected sources", ["Source", "Status", "Headline", "Value", "Delta", "Other metrics"],
+            [[c.get("label"), c.get("status"), (c.get("headline") or {}).get("label"),
+              (c.get("headline") or {}).get("value"), ((c.get("headline") or {}).get("delta") or {}).get("abs"),
+              "; ".join(f"{m.get('label')}: {m.get('value')}" for m in (c.get("metrics") or []))]
+             for c in cc.get("source_cards", [])])
+    section("Intelligence briefing", ["Category", "Severity", "Insight"],
+            [[i.get("category"), i.get("severity"), i.get("text")] for i in (cc.get("briefing") or {}).get("items", [])])
+
+    # ---- Search Intelligence ----
+    sp = si.get("search_performance") or {}
+    section("Search performance — totals", ["Source", "Clicks", "Impressions", "CTR", "Avg position", "Queries"],
+            [[lbl, (((sp.get(k) or {}).get("totals")) or {}).get("clicks"),
+              (((sp.get(k) or {}).get("totals")) or {}).get("impressions"),
+              (((sp.get(k) or {}).get("totals")) or {}).get("ctr"),
+              (((sp.get(k) or {}).get("totals")) or {}).get("avg_position"),
+              (((sp.get(k) or {}).get("totals")) or {}).get("queries")]
+             for k, lbl in (("gsc", "Google Search Console"), ("bing", "Bing"))])
+    section("Striking distance (positions 5–15)", ["Query", "Position", "Impressions", "Clicks"],
+            [[r.get("query"), r.get("position"), r.get("impressions"), r.get("clicks")]
+             for r in si.get("striking_distance", [])])
+    kr = si.get("keyword_rankings") or {}
+    for lane, lbl in (("local_finder", "Local-finder rankings"), ("organic_mobile", "Organic-mobile rankings")):
+        section(lbl, ["Keyword", "Location", "OS", "Lead value", "Present", "Best rank", "Best competitor rank", "Features held"],
+                [[r.get("keyword"), r.get("location"), r.get("os"), r.get("lead_value"),
+                  "yes" if r.get("present") else "no", r.get("best_rank"), r.get("best_competitor_rank"),
+                  "; ".join(r.get("features_held") or [])] for r in kr.get(lane, [])])
+
+    # ---- Local geo-grid ----
+    grids = (si.get("geo_grid") or {}).get("grids") or {}
+    section("Local geo-grid — SoLV by keyword",
+            ["Keyword", "SoLV", "Ranked points", "Total points", "Top-3 points", "Avg rank", "Pulled"],
+            [[kw, (g.get("solv") or {}).get("solv"), (g.get("solv") or {}).get("points_ranked"),
+              (g.get("solv") or {}).get("points_total"), (g.get("solv") or {}).get("top3_points"),
+              (g.get("solv") or {}).get("avg_rank"), g.get("pulled")] for kw, g in grids.items()])
+    section("Local geo-grid — grid points", ["Keyword", "Row", "Col", "Lat", "Lng", "Rank", "Move vs prev"],
+            [[kw, p.get("row"), p.get("col"), p.get("lat"), p.get("lng"), p.get("rank_absolute"),
+              (p.get("move") or {}).get("type")]
+             for kw, g in grids.items() for p in (g.get("points") or [])])
+
+    # ---- AI search ----
+    section("AI search — citation summary", ["Metric", "Value"],
+            [["AI queries tracked", ai.get("n_queries")], ["Queries citing you", ai.get("n_cited")],
+             ["Citation share", ai.get("citation_share")]])
+    section("AI search — queries", ["Keyword", "Location", "OS", "Lane", "You cited", "Cited sources", "Cited competitors"],
+            [[q.get("keyword"), q.get("location"), q.get("os"), q.get("query_class"),
+              "yes" if q.get("client_cited") else "no", "; ".join(q.get("cited_sources") or []),
+              "; ".join(q.get("cited_competitors") or [])] for q in ai.get("queries", [])])
+    section("AI engine visibility", ["Engine", "Asked", "Mentions", "Mention rate"],
+            [[e.get("label"), e.get("asked"), e.get("mentions"), e.get("rate")]
+             for e in (ai.get("ai_visibility") or {}).get("engines", [])])
+    section("AI — cited competitors", ["Domain", "Citations"],
+            [[c.get("domain"), c.get("count")] for c in ai.get("cited_competitors_leaderboard", [])])
+
+    # ---- AEO ----
+    cq = ae.get("conquest_queue") or {}
+    section("AEO — conquest queue", ["Kind", "Area", "Subsystem", "Gap", "Suggested action", "Note"],
+            [[x.get("kind"), x.get("area"), x.get("subsystem"), x.get("gap"),
+              x.get("suggested_action"), x.get("note")]
+             for x in (cq.get("citation") or []) + (cq.get("aggregator") or [])])
+
+    # ---- Competition ----
+    section("Competition — competitors",
+            ["Name", "Profile reviews", "Rating", "Sample 365d", "Velocity share %", "Est jobs (low)",
+             "Est jobs (high)", "Revenue $M (low)", "Revenue $M (high)", "Negative reviews"],
+            [[c.get("name"), c.get("profile_reviews"), c.get("rating"), c.get("sample_reviews_365"),
+              c.get("review_velocity_share"), c.get("estimated_jobs_low"), c.get("estimated_jobs_high"),
+              c.get("revenue_low_m"), c.get("revenue_high_m"), c.get("negative_reviews")]
+             for c in comp.get("competitors", [])])
+    section("Competition — issue angles", ["Issue", "Severity", "Marketing angle", "Signal"],
+            [[a.get("issue"), a.get("severity"), a.get("angle"), a.get("signal")] for a in comp.get("issue_angles", [])])
+    section("Competition — benchmarks", ["Label", "Value"],
+            [[b.get("label"), b.get("value")] for b in comp.get("benchmarks", [])])
+
+    return buf.getvalue()
 
 
 def _bare(d):
