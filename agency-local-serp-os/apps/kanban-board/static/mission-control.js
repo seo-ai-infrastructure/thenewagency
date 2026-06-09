@@ -289,6 +289,11 @@
           <div class="panel"><h3>Keyword rankings vs competitors <span class="h-accent"></span></h3><div id="si-ranks"></div></div>
         </div>
         <div class="panel" style="margin-top:13px">
+          <h3>Daily performance trends <span style="font-weight:400;color:var(--dim);font-size:11px;" id="si-trend-meta"></span> <span class="h-accent"></span></h3>
+          <div class="sub" style="margin-bottom:6px">Daily GSC clicks &amp; impressions with Google algorithm-update markers and z-score anomaly flags.</div>
+          <div id="si-trend" style="min-height:320px"></div>
+        </div>
+        <div class="panel" style="margin-top:13px">
           <h3>GSC metric correlation matrix <span class="h-accent"></span></h3>
           <div class="sub" style="margin-bottom:8px">How your GSC metrics relate across queries — diagonal = each metric's distribution, off-diagonal = scatter with Pearson r.</div>
           <div class="corr-legend" id="si-corr-legend"></div>
@@ -331,8 +336,42 @@
        fmt(r.best_rank), fmt(r.best_competitor_rank), esc((r.features_held || []).join(", ") || "—")]));
     $("si-ranks").innerHTML = `<div class="sub-h">Local Finder</div>${rk(kr.local_finder)}
       <div class="sub-h">Organic Mobile</div>${rk(kr.organic_mobile)}`;
+    renderDailyTrend(d.daily_trend);
     renderCorrelation(d.gsc_correlation);
   };
+  function renderDailyTrend(dt) {
+    const el = $("si-trend"), meta = $("si-trend-meta");
+    if (!el) return;
+    if (!dt || !dt.available || !(dt.days || []).length) {
+      el.innerHTML = `<div class="mc-empty">No daily GSC pull yet — run <code>automations/gsc-daily-trend</code> to populate this.</div>`;
+      if (meta) meta.textContent = ""; return;
+    }
+    const days = dt.days;
+    if (!HAS_APEX()) { el.innerHTML = `<div class="mc-empty">${days.length} days loaded.</div>`; return; }
+    const cats = days.map(d => d.date);
+    const updColor = t => t === "spam" ? "#a78bfa" : t === "discover" ? "#34d399" : "#f59e0b";
+    const xann = (dt.markers || []).map(m => ({ x: m.date, borderColor: updColor(m.type), strokeDashArray: 4,
+      label: { text: m.label, orientation: "horizontal", style: { color: "#fff", background: updColor(m.type), fontSize: "8px" } } }));
+    const pann = (dt.anomalies || []).map(a => ({ x: a.date, y: a.clicks,
+      marker: { size: 5, fillColor: a.direction === "drop" ? "#f87171" : "#34d399", strokeColor: "#fff" },
+      label: { text: (a.direction === "drop" ? "▼" : "▲"), style: { fontSize: "9px", color: "#fff", background: a.direction === "drop" ? "#f87171" : "#34d399" } } }));
+    const ch = new ApexCharts(el, {
+      chart: { type: "line", height: 320, background: "transparent", toolbar: { show: false } },
+      theme: { mode: "dark" },
+      series: [{ name: "Clicks", type: "area", data: days.map(d => d.clicks || 0) },
+               { name: "Impressions", type: "line", data: days.map(d => d.impressions || 0) }],
+      colors: ["#38bdf8", "#34d399"], stroke: { width: [2, 1.5], curve: "smooth" },
+      fill: { type: ["gradient", "solid"], gradient: { opacityFrom: 0.4, opacityTo: 0.05 } },
+      dataLabels: { enabled: false },
+      xaxis: { categories: cats, tickAmount: 14, labels: { style: { colors: "#7d8a9a", fontSize: "9px" }, rotate: -40, hideOverlappingLabels: true } },
+      yaxis: [{ seriesName: "Clicks", title: { text: "Clicks", style: { color: "#7d8a9a" } }, labels: { style: { colors: "#7d8a9a" } } },
+              { seriesName: "Impressions", opposite: true, title: { text: "Impressions", style: { color: "#7d8a9a" } }, labels: { style: { colors: "#7d8a9a" } } }],
+      grid: { borderColor: "#222c39" }, legend: { labels: { colors: "#7d8a9a" } },
+      annotations: { xaxis: xann, points: pann }, tooltip: { theme: "dark", shared: true }
+    });
+    ch.render(); MC.charts.si_trend = ch;
+    if (meta) meta.textContent = `${days.length} days · ${dt.anomalies.length} anomalies · ${(dt.markers || []).length} algorithm updates`;
+  }
   function _hist(vals, n) {
     if (!vals.length) return new Array(n).fill(0);
     const mn = Math.min(...vals), mx = Math.max(...vals), w = (mx - mn) / n || 1;

@@ -425,6 +425,56 @@ def _gsc_correlation(rows, cap=400):
     return {"metrics": metrics, "points": pts, "r": rmat, "n": len(pts)}
 
 
+# Public Google algorithm-update calendar (announced rollouts). Overlaid as markers on the
+# daily trend so traffic moves can be read against known updates.
+_ALGO_UPDATES = [
+    {"date": "2025-03-13", "label": "March 2025 core update", "type": "core"},
+    {"date": "2025-06-30", "label": "June 2025 core update", "type": "core"},
+    {"date": "2025-08-15", "label": "August 2025 spam update", "type": "spam"},
+    {"date": "2025-12-10", "label": "December 2025 core update", "type": "core"},
+    {"date": "2026-02-05", "label": "February 2026 Discover update", "type": "discover"},
+    {"date": "2026-03-13", "label": "March 2026 core update", "type": "core"},
+    {"date": "2026-03-26", "label": "March 2026 spam update", "type": "spam"},
+]
+
+
+def _daily_anomalies(days, z_thresh=2.0):
+    """Flag days whose clicks deviate >z_thresh standard deviations from the mean (spike/drop)."""
+    clicks = [d.get("clicks") or 0 for d in days]
+    n = len(clicks)
+    if n < 5:
+        return []
+    mean = sum(clicks) / n
+    sd = (sum((c - mean) ** 2 for c in clicks) / n) ** 0.5
+    if sd <= 0:
+        return []
+    out = []
+    for d in days:
+        z = ((d.get("clicks") or 0) - mean) / sd
+        if abs(z) >= z_thresh:
+            out.append({"date": d.get("date"), "clicks": d.get("clicks") or 0,
+                        "z": round(z, 2), "direction": "spike" if z > 0 else "drop"})
+    return out
+
+
+def daily_trend(root, client=None):
+    """Daily GSC clicks/impressions time-series (from the gsc-daily-trend collector) + the
+    algorithm-update calendar (clipped to the series range) + z-score anomaly flags. Returns
+    available=False with an empty series when no daily pull has run yet."""
+    root = pathlib.Path(root)
+    client, clients = _resolve_client(root, client)
+    p = root / "clients" / str(client) / "signals" / "gsc_daily.json"
+    doc = _load_json(p) if p.exists() else None
+    days = sorted((doc or {}).get("days") or [], key=lambda d: d.get("date", ""))
+    lo, hi = (days[0]["date"], days[-1]["date"]) if days else (None, None)
+    markers = [m for m in _ALGO_UPDATES if (lo is None or m["date"] >= lo) and (hi is None or m["date"] <= hi)]
+    return {"generated": _now().isoformat(), "client": client, "available": bool(days),
+            "site": (doc or {}).get("site"), "pulled": (doc or {}).get("pulled"),
+            "days": days, "markers": markers, "anomalies": _daily_anomalies(days),
+            "totals": {"clicks": sum(d.get("clicks") or 0 for d in days),
+                       "impressions": sum(d.get("impressions") or 0 for d in days)}}
+
+
 def search_intelligence(root, client=None):
     root = pathlib.Path(root)
     client, clients = _resolve_client(root, client)
@@ -485,6 +535,7 @@ def search_intelligence(root, client=None):
             "bing": _perf(bing, "impressions", "clicks", "avg_impression_position", bing_conn)},
         "striking_distance": _striking_distance(gsc),
         "gsc_correlation": _gsc_correlation(gsc),
+        "daily_trend": daily_trend(root, client),
         "keyword_rankings": kr,
     }
 
