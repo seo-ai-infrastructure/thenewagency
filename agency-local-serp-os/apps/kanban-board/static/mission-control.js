@@ -65,6 +65,13 @@
           <span class="mc-spacer"></span>
           <span id="mc-fresh" class="mc-chip">—</span><span id="mc-cost" class="mc-chip">—</span>
         </div>
+        <div class="mc-health-band">
+          <div class="panel hs-panel"><h3>Search health score <span class="h-accent"></span></h3>
+            <div class="hs-wrap"><div class="hs-ring" id="mc-hs-ring"></div>
+              <div class="hs-comps" id="mc-hs-comps"></div></div></div>
+          <div class="panel"><h3>Intelligence briefing <span style="font-weight:400;color:var(--dim);font-size:11px;">— live, from your data</span> <span class="h-accent"></span></h3>
+            <div id="mc-briefing" class="briefing"></div></div>
+        </div>
         <div class="mc-hero">
           <div class="panel"><h3>SERP Saturation — multi-presence goal <span class="h-accent"></span></h3>
             <div class="mc-gaugewrap"><div id="mc-gauge" style="width:150px;height:150px"></div>
@@ -105,6 +112,33 @@
     const c = d.cost || {}, cc = $("mc-cost");
     cc.textContent = c.circuit_open ? "DataForSEO circuit OPEN" : `last run $${fmt(c.last_run_cost)}`;
     cc.className = "mc-chip " + (c.circuit_open ? "bad" : "");
+
+    // ---- Search health score + intelligence briefing ----
+    const h = d.health || {}, hcolor = v => v >= 70 ? "#34d399" : v >= 40 ? "#fbbf24" : "#f87171";
+    const ring = $("mc-hs-ring");
+    if (ring) {
+      if (HAS_APEX() && h.overall != null) {
+        const ch = new ApexCharts(ring, {
+          chart: { type: "radialBar", height: 190, sparkline: { enabled: true } },
+          series: [h.overall], colors: [hcolor(h.overall)],
+          plotOptions: { radialBar: { hollow: { size: "56%" }, track: { background: "#1b2531" },
+            dataLabels: { name: { offsetY: 22, color: "#7d8a9a", fontSize: "12px", formatter: () => "GRADE " + (h.grade || "—") },
+              value: { offsetY: -12, color: "#e6edf3", fontSize: "34px", fontWeight: 700, formatter: v => Math.round(v) } } } }
+        });
+        ch.render(); MC.charts.mc_hs_ring = ch;
+      } else { ring.innerHTML = `<div style="font-size:40px;font-weight:700;text-align:center;padding-top:60px">${fmt(h.overall)}<div style="font-size:12px;color:var(--dim)">${esc(h.grade || "")}</div></div>`; }
+    }
+    $("mc-hs-comps").innerHTML = (h.components || []).map(cp => {
+      const sc = cp.score, w = sc == null ? 0 : sc;
+      return `<div class="hs-comp"><div class="hs-c-top"><span>${esc(cp.label)}</span><b style="color:${cp.score == null ? "var(--dim)" : hcolor(sc)}">${sc == null ? "n/a" : sc}</b></div>
+        <div class="hs-bar"><span style="width:${w}%;background:${hcolor(w)}"></span></div>
+        <div class="hs-c-detail">${esc(cp.detail)}</div></div>`;
+    }).join("");
+    const sevPill = { good: "ok", warn: "warn", info: "" };
+    $("mc-briefing").innerHTML = ((d.briefing || {}).items || []).map(it =>
+      `<div class="brief-item brief-${esc(it.severity)}"><span class="brief-cat">${esc(it.category)}</span>
+        <span class="brief-text">${esc(it.text)}</span></div>`).join("")
+      || `<div class="mc-empty">No briefing yet.</div>`;
 
     const s = d.saturation || {}, pct = Math.round((s.pct_meeting_goal || 0) * 100);
     $("mc-goal-big").innerHTML = `${fmt(s.n_meeting_goal)}<small>/${fmt(s.n_serps)} SERPs</small>`;

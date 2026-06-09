@@ -841,6 +841,115 @@ def _analytics(root, records):
             "opportunities": opps[:8], "trend": trend}
 
 
+# ---------------- intelligence layer (health score + briefing) ----------------
+def _grade(score):
+    return ("A" if score >= 85 else "B" if score >= 70 else "C" if score >= 55
+            else "D" if score >= 40 else "F")
+
+
+def health_score(root, client=None):
+    """North-star 0-100 health composed from four REAL pillars, each scored from live data:
+      SEO   (30%) — SERP-takeover goal attainment + avg appearances per page
+      GEO   (25%) — AI-surface citation share (AI Overviews + AI Mode)
+      AEO   (20%) — Firecrawl crawl win-rate + markdown purity + entity clarity
+      Local (25%) — share of tracked keywords where the client holds a local pack/finder slot
+    AEO is dropped from the weighting (not zeroed) when no crawl has run, so the score isn't
+    unfairly penalized for missing data."""
+    root = pathlib.Path(root)
+    client, clients = _resolve_client(root, client)
+    records = latest_tracker_records(root)
+    kws = {r["keyword"] for r in records if r.get("keyword")}
+    s = sat.summary(records) if records else {"pct_meeting_goal": 0.0, "avg_presence": 0.0,
+                                              "n_serps": 0, "n_meeting_goal": 0}
+    ai = defaultdict(list)
+    for r in records:
+        if r.get("feature_type") in ("ai_overview", "ai_mode_response"):
+            ai[(r["keyword"], r.get("location_name"), r.get("os"), r.get("query_class"))].append(r)
+    geo_share = (sum(1 for v in ai.values()
+                     if any(x.get("client_cited") or x.get("ownership_class") == "influenced" for x in v))
+                 / len(ai)) if ai else 0.0
+    crawl = _latest_crawl(root, client) or {}
+    ev, cr = crawl.get("evaluation") or {}, crawl.get("crawlability") or {}
+    aeo_parts = [p for p in (ev.get("win_rate"),
+                             (cr.get("markdown_purity") or {}).get("purity"),
+                             (cr.get("entity_clarity") or {}).get("clarity")) if isinstance(p, (int, float))]
+    local_kw = {r["keyword"] for r in records
+                if r.get("feature_type") in ("local_pack", "local_finder")
+                and r.get("ownership_class") in ("owned", "controlled")}
+    local_share = (len(local_kw) / len(kws)) if kws else 0.0
+
+    seo = round(100 * (0.6 * s["pct_meeting_goal"] + 0.4 * min(1.0, (s["avg_presence"] or 0) / 4.0)))
+    aeo = round(100 * sum(aeo_parts) / len(aeo_parts)) if aeo_parts else None
+    comps = [
+        {"key": "seo", "label": "SEO — SERP takeover", "score": seo, "weight": 0.30,
+         "detail": f"{s['n_meeting_goal']}/{s['n_serps']} SERPs at goal · avg {s['avg_presence']} appearances/page"},
+        {"key": "geo", "label": "GEO / AIO — AI citations", "score": round(100 * geo_share), "weight": 0.25,
+         "detail": f"cited in {round(geo_share * 100)}% of tracked AI surfaces"},
+        {"key": "aeo", "label": "AEO — answer readiness", "score": aeo, "weight": 0.20,
+         "detail": (f"win-rate {round((ev.get('win_rate') or 0) * 100)}% · purity "
+                    f"{round(((cr.get('markdown_purity') or {}).get('purity') or 0) * 100)}%") if aeo_parts
+                   else "no crawl yet — run ai-crawl-simulator"},
+        {"key": "local", "label": "Local — map presence", "score": round(100 * local_share), "weight": 0.25,
+         "detail": f"holds a local pack on {len(local_kw)}/{len(kws)} keywords"},
+    ]
+    avail = [c for c in comps if c["score"] is not None]
+    wsum = sum(c["weight"] for c in avail) or 1
+    overall = round(sum(c["score"] * c["weight"] for c in avail) / wsum)
+    return {"generated": _now().isoformat(), "client": client, "clients": clients,
+            "overall": overall, "grade": _grade(overall), "components": comps}
+
+
+def insights(root, client=None):
+    """Always-on intelligence briefing: the notable facts pulled straight from live data (no LLM
+    required, so it never fails or costs anything). Each item is categorized + severity-tagged."""
+    root = pathlib.Path(root)
+    client, clients = _resolve_client(root, client)
+    records = latest_tracker_records(root)
+    out = []
+    if records:
+        s = sat.summary(records)
+        an = _analytics(root, records)
+        ti = _threat_intel(root, client, records)
+        div = _divergence_matrix(records, _client_domain(root, client) or "houseacrepair.com")
+        lead = an["takeover_leaderboard"][0] if an["takeover_leaderboard"] else None
+        out.append({"category": "Takeover", "severity": "info",
+                    "text": f"{s['n_meeting_goal']}/{s['n_serps']} real SERPs meet the {s['goal_min']}+ goal "
+                            f"(avg {s['avg_presence']} appearances/page)."
+                            + (f" Strongest: “{lead['keyword']}” at {lead['appearances']}." if lead else "")})
+        you = next((d for d in div if d["is_client"]), None)
+        if you:
+            tip = " Press the AI-citation lead while closing the map-pack gap." if you["quadrant"] == "AI upstart" else ""
+            out.append({"category": "GEO/AIO", "severity": "good" if you["ai_dominance"] >= 0.5 else "info",
+                        "text": f"You're an “{you['quadrant']}” — AI dominance {you['ai_dominance']}, "
+                                f"map dominance {you['map_dominance']}.{tip}"})
+        if ti["ranking_threats"]:
+            t = ti["ranking_threats"][0]
+            out.append({"category": "Threat", "severity": "warn",
+                        "text": f"{t['domain']} holds {t['slots']} SERP slots across {t['keywords']} keywords "
+                                f"({t['threat_level']}) — the apex rival to displace."})
+        if ti["review_sentiment"] and str(ti["review_sentiment_source"]).startswith("live"):
+            tot = sum(r.get("negatives") or 0 for r in ti["review_sentiment"])
+            top = ti["review_sentiment"][0]
+            out.append({"category": "Reputation", "severity": "good",
+                        "text": f"{tot} competitor negatives mined ({top['competitor']} leads with {top['negatives']}) "
+                                f"— ready-made marketing angles."})
+        if an["opportunities"]:
+            o = an["opportunities"][0]
+            claim = ", ".join(o["unclaimed"][:3]) or "more features"
+            out.append({"category": "Opportunity", "severity": "warn",
+                        "text": f"Biggest gap: “{o['keyword']}” ({o['os']}) is {o['gap']} short of goal "
+                                f"— claim {claim}."})
+        crawl = _latest_crawl(root, client) or {}
+        ev = crawl.get("evaluation") or {}
+        if ev.get("win_rate") is not None:
+            out.append({"category": "AEO", "severity": "good" if ev["win_rate"] >= 0.5 else "warn",
+                        "text": f"AEO crawl win-rate {round(ev['win_rate'] * 100)}% vs competitors on entity coverage."})
+    else:
+        out.append({"category": "Setup", "severity": "warn",
+                    "text": "No tracker data yet — run the local-mobile-serp-feature-tracker to populate the briefing."})
+    return {"generated": _now().isoformat(), "client": client, "clients": clients, "items": out}
+
+
 # ---------------- assembly ----------------
 def _resolve_client(root, client):
     """Resolve a (possibly crafted/unknown) client to a real one — never used to build paths blindly."""
@@ -875,6 +984,8 @@ def command_center(root, client=None):
         "ownership_matrix": ownership_matrix(records),
         "source_cards": source_cards(client, signals, sources, prev_signals),
         "action_skyline": action_skyline(saturation, signals),
+        "health": health_score(root, client),
+        "briefing": insights(root, client),
         "analytics": _analytics(root, records),
         "freshness": freshness(root, sig_date, last_run),
         "cost": cost_block(root, last_run),
