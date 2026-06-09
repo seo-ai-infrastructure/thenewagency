@@ -156,3 +156,51 @@ def test_wo_detail_rejects_traversal():
     srv = _srv()
     with pytest.raises(ValueError): srv.wo_detail("zernio-publisher", "../../etc/passwd")
     with pytest.raises(ValueError): srv.wo_detail("not-an-automation", "wo_x.json")
+
+
+def test_save_wo_validates_and_writes_inbox_only():
+    srv = _srv()
+    inbox = ROOT / "automations" / "zernio-publisher" / "inbox"; inbox.mkdir(parents=True, exist_ok=True)
+    f = inbox / "wo_save_1.json"
+    f.write_text(json.dumps({"work_order_id": "wo_save_1", "execution_method": "google_business_api",
+                             "client_id": "c", "workflow_id": "wf"}))
+    try:
+        good = {"work_order_id": "wo_save_1", "execution_method": "google_business_api",
+                "client_id": "c", "workflow_id": "wf2"}
+        srv.save_wo("zernio-publisher", "wo_save_1.json", good)
+        assert json.loads(f.read_text())["workflow_id"] == "wf2"
+        with pytest.raises(ValueError):
+            srv.save_wo("zernio-publisher", "wo_save_1.json", {"work_order_id": "wo_save_1"})
+        with pytest.raises(ValueError):
+            srv.save_wo("zernio-publisher", "wo_save_1.json", {**good, "work_order_id": "wo_other"})
+    finally:
+        f.unlink(missing_ok=True)
+
+
+def test_save_wo_refuses_non_inbox():
+    srv = _srv()
+    done = ROOT / "automations" / "zernio-publisher" / "done"; done.mkdir(parents=True, exist_ok=True)
+    f = done / "wo_save_done.json"
+    f.write_text(json.dumps({"work_order_id": "wo_save_done", "execution_method": "google_business_api",
+                             "client_id": "c", "workflow_id": "wf"}))
+    try:
+        with pytest.raises(ValueError):
+            srv.save_wo("zernio-publisher", "wo_save_done.json",
+                        {"work_order_id": "wo_save_done", "execution_method": "google_business_api",
+                         "client_id": "c", "workflow_id": "wf"})
+    finally:
+        f.unlink(missing_ok=True)
+
+
+def test_attach_link_appends_and_validates_url():
+    srv = _srv()
+    inbox = ROOT / "automations" / "zernio-publisher" / "inbox"; inbox.mkdir(parents=True, exist_ok=True)
+    f = inbox / "wo_att_1.json"; f.write_text(json.dumps({"work_order_id": "wo_att_1"}))
+    try:
+        atts = srv.attach_link("zernio-publisher", "wo_att_1.json", "spec", "https://example/spec")
+        assert atts == [{"label": "spec", "url": "https://example/spec"}]
+        assert json.loads(f.read_text())["attachments"][0]["url"] == "https://example/spec"
+        with pytest.raises(ValueError):
+            srv.attach_link("zernio-publisher", "wo_att_1.json", "bad", "javascript:alert(1)")
+    finally:
+        f.unlink(missing_ok=True)

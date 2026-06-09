@@ -259,6 +259,39 @@ def wo_detail(automation, filename):
             "history": history, "logs": "\n\n".join(chunks),
             "attachments": wo.get("attachments", [])}
 
+REQUIRED_WO = ("execution_method", "client_id", "workflow_id", "work_order_id")
+
+def save_wo(automation, filename, wo):
+    """Overwrite an inbox WO. Validated, traversal-proof, atomic. Inbox-only (gated/in-flight = RO)."""
+    sub, folder, path = _safe_wo_path(automation, filename)
+    if folder != "inbox":
+        raise ValueError("only inbox work orders are editable")
+    if not isinstance(wo, dict):
+        raise ValueError("work order must be a JSON object")
+    for k in REQUIRED_WO:
+        if not wo.get(k):
+            raise ValueError(f"missing required field: {k}")
+    wid = str(wo["work_order_id"])
+    if wid != pathlib.Path(wid).name or "/" in wid or "\\" in wid:
+        raise ValueError("work_order_id must not contain path separators")
+    if wid + ".json" != filename:
+        raise ValueError("work_order_id must match the filename (rename not supported)")
+    tmp = path.with_suffix(".json.tmp"); tmp.write_text(json.dumps(wo, indent=2)); tmp.replace(path)
+    return str(path.relative_to(ROOT))
+
+def attach_link(automation, filename, label, url):
+    """Append an attachment reference {label,url} to a WO. Links only — no upload store."""
+    sub, folder, path = _safe_wo_path(automation, filename)
+    url = (url or "").strip()
+    if not (url.startswith("http://") or url.startswith("https://") or url.startswith("/")):
+        raise ValueError("attachment url must be http(s) or a repo-relative path")
+    wo = json.loads(path.read_text())
+    atts = wo.get("attachments") or []
+    atts.append({"label": (label or url).strip(), "url": url})
+    wo["attachments"] = atts
+    tmp = path.with_suffix(".json.tmp"); tmp.write_text(json.dumps(wo, indent=2)); tmp.replace(path)
+    return atts
+
 # ---------------- HTTP ----------------
 class Handler(BaseHTTPRequestHandler):
     def _guard(self):
