@@ -359,6 +359,10 @@ class Handler(BaseHTTPRequestHandler):
         if path == "/styles.css": return self._file("styles.css", "text/css")
         if path == "/mission-control.js": return self._file("mission-control.js", "application/javascript")
         if path == "/mission-control.css": return self._file("mission-control.css", "text/css")
+        if path == "/board-common.js": return self._file("board-common.js", "application/javascript")
+        if path == "/board.js": return self._file("board.js", "application/javascript")
+        if path == "/order-modal.js": return self._file("order-modal.js", "application/javascript")
+        if path == "/fractional.js": return self._file("fractional.js", "application/javascript")
         if path == "/vendor/apexcharts.min.js":          # vendored chart lib (fixed name, no traversal)
             p = STATIC/"vendor"/"apexcharts.min.js"
             if not p.exists(): return self._send(404, {"error": "vendor asset missing"})
@@ -371,6 +375,10 @@ class Handler(BaseHTTPRequestHandler):
             p = STATIC/"vendor"/"leaflet"/"leaflet.css"
             if not p.exists(): return self._send(404, {"error": "vendor asset missing"})
             return self._send(200, p.read_bytes(), "text/css")
+        if path == "/vendor/sortable/Sortable.min.js":     # vendored drag lib (fixed name, no traversal)
+            p = STATIC/"vendor"/"sortable"/"Sortable.min.js"
+            if not p.exists(): return self._send(404, {"error": "vendor asset missing"})
+            return self._send(200, p.read_bytes(), "application/javascript")
         if path == "/api/mc/export.csv":                  # FULL dashboard CSV (client deliverable)
             qs = urllib.parse.parse_qs(urllib.parse.urlparse(self.path).query)
             client = (qs.get("client") or [None])[0]
@@ -400,6 +408,16 @@ class Handler(BaseHTTPRequestHandler):
             return self._send(200, {"generated": now_iso(),
                                     "counts": {k: len(by.get(k, [])) for k, *_ in board_scan.COLS},
                                     "columns": cols, "calendar": calendar, "clients": clients})
+        if path == "/api/fractional":
+            qs = urllib.parse.parse_qs(urllib.parse.urlparse(self.path).query)
+            return self._send(200, fractional_board((qs.get("client") or [None])[0]))
+        if path == "/api/wo":
+            qs = urllib.parse.parse_qs(urllib.parse.urlparse(self.path).query)
+            try:
+                return self._send(200, wo_detail((qs.get("automation") or [""])[0],
+                                                 (qs.get("filename") or [""])[0]))
+            except Exception as e:
+                return self._send(400, {"error": f"{type(e).__name__}: {e}"})
         if path == "/api/catalog": return self._send(200, catalog())
         if path == "/api/tasks": return self._send(200, tasks_list())
         return self._send(404, {"error": "not found"})
@@ -435,6 +453,15 @@ class Handler(BaseHTTPRequestHandler):
             if path == "/api/move":
                 rel = move_wo(b["automation"], b["filename"], b["to"])
                 return self._send(200, {"ok": True, "moved_to": rel})
+            if path == "/api/reorder":
+                n = reorder_inbox(b["automation"], b.get("order") or [])
+                return self._send(200, {"ok": True, "reordered": n})
+            if path == "/api/wo/save":
+                rel = save_wo(b["automation"], b["filename"], b["wo"])
+                return self._send(200, {"ok": True, "file": rel})
+            if path == "/api/wo/attach":
+                atts = attach_link(b["automation"], b["filename"], b.get("label", ""), b.get("url", ""))
+                return self._send(200, {"ok": True, "attachments": atts})
             return self._send(404, {"error": "not found"})
         except Exception as e:
             return self._send(400, {"error": f"{type(e).__name__}: {e}"})
