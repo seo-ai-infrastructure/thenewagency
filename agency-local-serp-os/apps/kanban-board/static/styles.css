@@ -67,3 +67,7 @@ body{background:var(--bg);color:var(--ink);font-family:'Sora',sans-serif;min-hei
 .cal-item.st-posted .cal-st{color:#86efac}
 .cal-cta{font-size:9px;color:#cfe1ff;border:1px solid #1f6feb66;border-radius:8px;padding:0 5px;margin-left:3px}
 .cal-prev{color:var(--dim);font-size:11px;margin-top:4px}
+.card[data-kind="wo"]{cursor:grab}
+.card[data-kind="wo"]:active{cursor:grabbing}
+.drag-ghost{opacity:.4; outline:2px dashed var(--sys,#888)}
+.col .cards{min-height:40px}

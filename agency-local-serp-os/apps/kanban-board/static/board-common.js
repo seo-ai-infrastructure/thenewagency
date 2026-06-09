@@ -33,7 +33,10 @@ function cardHTML(c){
   } else if(c.kind==="approved" && c.workflow){
     acts = `<div class="acts"><button class="btn ok" onclick="publishApproved('${esc(c.client)}','${esc(c.area)}','${esc(c.workflow)}','${esc(c.scope)}','${esc(c.period)}')">Publish →</button></div>`;
   }
-  return `<div class="card" style="--sys:${color}">
+  const data = c.kind==="wo"
+    ? `data-kind="wo" data-automation="${esc(c.automation)}" data-filename="${esc(c.filename)}" data-col="${esc(c.col)}"`
+    : `data-kind="${esc(c.kind)}"`;
+  return `<div class="card" ${data} style="--sys:${color}">
     <div class="card-top"><span class="tag">${label}${c.manual?" ·man":""}</span><span class="client">${esc(c.client)}</span></div>
     <div class="title">${esc(c.title)}</div><div class="sub">${esc(c.sub)}</div>
     ${c.preview?`<div class="preview">${esc(c.preview)}</div>`:""}

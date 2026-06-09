@@ -27,11 +27,42 @@ function render(){
   b.textContent = need ? `${need} item(s) need your approval — they will not move until you sign off`
                        : (FILTER ? `nothing waiting on ${FILTER}` : "nothing waiting on you");
   g("board").innerHTML = cols.map(col=>`
-    <section class="col" style="--accent:${col.accent}">
+    <section class="col" data-col="${esc(col.key)}" style="--accent:${col.accent}">
       <h2>${esc(col.name)}<span class="count">${col.cards.length}</span></h2>
       <div class="cards">${col.cards.length?col.cards.map(cardHTML).join(""):'<div class="empty">— clear —</div>'}</div>
     </section>`).join("");
+  wireDrag();
   renderCalendar(s.calendar||[]);
+}
+
+function wireDrag(){
+  document.querySelectorAll("#board .col .cards").forEach(list=>{
+    if(list._sortable) return;                          // idempotent across 3s polls
+    list._sortable = Sortable.create(list, {
+      group: "board", animation: 150,
+      draggable: ".card[data-kind='wo']",               // only work-orders move
+      filter: ".acts, .acts *",                         // don't start a drag on the inline buttons/select
+      preventOnFilter: false,
+      ghostClass: "drag-ghost", onEnd: onDragEnd });
+  });
+}
+
+async function onDragEnd(evt){
+  const card = evt.item;
+  if(card.dataset.kind !== "wo") return;
+  const fromCol = evt.from.closest(".col").dataset.col;
+  const toCol   = evt.to.closest(".col").dataset.col;
+  const automation = card.dataset.automation, filename = card.dataset.filename;
+  if(fromCol !== toCol){
+    const r = await apiCall("/api/move", {automation, filename, to: COL_FOLDER[toCol]});
+    if(!r || !r.ok){ alert("Move failed: "+((r&&r.error)||"unknown")); }
+    refresh(); return;
+  }
+  if(toCol === "queued"){                               // reorder persists order_index
+    const order = [...evt.to.querySelectorAll(".card[data-kind='wo']")].map(el=>el.dataset.filename);
+    const r = await apiCall("/api/reorder", {automation, order});
+    if(!r || !r.ok){ alert("Reorder failed: "+((r&&r.error)||"unknown")); refresh(); }
+  }
 }
 
 function renderCalendar(cal){
