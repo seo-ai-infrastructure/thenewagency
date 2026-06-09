@@ -12,5 +12,5 @@ profiles:
   verify_url: "https://www.reddit.com/api/me.json" # login-gated; returns "name":"<handle>" when signed in
   allowed_workflows: [facebook_post, reddit_post, quora_answer_post, linkedin_post, tiktok_upload, youtube_upload,
                       reddit_comment, facebook_comment, linkedin_comment, youtube_comment,
-                      pinterest_pin, eventbrite_create, patch_article, nextdoor_post]
+                      pinterest_pin, eventbrite_create, patch_article, nextdoor_post, agent_engagement]
   paused: false

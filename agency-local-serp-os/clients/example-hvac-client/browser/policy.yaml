@@ -9,6 +9,7 @@ defaults:
 allowed_action_classes:
   - read_only_serp_observation
   - read_only_social_scan
+  - organic_community_engagement   # daily human-like warming/engagement (ungated, strictly organic)
   - social_posting
   - client_owned_video_publishing_after_approval
   - client_owned_content_publishing_after_approval

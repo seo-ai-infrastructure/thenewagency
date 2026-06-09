@@ -18,12 +18,31 @@ function renderFractional(){
   wireFractionalDrag();
 }
 function laneHTML(lane){
+  const a = lane.actions || {};   // {daily:bool, weekly:bool} = scheduled engagement runs
+  const sched = f => a[f]===undefined ? "" :
+    `<span class="fr-sched ${a[f]?'on':'off'}" title="${f} engagement ${a[f]?'scheduled (active)':'defined but off'}">${f[0].toUpperCase()}</span>`;
   return `<div class="fr-lane${lane.paused?" paused":""}">
-    <div class="fr-lane-label"><span class="who">${esc(initials(lane.profile_id))}</span>
-      <div><b>${esc(lane.profile_id)}</b><div class="fr-client">${esc(lane.client)}${lane.paused?" · paused":""}</div></div></div>
+    <div class="fr-lane-label">
+      <span class="who">${esc(initials(lane.profile_id))}</span>
+      <div class="fr-id">
+        <b>${esc(lane.profile_id)}</b>
+        <div class="fr-client">${esc(lane.client)}${lane.paused?" · paused":""} ${sched('daily')}${sched('weekly')}</div>
+        <div class="fr-runs">
+          <button class="btn fr-run" type="button" onclick="agentAction('${esc(lane.client)}','${esc(lane.profile_id)}','daily')">▶ Daily</button>
+          <button class="btn fr-run" type="button" onclick="agentAction('${esc(lane.client)}','${esc(lane.profile_id)}','weekly')">▶ Weekly</button>
+        </div>
+      </div></div>
     ${FR_COLS.map(([key])=>`<div class="fr-cell"><div class="cards" data-col="${key}">${
       (lane.columns[key]||[]).map(cardHTML).join("") || '<div class="empty">—</div>'}</div></div>`).join("")}
   </div>`;
+}
+async function agentAction(client, profile_id, kind){
+  if(!confirm(`Queue a ${kind} engagement run for ${profile_id}?\n`+
+    `Human-like browse + genuine upvotes + at most 1 non-promotional comment. `+
+    `Runs on the next runner pass (or the daily cadence).`)) return;
+  const r = await apiCall("/api/agent_action", {client, profile_id, kind});
+  if(r && r.ok){ alert(`Queued ${kind} run for ${profile_id}:\n${r.work_order_id}`); refreshFractional(); }
+  else alert("Error: "+((r&&r.error)||"failed"));
 }
 function wireFractionalDrag(){
   document.querySelectorAll("#fr-board .cards").forEach(list=>{

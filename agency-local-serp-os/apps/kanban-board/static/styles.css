@@ -95,3 +95,9 @@ body{background:var(--bg);color:var(--ink);font-family:'Sora',sans-serif;min-hei
 .fr-lane-label{display:flex; gap:8px; align-items:center}
 .fr-client{color:#94a3b8; font-size:11px}
 .fr-cell .cards{min-height:48px; display:flex; flex-direction:column; gap:6px}
+.fr-id{display:flex; flex-direction:column; gap:3px}
+.fr-runs{display:flex; gap:5px; margin-top:2px}
+.fr-run{font-size:11px; padding:2px 8px; line-height:1.4}
+.fr-sched{display:inline-block; min-width:15px; height:15px; line-height:15px; text-align:center; border-radius:3px; font-size:9px; font-weight:700; margin-left:3px}
+.fr-sched.on{background:#34d399; color:#0b1220}
+.fr-sched.off{background:#334155; color:#94a3b8}

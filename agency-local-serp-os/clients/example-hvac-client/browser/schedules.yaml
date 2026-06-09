@@ -40,3 +40,30 @@ schedules:
   active: true
   profiles: [example-hvac-client-cb-agent]
   task_params: {target: "r/Laudy"}
+
+# --- DAILY HUMAN ACTIVITY (per fractional employee) ---------------------------
+# Ungated, organic account-warming so the agent stays human/healthy: ~4-12 min browsing, a few
+# genuine upvotes, at most 1 thoughtful non-promotional comment. Runs every day via the cadence.
+- schedule_id: daily_engagement
+  workflow_id: agent_engagement
+  frequency: daily
+  active: true
+  profiles: [example-hvac-client-cb-agent]
+  task_params:
+    minutes: "4-12"
+    max_upvotes: 6
+    max_comments: 1
+    communities: [r/Laudy, r/HVACadvice, r/fortlauderdale]
+
+# --- WEEKLY HUMAN ACTIVITY (deeper session) ----------------------------------
+- schedule_id: weekly_engagement
+  workflow_id: agent_engagement
+  frequency: weekly
+  day_of_week: saturday
+  active: true
+  profiles: [example-hvac-client-cb-agent]
+  task_params:
+    minutes: "12-25"
+    max_upvotes: 10
+    max_comments: 2
+    communities: [r/Laudy, r/HVACadvice, r/fortlauderdale, r/HomeImprovement]
