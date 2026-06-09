@@ -91,29 +91,6 @@ function fmtDay(d){
   return new Date(d+"T00:00:00").toLocaleDateString(undefined,{weekday:"short",month:"short",day:"numeric"});
 }
 
-async function approve(client,area,scope,workflow,period){
-  const edit = prompt("Approve "+workflow+" for "+scope+".\nEdit text (blank = keep draft as-is):", "");
-  const body = {client,area,scope,workflow};
-  if(period) body.period = period;        // honor the draft's declared period (e.g. GBP post date)
-  if(edit) body.edit = edit;
-  const r = await apiCall("/api/approve", body);
-  alert(r.ok? `Approved (hash ${r.hash}…) — verify_approval-valid.` : "Error: "+r.error);
-  refresh();
-}
-async function reject(client,area,scope,workflow,period){
-  const reason = prompt("Reject "+workflow+" — reason:","") ?? "";
-  const body = {client,area,scope,workflow,reason};
-  if(period) body.period = period;
-  const r = await apiCall("/api/reject", body);
-  if(!r.ok) alert("Error: "+r.error); refresh();
-}
-async function move(automation,filename){
-  const to = document.getElementById("mv_"+filename).value;
-  if(!confirm(`Recovery move: ${filename} → ${to}? (logged as manual_override)`)) return;
-  const r = await apiCall("/api/move", {automation,filename,to});
-  if(!r.ok) alert("Error: "+r.error); refresh();
-}
-
 async function openModal(){
   [CATALOG, TASKS] = await Promise.all([apiCall("/api/catalog"), apiCall("/api/tasks")]);
   const clients = Object.keys(CATALOG).map(c=>`<option>${esc(c)}</option>`).join("");

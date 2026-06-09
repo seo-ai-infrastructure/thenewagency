@@ -58,6 +58,38 @@
   </div>
 </div>
 
+<div id="wo-modal" class="modal hidden"><div class="sheet wo-sheet">
+  <div class="wo-head"><h3 id="wo-title">Work order</h3>
+    <button id="wo-close" class="btn" type="button">✕</button></div>
+  <div class="tabs">
+    <button class="wo-tab active" data-tab="overview" type="button">Overview</button>
+    <button class="wo-tab" data-tab="history" type="button">History</button>
+    <button class="wo-tab" data-tab="logs" type="button">Logs</button>
+    <button class="wo-tab" data-tab="attach" type="button">Attachments</button>
+  </div>
+  <div id="wo-pane-overview" class="wo-pane">
+    <p id="wo-ro-note" class="note hidden">In-flight / completed order — read-only.</p>
+    <textarea id="wo-json" rows="16" spellcheck="false"></textarea>
+    <div class="row"><button id="wo-save" class="btn primary" type="button">Save</button></div>
+  </div>
+  <div id="wo-pane-history" class="wo-pane hidden"></div>
+  <div id="wo-pane-logs" class="wo-pane hidden"><pre id="wo-logs"></pre></div>
+  <div id="wo-pane-attach" class="wo-pane hidden">
+    <div id="wo-atts"></div>
+    <div class="row">
+      <input id="wo-att-label" placeholder="Label"><input id="wo-att-url" placeholder="https://…">
+      <button id="wo-att-add" class="btn" type="button">Add link</button></div>
+  </div>
+</div></div>
+
+<div id="draft-modal" class="modal hidden"><div class="sheet">
+  <div class="wo-head"><h3>Review draft</h3><button id="draft-close" class="btn" type="button">✕</button></div>
+  <label>Edit text (blank = keep draft as-is)<textarea id="draft-edit" rows="6"></textarea></label>
+  <label>Reject reason (only used when rejecting)<input id="draft-reason"></label>
+  <div class="row"><button id="draft-reject" class="btn bad" type="button">Reject</button>
+    <button id="draft-approve" class="btn ok" type="button">Approve</button></div>
+</div></div>
+
 <div id="modal" class="modal hidden"><div class="sheet">
   <div class="tabs">
     <button id="tab-create" class="tab active" type="button">Create content</button>
@@ -87,6 +119,7 @@
 <script src="/mission-control.js"></script>
 <script src="/vendor/sortable/Sortable.min.js"></script>
 <script src="/board-common.js"></script>
+<script src="/order-modal.js"></script>
 <script src="/board.js"></script>
 <script src="/app.js"></script>
 

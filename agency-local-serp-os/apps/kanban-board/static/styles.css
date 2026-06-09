@@ -71,3 +71,18 @@ body{background:var(--bg);color:var(--ink);font-family:'Sora',sans-serif;min-hei
 .card[data-kind="wo"]:active{cursor:grabbing}
 .drag-ghost{opacity:.4; outline:2px dashed var(--sys,#888)}
 .col .cards{min-height:40px}
+.card.clickable{cursor:pointer}
+.card .who{display:inline-flex; align-items:center; justify-content:center;
+  width:18px; height:18px; margin-right:5px; border-radius:50%;
+  background:var(--sys,#888); color:#0b1220; font-size:10px; font-weight:700; vertical-align:middle}
+.wo-sheet{max-width:760px; width:92vw}
+.wo-head{display:flex; align-items:center; justify-content:space-between; margin-bottom:.5rem}
+.wo-tab{background:none; border:none; color:#94a3b8; padding:.4rem .7rem; cursor:pointer; border-bottom:2px solid transparent}
+.wo-tab.active{color:#e2e8f0; border-bottom-color:#38bdf8}
+.wo-pane{margin-top:.7rem}
+#wo-json{width:100%; font-family:"JetBrains Mono",monospace; font-size:12px; background:#0f172a; color:#e2e8f0; border:1px solid #334155; border-radius:6px; padding:.6rem}
+#wo-logs{white-space:pre-wrap; max-height:50vh; overflow:auto; background:#0f172a; padding:.6rem; border-radius:6px; font-size:12px}
+.hist-row{padding:.4rem 0; border-bottom:1px solid #1e293b}
+.hist-st{font-weight:700; margin-right:.5rem} .hist-ts{color:#94a3b8; font-size:12px}
+.hist-reason{color:#cbd5e1; font-size:12px; margin-top:.2rem}
+.att-row{padding:.3rem 0}
