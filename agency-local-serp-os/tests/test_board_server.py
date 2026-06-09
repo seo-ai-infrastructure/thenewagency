@@ -204,3 +204,14 @@ def test_attach_link_appends_and_validates_url():
             srv.attach_link("zernio-publisher", "wo_att_1.json", "bad", "javascript:alert(1)")
     finally:
         f.unlink(missing_ok=True)
+
+
+def test_attach_link_rejects_protocol_relative_url():
+    srv = _srv()
+    inbox = ROOT / "automations" / "zernio-publisher" / "inbox"; inbox.mkdir(parents=True, exist_ok=True)
+    f = inbox / "wo_att_2.json"; f.write_text(json.dumps({"work_order_id": "wo_att_2"}))
+    try:
+        with pytest.raises(ValueError):
+            srv.attach_link("zernio-publisher", "wo_att_2.json", "x", "//evil.com/x")
+    finally:
+        f.unlink(missing_ok=True)

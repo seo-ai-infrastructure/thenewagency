@@ -281,9 +281,12 @@ def save_wo(automation, filename, wo):
 
 def attach_link(automation, filename, label, url):
     """Append an attachment reference {label,url} to a WO. Links only — no upload store."""
+    # attachments are a lightweight annotation — allowed on WOs in any folder, unlike save_wo (inbox-only)
     sub, folder, path = _safe_wo_path(automation, filename)
     url = (url or "").strip()
-    if not (url.startswith("http://") or url.startswith("https://") or url.startswith("/")):
+    is_http = url.startswith("http://") or url.startswith("https://")
+    is_relative = url.startswith("/") and not url.startswith("//")   # repo-relative, not protocol-relative
+    if not (is_http or is_relative):
         raise ValueError("attachment url must be http(s) or a repo-relative path")
     wo = json.loads(path.read_text())
     atts = wo.get("attachments") or []
