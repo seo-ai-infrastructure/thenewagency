@@ -86,3 +86,12 @@ body{background:var(--bg);color:var(--ink);font-family:'Sora',sans-serif;min-hei
 .hist-st{font-weight:700; margin-right:.5rem} .hist-ts{color:#94a3b8; font-size:12px}
 .hist-reason{color:#cbd5e1; font-size:12px; margin-top:.2rem}
 .att-row{padding:.3rem 0}
+.fr-head{padding:10px 14px}
+.fr-board{display:flex; flex-direction:column; gap:8px; padding:8px}
+.fr-colhead,.fr-lane{display:grid; grid-template-columns:180px repeat(4,1fr); gap:8px}
+.fr-ch{color:#94a3b8; font-size:12px; font-weight:700; padding:4px 6px; text-transform:uppercase}
+.fr-lane{background:#0f172a; border:1px solid #1e293b; border-radius:8px; padding:8px; align-items:stretch}
+.fr-lane.paused{opacity:.55}
+.fr-lane-label{display:flex; gap:8px; align-items:center}
+.fr-client{color:#94a3b8; font-size:11px}
+.fr-cell .cards{min-height:48px; display:flex; flex-direction:column; gap:6px}

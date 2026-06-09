@@ -17,6 +17,7 @@
     <button id="nav-ci" class="navbtn" type="button">Real-Time Feedback</button>
     <button id="nav-ti" class="navbtn" type="button">Threat Intelligence</button>
     <button id="nav-board" class="navbtn" type="button">Kanban Board</button>
+    <button id="nav-fr" class="navbtn" type="button">Fractional Employees</button>
   </nav>
   <span id="gen" class="gen board-only">connecting…</span>
   <select id="client-filter" class="filter board-only" title="Filter by client"><option value="">All clients</option></select>
@@ -56,6 +57,11 @@
     <span><i class="dot" style="background:#34d399"></i>Draft</span>
     <span class="muted">polls every 3s · projection of the filesystem</span>
   </div>
+</div>
+
+<div id="view-fr" class="view mc-hide">
+  <div class="fr-head"><h2>FRACTIONAL EMPLOYEES <span id="fr-sub" class="gen"></span></h2></div>
+  <div id="fr-board" class="fr-board"></div>
 </div>
 
 <div id="wo-modal" class="modal hidden"><div class="sheet wo-sheet">
@@ -121,6 +127,7 @@
 <script src="/board-common.js"></script>
 <script src="/order-modal.js"></script>
 <script src="/board.js"></script>
+<script src="/fractional.js"></script>
 <script src="/app.js"></script>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
