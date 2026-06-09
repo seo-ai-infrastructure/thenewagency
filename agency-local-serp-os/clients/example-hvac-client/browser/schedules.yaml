@@ -1,12 +1,42 @@
 version: 1
-# Cadence for this client's social/video posting on the <client>-cb-agent profile. Most posting
-# is on-demand (create a draft -> approve -> the board issues the work order), but recurring posts
-# can be scheduled here. active:false = ignored by gen_workorders. Each post still needs an approval.
+# Cadence for this client's social posting on the <client>-cb-agent profile.
+# gen_workorders.py issues a work order per DUE schedule (active==true AND the frequency matches
+# the run date: daily=every day, weekly=day_of_week, monthly=day_of_month). Every posting work
+# order is GATE-SAFE: cloakbrowser-runner only publishes it if a hashed APPROVAL exists for that
+# profile+workflow+period — so a scheduled run never posts anything a human hasn't signed off on.
+#
+# NOTE: this persona is currently logged into REDDIT only, and posting to the SAME subreddit at
+# multiple cadences reads as spam. Keep `active: true` only on the cadence(s) you actually feed
+# approved content; add more subreddits in browser/subreddits.yaml to spread reach. A schedule
+# that fires with no matching approval just lands that period's work order in FAILED (no post).
 schedules:
-- schedule_id: weekly_reddit_value_post
+
+# --- DAILY ------------------------------------------------------------------
+# Off by default: daily posting to a single subreddit will get the account flagged. Flip to
+# active: true only once you're feeding daily approved content and/or rotating subreddits.
+- schedule_id: daily_reddit_laudy
+  workflow_id: reddit_post
+  frequency: daily
+  active: false
+  profiles: [example-hvac-client-cb-agent]
+  task_params: {target: "r/Laudy"}
+
+# --- WEEKLY -----------------------------------------------------------------
+# The main recurring browser automation: one genuine, rule-respecting value post per week.
+- schedule_id: weekly_reddit_laudy
   workflow_id: reddit_post
   frequency: weekly
   day_of_week: tuesday
-  active: false
+  active: true
   profiles: [example-hvac-client-cb-agent]
-  task_params: {target: "r/your_local_subreddit"}
+  task_params: {target: "r/Laudy"}
+
+# --- MONTHLY ----------------------------------------------------------------
+# A monthly longer-form / seasonal value post (1st of the month).
+- schedule_id: monthly_reddit_laudy
+  workflow_id: reddit_post
+  frequency: monthly
+  day_of_month: 1
+  active: true
+  profiles: [example-hvac-client-cb-agent]
+  task_params: {target: "r/Laudy"}
