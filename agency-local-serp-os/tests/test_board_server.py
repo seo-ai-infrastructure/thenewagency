@@ -125,3 +125,34 @@ def test_reorder_inbox_rejects_before_any_write():
         assert json.loads(f1.read_text())["order_index"] == 9
     finally:
         f1.unlink(missing_ok=True)
+
+
+def test_wo_detail_assembles_history_and_logs():
+    srv = _srv()
+    sub = ROOT / "automations" / "zernio-publisher"
+    f = sub / "inbox" / "wo_det_1.json"; f.parent.mkdir(parents=True, exist_ok=True)
+    f.write_text(json.dumps({"work_order_id": "wo_det_1", "execution_method": "google_business_api",
+                             "client_id": "c", "workflow_id": "wf",
+                             "attachments": [{"label": "brief", "url": "https://x/y"}]}))
+    hist = sub / "history" / "runs.jsonl"; hist_before = hist.read_text() if hist.exists() else None
+    hist.parent.mkdir(parents=True, exist_ok=True)
+    with hist.open("a") as h:
+        h.write(json.dumps({"work_order_id": "wo_det_1", "ts": "2026-06-09T00:00:00+00:00",
+                            "status": "done", "task_report": {"ok": True}}) + "\n")
+    try:
+        d = srv.wo_detail("zernio-publisher", "wo_det_1.json")
+        assert d["editable"] is True and d["folder"] == "inbox"
+        assert d["wo"]["work_order_id"] == "wo_det_1"
+        assert len(d["history"]) == 1 and d["history"][0]["status"] == "done"
+        assert "done" in d["logs"] and "\"ok\": true" in d["logs"]
+        assert d["attachments"] == [{"label": "brief", "url": "https://x/y"}]
+    finally:
+        f.unlink(missing_ok=True)
+        if hist_before is not None: hist.write_text(hist_before)
+        else: hist.unlink(missing_ok=True)
+
+
+def test_wo_detail_rejects_traversal():
+    srv = _srv()
+    with pytest.raises(ValueError): srv.wo_detail("zernio-publisher", "../../etc/passwd")
+    with pytest.raises(ValueError): srv.wo_detail("not-an-automation", "wo_x.json")

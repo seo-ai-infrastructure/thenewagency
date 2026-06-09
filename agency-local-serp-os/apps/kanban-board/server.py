@@ -234,6 +234,31 @@ def reorder_inbox(automation, order):
         written += 1
     return written
 
+def wo_detail(automation, filename):
+    """Full detail for one WO: the JSON, its history records, derived log text, attachments.
+    Logs are derived from history (path-safe) — no arbitrary evidence-file reads in v1."""
+    sub, folder, path = _safe_wo_path(automation, filename)
+    wo = json.loads(path.read_text())
+    wid = wo.get("work_order_id", filename[:-5])
+    history = []
+    h = sub/"history"/"runs.jsonl"
+    if h.exists():
+        for line in h.read_text().splitlines():
+            try: r = json.loads(line)
+            except Exception: continue
+            if r.get("work_order_id") == wid: history.append(r)
+    chunks = []
+    for r in history:
+        c = f"[{r.get('ts','')}] {r.get('status','')}"
+        if r.get("reason"): c += f" — {r['reason']}"
+        if r.get("stage"):  c += f" (stage: {r['stage']})"
+        if r.get("task_report") is not None:
+            c += "\n" + json.dumps(r["task_report"], indent=2)
+        chunks.append(c)
+    return {"wo": wo, "folder": folder, "editable": folder == "inbox",
+            "history": history, "logs": "\n\n".join(chunks),
+            "attachments": wo.get("attachments", [])}
+
 # ---------------- HTTP ----------------
 class Handler(BaseHTTPRequestHandler):
     def _guard(self):
