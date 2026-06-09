@@ -495,9 +495,36 @@ def geo_grid_view(root, client=None):
     if not grids and doc.get("keyword"):
         grids = {doc["keyword"]: {k: doc.get(k) for k in ("keyword", "size", "step", "points", "matrix", "solv")}}
     grids = grids or {}
+    for grid in grids.values():
+        _enrich_geo_moves(grid)
     return {"generated": _now().isoformat(), "client": client, "available": bool(grids),
             "keywords": sorted(grids), "grids": grids, "center": center,
             "location": doc.get("location"), "pulled": doc.get("pulled")}
+
+
+def _enrich_geo_moves(grid):
+    """Tag each grid point with run-over-run movement vs the prior pull (new/lost/up/down) and a summary."""
+    prev_pts = grid.get("prev_points")
+    if not prev_pts:
+        return grid
+    prev = {(p.get("row"), p.get("col")): p.get("rank_absolute") for p in prev_pts}
+    tally = {"new": 0, "lost": 0, "up": 0, "down": 0}
+    for p in grid.get("points") or []:
+        pr, cur = prev.get((p.get("row"), p.get("col"))), p.get("rank_absolute")
+        if pr is None and cur is None:
+            mv = None
+        elif pr is None:
+            mv = {"type": "new"}; tally["new"] += 1
+        elif cur is None:
+            mv = {"type": "lost"}; tally["lost"] += 1
+        else:
+            d = pr - cur                                 # smaller rank = better
+            mv = {"type": "up" if d > 0 else "down" if d < 0 else "same", "delta": abs(d)}
+            if d > 0: tally["up"] += 1
+            elif d < 0: tally["down"] += 1
+        p["move"] = mv
+    grid["moves"] = {**tally, "since": grid.get("prev_pulled")}
+    return grid
 
 
 def search_intelligence(root, client=None):

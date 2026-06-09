@@ -390,6 +390,15 @@
     renderCorrelation(d.gsc_correlation);
   };
   const geoRankColor = v => v == null ? "#9ca3af" : v <= 3 ? "#34d399" : v <= 7 ? "#38bdf8" : v <= 10 ? "#fbbf24" : "#f87171";
+  function geoBadge(mv) {
+    if (!mv || mv.type === "same") return { html: "", tip: "" };
+    const t = mv.type, d = mv.delta;
+    if (t === "new") return { html: `<div class="geo-badge new">new</div>`, tip: " · new" };
+    if (t === "lost") return { html: `<div class="geo-badge lost">lost</div>`, tip: " · lost" };
+    if (t === "up") return { html: `<div class="geo-badge up">▲${d}</div>`, tip: ` · up ${d}` };
+    if (t === "down") return { html: `<div class="geo-badge down">▼${d}</div>`, tip: ` · down ${d}` };
+    return { html: "", tip: "" };
+  }
   function renderGeoGrid(g) {
     MC.lastGeo = g;
     const host = $("si-geogrid"), sel = $("si-geo-kw");
@@ -439,9 +448,10 @@
         { maxZoom: 19, attribution: "&copy; OpenStreetMap" }).addTo(map);
       pts.forEach(p => {
         const v = p.rank_absolute;
+        const b = geoBadge(p.move);
         const icon = L.divIcon({ className: "geo-pin-wrap", iconSize: [34, 34], iconAnchor: [17, 17],
-          html: `<div class="geo-pin" style="background:${geoRankColor(v)}">${v == null ? "·" : v}</div>` });
-        L.marker([p.lat, p.lng], { icon }).addTo(map).bindTooltip(v == null ? "absent" : "rank " + v);
+          html: `<div class="geo-pin-inner"><div class="geo-pin" style="background:${geoRankColor(v)}">${v == null ? "·" : v}</div>${b.html}</div>` });
+        L.marker([p.lat, p.lng], { icon }).addTo(map).bindTooltip((v == null ? "absent" : "rank " + v) + b.tip);
       });
       try { map.fitBounds(pts.map(p => [p.lat, p.lng]), { padding: [28, 28] }); } catch (e) {}
       MC.geomap = map; MC.geomapSig = sig;
@@ -452,7 +462,18 @@
       host.innerHTML = kpiHtml + `<div class="geo-grid-wrap">${cells}</div>` + legend;
       MC.geomapSig = null;
     }
-    if (meta) meta.textContent = `— “${kw}” · ${grid.size}×${grid.size} grid · ${g.location || ""}`;
+    if (meta) {
+      let txt = `— “${kw}” · ${grid.size}×${grid.size} grid · ${g.location || ""}`;
+      const m = grid.moves;
+      if (m && m.since) {
+        const since = String(m.since).slice(0, 10);
+        const parts = [];
+        if (m.up) parts.push(`▲${m.up}`); if (m.down) parts.push(`▼${m.down}`);
+        if (m.new) parts.push(`${m.new} new`); if (m.lost) parts.push(`${m.lost} lost`);
+        txt += ` · vs ${since}: ${parts.length ? parts.join(" ") : "no change"}`;
+      }
+      meta.textContent = txt;
+    }
   }
   function renderDailyTrend(dt) {
     const el = $("si-trend"), meta = $("si-trend-meta");

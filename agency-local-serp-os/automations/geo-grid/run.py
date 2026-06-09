@@ -81,14 +81,26 @@ def main():
 
     out_p = ROOT / "clients" / client / "signals" / "geo_grid.json"
     grids = _load_existing_grids(out_p)
+    prev_top_pulled = None
+    if out_p.exists():
+        try:
+            prev_top_pulled = json.loads(out_p.read_text()).get("pulled")
+        except Exception:
+            pass
+    pulled = datetime.datetime.now(datetime.timezone.utc).isoformat()
     run_id = "geo_" + datetime.datetime.now(datetime.timezone.utc).strftime("%Y%m%dT%H%M%SZ")
     for kw in kws:
-        grids[kw] = _grid_for(kw, loc, place_id, domain, size, step, run_id)
-        print(f"  -> {kw}: SoLV {grids[kw]['solv']['solv']}")
+        old = grids.get(kw) or {}
+        entry = _grid_for(kw, loc, place_id, domain, size, step, run_id)
+        entry["pulled"] = pulled
+        if old.get("points"):                      # carry the prior pull forward so the UI can diff ranks
+            entry["prev_points"] = old.get("points")
+            entry["prev_pulled"] = old.get("pulled") or prev_top_pulled
+        grids[kw] = entry
+        print(f"  -> {kw}: SoLV {entry['solv']['solv']}")
 
     out = {"client": client, "location": loc["name"], "center": loc["local_finder_coordinate"],
-           "pulled": datetime.datetime.now(datetime.timezone.utc).isoformat(),
-           "keywords": sorted(grids), "grids": grids}
+           "pulled": pulled, "keywords": sorted(grids), "grids": grids}
     out_p.parent.mkdir(parents=True, exist_ok=True)
     out_p.write_text(json.dumps(out, indent=2))
     print(f"[geo-grid] {client}: {len(kws)} keyword(s) this run, {len(grids)} total "

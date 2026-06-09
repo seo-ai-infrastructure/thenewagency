@@ -196,8 +196,13 @@
 /* real map-pack map (Leaflet + OSM) */
 .geo-map{height:400px;border-radius:10px;overflow:hidden;border:1px solid var(--line)}
 .leaflet-container{background:#0d131b;font-family:'JetBrains Mono',monospace}
-.geo-pin-wrap{background:transparent!important;border:0!important}
+.geo-pin-wrap{background:transparent!important;border:0!important;overflow:visible}
+.geo-pin-inner{position:relative;width:34px;height:34px}
 .geo-pin{width:34px;height:34px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-family:'Sora',sans-serif;font-weight:700;font-size:13px;color:#0d1117;border:2px solid #fff;box-shadow:0 1px 5px rgba(0,0,0,.45)}
+.geo-badge{position:absolute;top:-8px;right:-11px;font-family:'Sora',sans-serif;font-weight:700;font-size:9px;line-height:1;padding:2px 4px;border-radius:8px;border:1.5px solid #0d1117;color:#fff;white-space:nowrap;box-shadow:0 1px 3px rgba(0,0,0,.5)}
+.geo-badge.up,.geo-badge.new{background:#16a34a}
+.geo-badge.down,.geo-badge.lost{background:#dc2626}
+.geo-badge.lost{background:#6b7280}
 
 /* Multi-engine AI visibility */
 .aiv-engines{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
