@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 """article-writer: draft long-form content (WordPress article / LinkedIn Pulse / Quora answer)
 into a pending human-review artifact in the right area. DRAFTS ONLY — never publishes.
-  python run.py --kind wp|linkedin|quora --client <id> --topic "..." [--slug ...] [--dry-run]"""
+  python run.py --kind wp|linkedin|quora --client <id> --topic "..." [--slug ...] [--image] [--dry-run]
+  --image also generates a matching Higgsfield still and embeds it in the same draft."""
 import sys, json, datetime, pathlib, re
 HERE = pathlib.Path(__file__).resolve().parent
 def root(s):
@@ -56,22 +57,46 @@ def main():
     # web content is scoped to its slug; social posts are scoped to the persona profile
     # <client>-cb-agent so the work order's profile_id matches the approval (like GBP -> location).
     scope = f"{client}-cb-agent" if area == "browser" else slug
+    draft_id = "draft_"+datetime.datetime.now(datetime.timezone.utc).strftime("%Y%m%dT%H%M%SZ")
     content = {"title": topic, "text": body, "slug": slug,
                "kind": f"{kind}_article" if kind == "wp" else f"{kind}_post"}
     if kind == "wp":
         content["status"] = "publish"
-    draft = {"draft_id": "draft_"+datetime.datetime.now(datetime.timezone.utc).strftime("%Y%m%dT%H%M%SZ"),
+
+    # Optional matching AI image (Higgsfield). Saved beside the draft so the reviewer sees the
+    # post text AND the image together in one NEEDS-APPROVAL card. fake/dry writes placeholder bytes.
+    if "--image" in sys.argv:
+        import os
+        from integrations.higgsfield_media.client import HiggsfieldMediaClient
+        img_prompt = (f"Professional, photorealistic social media image about: {topic}. "
+                      f"Context: {fv.get('name', 'a local service company')} serving "
+                      f"{fv.get('service_area', 'the local area')}. Bright, clean, high quality, "
+                      f"realistic, no text, no logos, no watermark.")
+        img_path = ROOT/"clients"/client/area/"assets"/draft_id/"still.png"
+        ok, meta = HiggsfieldMediaClient(fake=dry).generate_image(img_prompt, img_path)
+        if ok:
+            content["media"] = {"type": "image", "prompt": img_prompt, "model": meta.get("model"),
+                                "path": str(img_path.relative_to(ROOT)).replace("\\", "/")}
+            base = os.environ.get("ASSET_BASE_URL", "")
+            if base:
+                content["media_url"] = f"{base.rstrip('/')}/{client}/{draft_id}/still.png"
+            print(f"  [image] {meta.get('model')} -> {content['media']['path']}")
+        else:
+            content["media_error"] = meta.get("error", "image generation failed")
+            print(f"  [image] FAILED: {content['media_error']}")
+
+    draft = {"draft_id": draft_id,
              "client_id": client, "kind": content["kind"], "workflow_id": workflow, "scope_id": scope,
              "status": "pending_human_review",
              "created": datetime.datetime.now(datetime.timezone.utc).isoformat(),
              "source": {"topic": topic}, "content": content,
              "provenance": {"generated_by": model, "facts_used": bool(facts), "area": area},
-             "note": "Review/edit, then scripts/approve_draft.py to emit a hashed approved artifact."}
+             "note": "Review/edit (plus the image if present), then scripts/approve_draft.py to emit a hashed approved artifact."}
     pend = ROOT/"clients"/client/area/"approvals"/"pending"; pend.mkdir(parents=True, exist_ok=True)
     out = pend/f"{scope}__{workflow}__draft.json"; out.write_text(json.dumps(draft, indent=2))
     print(f"[article-writer] {kind} draft ({model}) -> {out.relative_to(ROOT)}")
     if not dry:
-        notify.send(f"Needs approval: {kind} article '{topic}' for {client} — open the board", level="approval")
+        notify.send(f"Needs approval: {kind} post '{topic}' for {client} — open the board", level="approval")
     print("  ", body[:160] + ("…" if len(body) > 160 else ""))
 
 if __name__ == "__main__":

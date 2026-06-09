@@ -31,6 +31,7 @@ CREATORS = {
     "quora":      {"label": "Quora answer",           "script": "automations/article-writer/run.py",  "args": ["--kind", "quora"],    "input": "--topic", "slug": True},
     "facebook":   {"label": "Facebook post",          "script": "automations/article-writer/run.py",  "args": ["--kind", "facebook"], "input": "--topic", "slug": True},
     "reddit":     {"label": "Reddit post",            "script": "automations/article-writer/run.py",  "args": ["--kind", "reddit"],   "input": "--topic", "slug": True},
+    "reddit_image": {"label": "Reddit post + image (Higgsfield)", "script": "automations/article-writer/run.py", "args": ["--kind", "reddit", "--image"], "input": "--topic", "slug": True, "bg": True},
     "edge_html":  {"label": "Edge HTML + Schema",     "script": "scripts/gen_edge_html.py",            "args": [],                      "input": "--topic", "slug": True},
     "podcast":    {"label": "Podcast episode",        "script": "automations/podcast-producer/run.py", "args": [],                      "input": "--topic", "slug": True},
     "tool":       {"label": "Custom tool / widget",   "script": "automations/tool-builder/run.py",     "args": [],                      "input": "--tool",  "slug": True},
