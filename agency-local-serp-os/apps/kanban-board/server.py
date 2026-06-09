@@ -240,6 +240,14 @@ class Handler(BaseHTTPRequestHandler):
             p = STATIC/"vendor"/"apexcharts.min.js"
             if not p.exists(): return self._send(404, {"error": "vendor asset missing"})
             return self._send(200, p.read_bytes(), "application/javascript")
+        if path == "/vendor/leaflet/leaflet.js":          # vendored map lib (fixed name, no traversal)
+            p = STATIC/"vendor"/"leaflet"/"leaflet.js"
+            if not p.exists(): return self._send(404, {"error": "vendor asset missing"})
+            return self._send(200, p.read_bytes(), "application/javascript")
+        if path == "/vendor/leaflet/leaflet.css":
+            p = STATIC/"vendor"/"leaflet"/"leaflet.css"
+            if not p.exists(): return self._send(404, {"error": "vendor asset missing"})
+            return self._send(200, p.read_bytes(), "text/css")
         if path.startswith("/api/mc/"):                  # read-only dashboard projections
             qs = urllib.parse.parse_qs(urllib.parse.urlparse(self.path).query)
             client = (qs.get("client") or [None])[0]

@@ -193,6 +193,11 @@
 .geo-row{display:flex;gap:6px;justify-content:center}
 .geo-cell{width:46px;height:46px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-family:'Sora',sans-serif;font-weight:700;font-size:14px;color:#0d1117;border:2px solid rgba(255,255,255,.12)}
 @media(max-width:600px){.geo-cell{width:34px;height:34px;font-size:11px}}
+/* real map-pack map (Leaflet + OSM) */
+.geo-map{height:400px;border-radius:10px;overflow:hidden;border:1px solid var(--line)}
+.leaflet-container{background:#0d131b;font-family:'JetBrains Mono',monospace}
+.geo-pin-wrap{background:transparent!important;border:0!important}
+.geo-pin{width:34px;height:34px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-family:'Sora',sans-serif;font-weight:700;font-size:13px;color:#0d1117;border:2px solid #fff;box-shadow:0 1px 5px rgba(0,0,0,.45)}
 
 /* Multi-engine AI visibility */
 .aiv-engines{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}

@@ -481,10 +481,19 @@ def geo_grid_view(root, client=None):
     root = pathlib.Path(root)
     client, clients = _resolve_client(root, client)
     doc = _load_json(root / "clients" / str(client) / "signals" / "geo_grid.json")
+    center = None
+    cstr = (doc or {}).get("center")
+    if cstr:
+        try:
+            parts = str(cstr).split(",")
+            center = {"lat": float(parts[0]), "lng": float(parts[1])}
+        except Exception:
+            center = None
     return {"generated": _now().isoformat(), "client": client, "available": bool(doc),
             "keyword": (doc or {}).get("keyword"), "size": (doc or {}).get("size"),
             "location": (doc or {}).get("location"), "pulled": (doc or {}).get("pulled"),
-            "matrix": (doc or {}).get("matrix") or [], "solv": (doc or {}).get("solv") or {}}
+            "matrix": (doc or {}).get("matrix") or [], "solv": (doc or {}).get("solv") or {},
+            "points": (doc or {}).get("points") or [], "center": center}
 
 
 def search_intelligence(root, client=None):

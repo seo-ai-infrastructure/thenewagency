@@ -386,24 +386,51 @@
     renderGeoGrid(d.geo_grid);
     renderCorrelation(d.gsc_correlation);
   };
+  const geoRankColor = v => v == null ? "#9ca3af" : v <= 3 ? "#34d399" : v <= 7 ? "#38bdf8" : v <= 10 ? "#fbbf24" : "#f87171";
   function renderGeoGrid(g) {
     const host = $("si-geogrid"), meta = $("si-geo-meta");
     if (!host) return;
-    if (!g || !g.available || !(g.matrix || []).length) {
+    if (!g || !g.available || !((g.points || []).length || (g.matrix || []).length)) {
+      if (MC.geomap) { try { MC.geomap.remove(); } catch (e) {} MC.geomap = null; }
+      MC.geomapSig = null;
       host.innerHTML = `<div class="mc-empty">No geo-grid pull yet — run <code>automations/geo-grid</code>.</div>`;
       if (meta) meta.textContent = "— Share of Local Voice across a rank grid"; return;
     }
-    const rankColor = v => v == null ? "#3a1d24" : v <= 3 ? "#34d399" : v <= 7 ? "#38bdf8" : v <= 10 ? "#fbbf24" : "#f87171";
+    // Skip rebuild on the 20s poll when the data (and the live map) are unchanged — avoids map flicker.
+    if (g.pulled && MC.geomapSig === g.pulled && MC.geomap && document.getElementById("si-geomap")) return;
+    if (MC.geomap) { try { MC.geomap.remove(); } catch (e) {} MC.geomap = null; }
+
     const s = g.solv || {};
-    const kpis = [["SoLV", (s.solv != null ? Math.round(s.solv * 100) + "%" : "—")],
-                  ["Ranked points", `${s.points_ranked ?? "—"}/${s.points_total ?? "—"}`],
-                  ["Top-3 points", s.top3_points ?? "—"], ["Avg rank", s.avg_rank ?? "—"]];
-    const cells = g.matrix.map(row => `<div class="geo-row">` + row.map(v =>
-      `<div class="geo-cell" style="background:${rankColor(v)}" title="rank ${v == null ? "absent" : v}">${v == null ? "·" : v}</div>`).join("") + `</div>`).join("");
-    host.innerHTML = `<div class="mc-kpis" style="grid-template-columns:repeat(4,1fr);margin-bottom:12px">${
-      kpis.map(([l, v]) => `<div class="kpi"><div class="k-label">${esc(l)}</div><div class="k-val">${esc(v)}</div></div>`).join("")}</div>
-      <div class="geo-grid-wrap">${cells}</div>
-      <div class="legend-row" style="margin-top:8px"><span><i style="background:#34d399"></i>1–3</span><span><i style="background:#38bdf8"></i>4–7</span><span><i style="background:#fbbf24"></i>8–10</span><span><i style="background:#f87171"></i>11+</span><span><i style="background:#3a1d24"></i>absent</span></div>`;
+    const kpiHtml = `<div class="mc-kpis" style="grid-template-columns:repeat(4,1fr);margin-bottom:12px">${
+      [["SoLV", s.solv != null ? Math.round(s.solv * 100) + "%" : "—"],
+       ["Ranked points", `${s.points_ranked ?? "—"}/${s.points_total ?? "—"}`],
+       ["Top-3 points", s.top3_points ?? "—"], ["Avg rank", s.avg_rank ?? "—"]]
+        .map(([l, v]) => `<div class="kpi"><div class="k-label">${esc(l)}</div><div class="k-val">${esc(v)}</div></div>`).join("")}</div>`;
+    const legend = `<div class="legend-row" style="margin-top:8px"><span><i style="background:#34d399"></i>1–3</span><span><i style="background:#38bdf8"></i>4–7</span><span><i style="background:#fbbf24"></i>8–10</span><span><i style="background:#f87171"></i>11+</span><span><i style="background:#9ca3af"></i>absent</span></div>`;
+    const pts = (g.points || []).filter(p => p.lat != null && p.lng != null);
+
+    if (window.L && pts.length) {
+      // Real map-pack geo-grid: OpenStreetMap tiles with a colored rank pin at each point's lat/lng
+      host.innerHTML = kpiHtml + `<div id="si-geomap" class="geo-map"></div>` + legend;
+      const map = L.map("si-geomap", { scrollWheelZoom: false });
+      L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
+        { maxZoom: 19, attribution: "&copy; OpenStreetMap" }).addTo(map);
+      pts.forEach(p => {
+        const v = p.rank_absolute;
+        const icon = L.divIcon({ className: "geo-pin-wrap", iconSize: [34, 34], iconAnchor: [17, 17],
+          html: `<div class="geo-pin" style="background:${geoRankColor(v)}">${v == null ? "·" : v}</div>` });
+        L.marker([p.lat, p.lng], { icon }).addTo(map).bindTooltip(v == null ? "absent" : "rank " + v);
+      });
+      try { map.fitBounds(pts.map(p => [p.lat, p.lng]), { padding: [28, 28] }); } catch (e) {}
+      MC.geomap = map; MC.geomapSig = g.pulled;
+      setTimeout(() => { try { map.invalidateSize(); } catch (e) {} }, 150);
+    } else {
+      // Fallback (no Leaflet / offline): the numeric rank grid
+      const cells = (g.matrix || []).map(row => `<div class="geo-row">` + row.map(v =>
+        `<div class="geo-cell" style="background:${geoRankColor(v)}" title="rank ${v == null ? "absent" : v}">${v == null ? "·" : v}</div>`).join("") + `</div>`).join("");
+      host.innerHTML = kpiHtml + `<div class="geo-grid-wrap">${cells}</div>` + legend;
+      MC.geomapSig = null;
+    }
     if (meta) meta.textContent = `— “${g.keyword}” · ${g.size}×${g.size} grid · ${g.location || ""}`;
   }
   function renderDailyTrend(dt) {
