@@ -381,13 +381,8 @@
             <div id="ai-ti-pressure-table" style="margin-top:8px;"></div>
           </div>
 
-          <div class="kpi" style="padding:14px; margin-bottom:8px;">
-            <h4 class="sub-h" style="margin-top:0; color:#38bdf8;">Competitor review sentiment <span style="font-weight:400; color:var(--dim); font-size:11px;">— negative reviews mined per competitor (live watchdog)</span></h4>
-            <div id="ai-ti-sentiment" style="height:260px; margin-top:10px;"></div>
-          </div>
-
           <div style="text-align: center; font-size: 10px; color: var(--dim); border-top: 1px solid var(--line); padding-top: 12px; margin-top: 14px;" id="ti-foot">
-            Sourced from the live Firecrawl AEO crawl, the DataForSEO SERP tracker, and the competitor-review watchdog. No synthetic figures.
+            Sourced from the live Firecrawl AEO crawl and the DataForSEO SERP tracker. Competitor review sentiment lives on the Threat Intelligence tab.
           </div>
         </div>
       </div>`;
@@ -434,28 +429,7 @@
                             String(t.keywords), t.avg_rank != null ? String(t.avg_rank) : "—",
                             tlBadge(t.threat_level)]))
       : `<div class="mc-empty">no rival domains in the tracked SERPs yet</div>`;
-
-    // Review-sentiment chart — negative reviews mined per competitor (live watchdog)
-    const rs = ti.review_sentiment || [];
-    const sentEl = $("ai-ti-sentiment");
-    if (HAS_APEX() && rs.length && sentEl) {
-      const ch = new ApexCharts(sentEl, {
-        chart: { type: "bar", height: 260, background: "transparent", toolbar: { show: false } },
-        theme: { mode: "dark" },
-        series: [{ name: "Negative reviews mined", data: rs.map(r => r.negatives || 0) }],
-        xaxis: { categories: rs.map(r => r.competitor), labels: { style: { colors: "#7d8a9a", fontSize: "10px" } } },
-        yaxis: { labels: { style: { colors: "#7d8a9a" } } },
-        colors: ["#f87171"],
-        plotOptions: { bar: { borderRadius: 4, columnWidth: "45%" } },
-        dataLabels: { enabled: true, style: { colors: ["#e6edf3"] } },
-        grid: { borderColor: "#222c39" },
-        legend: { show: false },
-        tooltip: { theme: "dark", y: { formatter: (v, opts) => { const r = rs[opts.dataPointIndex] || {}; return v + " negative · avg " + (r.avg_rating != null ? r.avg_rating + "★" : "—") + (r.top_theme ? " · " + r.top_theme : ""); } } }
-      });
-      ch.render(); MC.charts.ai_ti_sentiment = ch;
-    } else if (sentEl) {
-      sentEl.innerHTML = `<div class="mc-empty">no review data yet</div>`;
-    }
+    // (Competitor review sentiment moved to the Threat Intelligence tab.)
   };
 
   /* ============================ REAL-TIME FEEDBACK ============================ */
