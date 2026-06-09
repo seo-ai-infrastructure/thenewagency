@@ -16,7 +16,8 @@ function setView(v){
   $("nav-ti").classList.toggle("active", v === "ti");
   $("nav-board").classList.toggle("active", isBoard);
   document.querySelectorAll(".board-only").forEach(el => el.classList.toggle("mc-hide", !isBoard));
-  if(window.mcShow) window.mcShow(isBoard ? null : v);   // start/stop the active dashboard poll
+  const isDash = ["mc","si","ai","ci","ti"].includes(v);  // only the mission-control dashboards poll
+  if(window.mcShow) window.mcShow(isDash ? v : null);     // board + fractional are not dashboards -> null
   if(isBoard) refresh();                                  // board just became visible -> pull state now
   if(v === "fr") refreshFractional();
   try { if (location.hash !== "#" + v) history.replaceState(null, "", "#" + v); } catch(e){}  // deep-linkable
