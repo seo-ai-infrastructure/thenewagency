@@ -199,6 +199,38 @@ def move_wo(automation, filename, to):
                             "reason": "manual_override via board"}) + "\n")
     return str(dst.relative_to(ROOT))
 
+COL_FOLDER = {"queued": "inbox", "progress": "working", "done": "done", "held": "failed"}
+
+def _safe_wo_path(automation, filename):
+    """Resolve a WO file by basename across the four state folders. Traversal-proof."""
+    if automation not in INBOX_DIR.values():
+        raise ValueError("unknown automation")
+    if filename != pathlib.Path(filename).name or not filename.endswith(".json"):
+        raise ValueError("bad filename")
+    sub = ROOT/"automations"/automation
+    for folder in ("inbox", "working", "done", "failed"):
+        cand = sub/folder/filename
+        if cand.exists():
+            return sub, folder, cand
+    raise FileNotFoundError(filename)
+
+def reorder_inbox(automation, order):
+    """Rewrite order_index 0..N on the named inbox WOs (advisory triage order)."""
+    if automation not in INBOX_DIR.values():
+        raise ValueError("unknown automation")
+    inbox = ROOT/"automations"/automation/"inbox"
+    written = 0
+    for i, filename in enumerate(order):
+        if filename != pathlib.Path(filename).name or not filename.endswith(".json"):
+            raise ValueError("bad filename")
+        p = inbox/filename
+        if not p.exists():
+            continue
+        wo = json.loads(p.read_text()); wo["order_index"] = i
+        tmp = p.with_suffix(".json.tmp"); tmp.write_text(json.dumps(wo, indent=2)); tmp.replace(p)
+        written += 1
+    return written
+
 # ---------------- HTTP ----------------
 class Handler(BaseHTTPRequestHandler):
     def _guard(self):

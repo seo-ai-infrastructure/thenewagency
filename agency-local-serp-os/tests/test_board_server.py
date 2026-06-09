@@ -91,3 +91,24 @@ def test_csrf_guard_blocks_cross_site():
     f.headers = {"Sec-Fetch-Site": "same-origin"};          assert srv.Handler._csrf_ok(f) is True
     f.headers = {"Origin": "http://127.0.0.1:8787"};        assert srv.Handler._csrf_ok(f) is True
     f.headers = {};                                          assert srv.Handler._csrf_ok(f) is True  # curl/no browser
+
+
+def test_reorder_inbox_writes_sequential_order_index():
+    srv = _srv()
+    inbox = ROOT / "automations" / "zernio-publisher" / "inbox"; inbox.mkdir(parents=True, exist_ok=True)
+    f1 = inbox / "wo_ro_1.json"; f1.write_text(json.dumps({"work_order_id": "wo_ro_1", "order_index": 9}))
+    f2 = inbox / "wo_ro_2.json"; f2.write_text(json.dumps({"work_order_id": "wo_ro_2", "order_index": 9}))
+    try:
+        n = srv.reorder_inbox("zernio-publisher", ["wo_ro_2.json", "wo_ro_1.json"])
+        assert n == 2
+        assert json.loads(f2.read_text())["order_index"] == 0
+        assert json.loads(f1.read_text())["order_index"] == 1
+    finally:
+        f1.unlink(missing_ok=True); f2.unlink(missing_ok=True)
+
+
+def test_reorder_inbox_rejects_bad_inputs():
+    srv = _srv()
+    with pytest.raises(ValueError): srv.reorder_inbox("not-an-automation", ["wo_x.json"])
+    with pytest.raises(ValueError): srv.reorder_inbox("zernio-publisher", ["../evil.json"])
+    with pytest.raises(ValueError): srv.reorder_inbox("zernio-publisher", ["wo_x.txt"])
