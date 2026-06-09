@@ -131,6 +131,12 @@ function fillTargets(){
   }
   $("m-target").innerHTML = opts.map(o=>`<option>${esc(o)}</option>`).join("") || '<option value="">(none configured)</option>';
   $("m-note").textContent = w&&w.approval_required ? "This workflow is gated — it will sit in QUEUED until approved." : "";
+  // reddit_post targets a subreddit (-> task_params.target). Show a picker from the client's roster.
+  const showSub = !!w && w.id === "reddit_post";
+  const subs = e.subreddits || [];
+  $("m-subreddit-wrap").classList.toggle("hidden", !showSub);
+  $("m-subreddit").innerHTML = subs.map(s=>`<option value="${esc(s.name)}">${esc(s.title||s.name)}</option>`).join("")
+      || '<option value="">(add one in browser/subreddits.yaml)</option>';
 }
 async function createContent(){
   const body = {client:$("c-client").value, task:$("c-task").value,
@@ -148,6 +154,12 @@ async function create(){
   let params = {};
   try{ if($("m-params").value.trim()) params = JSON.parse($("m-params").value); }
   catch(err){ alert("Task params must be valid JSON"); return; }
+  // reddit_post: the chosen subreddit becomes task_params.target (where the agent posts the approved text)
+  if(w.id === "reddit_post" && !$("m-subreddit-wrap").classList.contains("hidden")){
+    const sub = $("m-subreddit").value;
+    if(!sub){ alert("Pick a subreddit (or add one in browser/subreddits.yaml)"); return; }
+    params.target = sub;
+  }
   const r = await apiCall("/api/create", {client:c, workflow_id:w.id, target:$("m-target").value,
                                       period:$("m-period").value.trim()||null, task_params:params});
   alert(r.ok? `Created ${r.work_order_id}\n→ ${r.inbox}` : "Error: "+r.error);

@@ -112,7 +112,7 @@ def catalog():
         for wf_path in sorted(ROOT.glob(f"clients/*/{area}/workflows.yaml")):
             client = wf_path.parts[wf_path.parts.index("clients")+1]
             base = wf_path.parent
-            entry = out.setdefault(client, {"workflows": [], "profiles": {}, "locations": []})
+            entry = out.setdefault(client, {"workflows": [], "profiles": {}, "locations": [], "subreddits": []})
             for w in (yaml.safe_load(wf_path.read_text()) or {}).get("workflows", []):
                 entry["workflows"].append({"id": w["workflow_id"], "area": area,
                     "execution_method": w.get("execution_method"),
@@ -122,6 +122,11 @@ def catalog():
             if pf.exists():
                 for p in (yaml.safe_load(pf.read_text()) or {}).get("profiles", []):
                     entry["profiles"].setdefault(area, []).append(p["profile_id"])
+            sr = base/"subreddits.yaml"      # reddit_post targets: name -> task_params.target
+            if sr.exists():
+                for s in (yaml.safe_load(sr.read_text()) or {}).get("subreddits", []):
+                    entry["subreddits"].append({"name": s.get("name"),
+                        "title": s.get("title") or s.get("name"), "url": s.get("url", "")})
             gb = base/"google_business.yaml"
             if gb.exists():
                 g = yaml.safe_load(gb.read_text()) or {}
