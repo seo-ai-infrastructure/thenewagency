@@ -14,6 +14,9 @@ ctx handle (returned by launch, passed back to verify/run/close) is a dict:
 """
 import os, json, time, threading, importlib.util, pathlib
 
+import requests
+import yaml
+
 
 class CloakBrowserClient:
     def __init__(self, rate_limiter, fake=False):
@@ -36,6 +39,8 @@ class CloakBrowserClient:
             return {"profile_id": profile["profile_id"], "fake": True, "context": None, "page": None,
                     "user_data_dir": profile.get("user_data_dir"),
                     "logged_in_as": profile.get("expected_account")}      # persistent session pretended
+        if os.environ.get("CLOAKBROWSER_EXECUTION_MODE", "local_package") == "cb_manager":
+            return self._launch_cb_manager(profile)
         import cloakbrowser
         udd = pathlib.Path(os.path.expanduser(profile["user_data_dir"]))  # ~ resolves on Windows too
         udd.mkdir(parents=True, exist_ok=True)
@@ -49,6 +54,80 @@ class CloakBrowserClient:
         page = ctx.pages[0] if ctx.pages else ctx.new_page()
         return {"profile_id": profile["profile_id"], "fake": False, "context": ctx, "page": page,
                 "user_data_dir": str(udd)}
+
+    def _launch_cb_manager(self, profile):
+        """Attach to an already-persistent CB Agent Crew / CloakBrowser Manager profile.
+
+        This mode never creates a fresh browser context. It requires a profile mapping to an
+        existing Manager-backed CB profile and fails closed when CDP is unavailable.
+        """
+        api_base = os.environ.get("CB_CREW_API_BASE", "http://127.0.0.1:8010").rstrip("/")
+        cb_profile_id = self._resolve_cb_profile_id(api_base, profile)
+        launch = requests.post(f"{api_base}/api/profiles/{cb_profile_id}/launch", timeout=30)
+        if launch.status_code >= 400:
+            raise RuntimeError(f"CB profile launch failed ({launch.status_code}): {launch.text[:240]}")
+        cdp = requests.get(f"{api_base}/api/profiles/{cb_profile_id}/cdp", timeout=30)
+        if cdp.status_code >= 400:
+            raise RuntimeError(f"CB profile CDP lookup failed ({cdp.status_code}): {cdp.text[:240]}")
+        cdp_info = cdp.json()
+        endpoint = (
+            cdp_info.get("websocketUrl")
+            or cdp_info.get("targetWebSocketDebuggerUrl")
+            or cdp_info.get("browserWSEndpoint")
+        )
+        if not endpoint:
+            raise RuntimeError("CB Manager profile is launched but no live CDP websocket is available")
+        ctx = self._connect_cdp(endpoint)
+        return {
+            "profile_id": profile["profile_id"],
+            "cb_profile_id": cb_profile_id,
+            "fake": False,
+            "managed_by_cb": True,
+            **ctx,
+        }
+
+    def _resolve_cb_profile_id(self, api_base, profile):
+        if profile.get("cb_profile_id"):
+            return profile["cb_profile_id"]
+        mapping = self._cb_mapping_for(profile)
+        if mapping.get("cb_profile_id"):
+            return mapping["cb_profile_id"]
+        name = mapping.get("cb_profile_name") or profile.get("cb_profile_name")
+        if not name:
+            raise RuntimeError(f"profile {profile['profile_id']} has no CB Agent Crew mapping")
+        resp = requests.get(f"{api_base}/api/profiles", timeout=30)
+        if resp.status_code >= 400:
+            raise RuntimeError(f"CB profile list failed ({resp.status_code}): {resp.text[:240]}")
+        for item in resp.json():
+            if item.get("name") == name and item.get("id"):
+                return item["id"]
+        raise RuntimeError(f"CB profile {name} is not available; run scripts/sync_cb_agent_profiles.py")
+
+    def _cb_mapping_for(self, profile):
+        data_dir = profile.get("browser_data_dir")
+        if not data_dir:
+            return {}
+        path = pathlib.Path(data_dir) / "cb_agent_profiles.yaml"
+        if not path.exists():
+            return {}
+        data = yaml.safe_load(path.read_text()) or {}
+        for mapping in data.get("profiles", []):
+            if mapping.get("os_profile_id") == profile.get("profile_id"):
+                return mapping
+        return {}
+
+    def _connect_cdp(self, endpoint):
+        from playwright.sync_api import sync_playwright
+
+        pw = sync_playwright().start()
+        browser = pw.chromium.connect_over_cdp(endpoint)
+        context = browser.contexts[0] if browser.contexts else None
+        if context is None:
+            browser.close()
+            pw.stop()
+            raise RuntimeError("CB Manager CDP endpoint exposed no persistent browser context")
+        page = context.pages[0] if context.pages else context.new_page()
+        return {"context": context, "page": page, "browser": browser, "playwright": pw}
 
     def verify_profile(self, ctx, profile):
         """Verify-before-act: confirm the persistent session is the expected account."""
@@ -159,6 +238,18 @@ class CloakBrowserClient:
 
     def close(self, ctx):
         if self.fake:
+            return
+        if isinstance(ctx, dict) and ctx.get("managed_by_cb"):
+            # CDP mode attaches to a Manager-owned persistent profile. Disconnect only.
+            b = ctx.get("browser")
+            pw = ctx.get("playwright")
+            try:
+                disconnect = getattr(b, "disconnect", None)
+                if callable(disconnect):
+                    disconnect()
+            finally:
+                if pw is not None:
+                    pw.stop()
             return
         c = ctx.get("context") if isinstance(ctx, dict) else None
         if c is not None:

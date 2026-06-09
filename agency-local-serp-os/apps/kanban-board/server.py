@@ -11,7 +11,7 @@ Interactive actions are wired to the REAL machinery, not a parallel abstraction:
   python apps/kanban-board/server.py [--host 127.0.0.1] [--port 8787]
 Open http://127.0.0.1:8787 . The browser polls every 3s.
 """
-import sys, os, json, subprocess, datetime, pathlib, urllib.parse
+import sys, os, json, subprocess, datetime, pathlib, urllib.parse, hashlib, hmac
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
 HERE = pathlib.Path(__file__).resolve().parent
@@ -354,6 +354,111 @@ def agent_action(client, profile_id, kind):
                 params = s.get("task_params", {}); break
     return build_work_order(client, "agent_engagement", profile_id, today(), params)
 
+# ---------------- CB Agent Crew bridge ----------------
+def cb_clients():
+    clients = set()
+    for p in ROOT.glob("clients/*"):
+        if p.is_dir():
+            clients.add(p.name)
+    return sorted(clients)
+
+def cb_health():
+    return {
+        "ok": True,
+        "service": "agency-local-serp-os",
+        "bridge": "cb-agent-crew",
+        "root": str(ROOT),
+        "clients": cb_clients(),
+        "token_required": bool(os.environ.get("AGENCY_OS_BRIDGE_TOKEN", "")),
+        "generated": now_iso(),
+    }
+
+def cb_board(client=None):
+    by = board_scan.grouped(ROOT)
+    if client:
+        by = {k: [card for card in cards if card.get("client") == client] for k, cards in by.items()}
+    cols = [{"key": k, "name": n, "accent": a, "cards": by.get(k, [])} for k, n, a in board_scan.COLS]
+    calendar = board_scan.content_calendar(ROOT)
+    if client:
+        calendar = [entry for entry in calendar if entry.get("client") == client]
+    clients = sorted(
+        {c.get("client") for col in cols for c in col["cards"] if c.get("client")}
+        | {e["client"] for e in calendar if e.get("client")}
+    )
+    return {
+        "generated": now_iso(),
+        "client": client,
+        "counts": {k: len(by.get(k, [])) for k, *_ in board_scan.COLS},
+        "columns": cols,
+        "calendar": calendar,
+        "clients": clients,
+    }
+
+def _work_order_index():
+    by_id = {}
+    for automation in INBOX_DIR.values():
+        sub = ROOT/"automations"/automation
+        for folder in ("inbox", "working", "done", "failed"):
+            for p in (sub/folder).glob("wo_*.json"):
+                try:
+                    wo = json.loads(p.read_text())
+                except Exception:
+                    continue
+                wid = wo.get("work_order_id")
+                if wid:
+                    by_id[wid] = {"automation": automation, "folder": folder, "path": str(p.relative_to(ROOT)), "wo": wo}
+    return by_id
+
+def cb_history(client=None, limit=200):
+    index = _work_order_index()
+    rows = []
+    for automation in sorted(INBOX_DIR.values()):
+        h = ROOT/"automations"/automation/"history"/"runs.jsonl"
+        if not h.exists():
+            continue
+        for line_no, line in enumerate(h.read_text().splitlines(), 1):
+            try:
+                row = json.loads(line)
+            except Exception:
+                continue
+            wid = row.get("work_order_id") or ""
+            wo_meta = index.get(wid, {})
+            wo = wo_meta.get("wo") or {}
+            row_client = row.get("client_id") or wo.get("client_id")
+            if client and row_client != client:
+                continue
+            stable = "|".join([automation, str(wid), str(row.get("ts", "")), str(row.get("status", "")), str(line_no)])
+            external_id = f"agency-os:{hashlib.sha256(stable.encode()).hexdigest()[:24]}"
+            rows.append({
+                "external_id": external_id,
+                "automation": automation,
+                "client": row_client,
+                "work_order_id": wid,
+                "workflow_id": row.get("workflow_id") or wo.get("workflow_id"),
+                "profile_id": row.get("profile_id") or row.get("scope_id") or wo.get("profile_id"),
+                "status": row.get("status"),
+                "stage": row.get("stage"),
+                "reason": row.get("reason") or row.get("note"),
+                "landed": row.get("landed"),
+                "execution": row.get("execution") or row.get("surface") or wo.get("execution_method"),
+                "ts": row.get("ts"),
+                "folder": wo_meta.get("folder"),
+                "work_order_path": wo_meta.get("path"),
+                "task_report": row.get("task_report"),
+                "raw": row,
+            })
+    rows.sort(key=lambda item: item.get("ts") or "", reverse=True)
+    try:
+        bounded = max(1, min(int(limit), 1000))
+    except Exception:
+        bounded = 200
+    return {"generated": now_iso(), "client": client, "count": len(rows[:bounded]), "items": rows[:bounded]}
+
+def cb_create_workorder(body):
+    wid, rel = build_work_order(body["client"], body["workflow_id"], body.get("target"),
+        body.get("period"), body.get("task_params") or {})
+    return {"ok": True, "work_order_id": wid, "inbox": rel}
+
 # ---------------- HTTP ----------------
 class Handler(BaseHTTPRequestHandler):
     def _guard(self):
@@ -373,6 +478,12 @@ class Handler(BaseHTTPRequestHandler):
         if origin and urllib.parse.urlparse(origin).hostname not in ("127.0.0.1", "localhost"):
             return False
         return True
+    def _bridge_ok(self):
+        expected = os.environ.get("AGENCY_OS_BRIDGE_TOKEN", "")
+        if not expected:
+            return True
+        supplied = self.headers.get("X-CB-Bridge-Token", "")
+        return hmac.compare_digest(supplied, expected)
     def _send(self, code, obj, ctype="application/json", extra_headers=None):
         body = obj if isinstance(obj, bytes) else json.dumps(obj).encode()
         self.send_response(code); self.send_header("Content-Type", ctype)
@@ -388,6 +499,12 @@ class Handler(BaseHTTPRequestHandler):
     def do_GET(self):
         if not self._guard(): return
         path = urllib.parse.urlparse(self.path).path
+        qs = urllib.parse.parse_qs(urllib.parse.urlparse(self.path).query)
+        if path == "/api/cb/health": return self._send(200, cb_health())
+        if path == "/api/cb/catalog": return self._send(200, catalog())
+        if path == "/api/cb/board": return self._send(200, cb_board((qs.get("client") or [None])[0]))
+        if path == "/api/cb/history":
+            return self._send(200, cb_history((qs.get("client") or [None])[0], (qs.get("limit") or [200])[0]))
         if path in ("/", "/index.html"): return self._file("index.html", "text/html")
         if path == "/app.js": return self._file("app.js", "application/javascript")
         if path == "/styles.css": return self._file("styles.css", "text/css")
@@ -466,8 +583,12 @@ class Handler(BaseHTTPRequestHandler):
         if not self._csrf_ok():
             return self._send(403, {"error": "cross-site POST blocked"})
         path = urllib.parse.urlparse(self.path).path
+        if path.startswith("/api/cb/") and not self._bridge_ok():
+            return self._send(401, {"error": "bridge token required"})
         try:
             b = self._body()
+            if path == "/api/cb/workorders":
+                return self._send(200, cb_create_workorder(b))
             if path == "/api/approve":
                 out, h = approvals.approve_draft(ROOT, b["client"], b.get("area", "rpa"),
                     b["scope"], b["workflow"], b.get("period") or today(),

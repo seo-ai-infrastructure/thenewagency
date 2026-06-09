@@ -1,0 +1,7 @@
+version: 1
+profiles:
+- os_profile_id: example-hvac-client-cb-agent
+  cb_profile_name: agent_hvac_fortlauderdale
+  cb_role: executor
+  niche: hvac
+  market: fort_lauderdale

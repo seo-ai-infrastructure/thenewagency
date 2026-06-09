@@ -225,3 +225,86 @@ def test_fractional_board_lists_browser_personas():
     lane = next(i for i in fb["identities"] if i["profile_id"] == "example-hvac-client-cb-agent")
     assert set(lane["columns"].keys()) == {"queued", "progress", "done", "held"}
     assert lane["client"] == "example-hvac-client"
+
+
+def test_cb_bridge_token_gate(monkeypatch):
+    srv = _srv()
+    f = type("F", (), {})()
+    monkeypatch.setenv("AGENCY_OS_BRIDGE_TOKEN", "secret")
+    f.headers = {"X-CB-Bridge-Token": "wrong"}
+    assert srv.Handler._bridge_ok(f) is False
+    f.headers = {"X-CB-Bridge-Token": "secret"}
+    assert srv.Handler._bridge_ok(f) is True
+    monkeypatch.delenv("AGENCY_OS_BRIDGE_TOKEN")
+    f.headers = {}
+    assert srv.Handler._bridge_ok(f) is True
+
+
+def test_cb_bridge_catalog_and_board_projection():
+    srv = _srv()
+    assert "example-hvac-client" in srv.cb_clients()
+    assert "example-hvac-client" in srv.cb_health()["clients"]
+    assert "example-hvac-client" in srv.catalog()
+    board = srv.cb_board("example-hvac-client")
+    assert board["client"] == "example-hvac-client"
+    assert set(board["counts"]) == {"approval", "queued", "progress", "done", "held"}
+
+
+def test_cb_bridge_create_workorder_uses_existing_builder():
+    srv = _srv()
+    result = srv.cb_create_workorder({
+        "client": "example-hvac-client",
+        "workflow_id": "facebook_post",
+        "target": "example-hvac-client-cb-agent",
+        "period": "2026-06-20",
+        "task_params": {"source": "test"},
+    })
+    p = ROOT / result["inbox"]
+    try:
+        wo = json.loads(p.read_text())
+        assert result["ok"] is True
+        assert wo["execution_method"] == "cloakbrowser"
+        assert wo["profile_id"] == "example-hvac-client-cb-agent"
+        assert wo["task_params"] == {"source": "test"}
+    finally:
+        p.unlink(missing_ok=True)
+
+
+def test_cb_bridge_history_normalizes_runner_rows():
+    srv = _srv()
+    sub = ROOT / "automations" / "cloakbrowser-runner"
+    done = sub / "done" / "wo_cb_hist.json"
+    done.parent.mkdir(parents=True, exist_ok=True)
+    done.write_text(json.dumps({
+        "work_order_id": "wo_cb_hist",
+        "execution_method": "cloakbrowser",
+        "client_id": "example-hvac-client",
+        "workflow_id": "facebook_post",
+        "profile_id": "example-hvac-client-cb-agent",
+    }))
+    hist = sub / "history" / "runs.jsonl"
+    hist_before = hist.read_text() if hist.exists() else None
+    hist.parent.mkdir(parents=True, exist_ok=True)
+    with hist.open("a") as h:
+        h.write(json.dumps({
+            "ts": "2026-06-09T00:00:00+00:00",
+            "status": "done",
+            "work_order_id": "wo_cb_hist",
+            "profile_id": "example-hvac-client-cb-agent",
+            "workflow_id": "facebook_post",
+            "landed": True,
+        }) + "\n")
+    try:
+        history = srv.cb_history("example-hvac-client")
+        row = next(item for item in history["items"] if item["work_order_id"] == "wo_cb_hist")
+        assert row["external_id"].startswith("agency-os:")
+        assert row["automation"] == "cloakbrowser-runner"
+        assert row["client"] == "example-hvac-client"
+        assert row["status"] == "done"
+        assert row["landed"] is True
+    finally:
+        done.unlink(missing_ok=True)
+        if hist_before is not None:
+            hist.write_text(hist_before)
+        else:
+            hist.unlink(missing_ok=True)

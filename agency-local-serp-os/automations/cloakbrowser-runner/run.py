@@ -46,6 +46,8 @@ def process(wo_path):
     if not working: return
     wid = wo["work_order_id"]; pid = wo["profile_id"]; wf = WFS[wo["workflow_id"]]
     profile = PROFILES.get(pid)
+    if profile is not None:
+        profile = {**profile, "client_id": CLIENT, "browser_data_dir": str(DATA)}
     rep = {"work_order_id": wid, "profile_id": pid, "workflow_id": wo["workflow_id"], "surface": "cloakbrowser"}
     if profile is None:
         R.finish(working, "failed", {**rep, "reason": f"profile {pid} not found", "stage": "config"})
