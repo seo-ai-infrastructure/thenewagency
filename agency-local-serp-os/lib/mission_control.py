@@ -475,6 +475,18 @@ def daily_trend(root, client=None):
                        "impressions": sum(d.get("impressions") or 0 for d in days)}}
 
 
+def geo_grid_view(root, client=None):
+    """Local map-pack geo-grid + Share of Local Voice (from the geo-grid collector). Each cell is
+    the client's local rank at that grid point; available=False until a pull has run."""
+    root = pathlib.Path(root)
+    client, clients = _resolve_client(root, client)
+    doc = _load_json(root / "clients" / str(client) / "signals" / "geo_grid.json")
+    return {"generated": _now().isoformat(), "client": client, "available": bool(doc),
+            "keyword": (doc or {}).get("keyword"), "size": (doc or {}).get("size"),
+            "location": (doc or {}).get("location"), "pulled": (doc or {}).get("pulled"),
+            "matrix": (doc or {}).get("matrix") or [], "solv": (doc or {}).get("solv") or {}}
+
+
 def search_intelligence(root, client=None):
     root = pathlib.Path(root)
     client, clients = _resolve_client(root, client)
@@ -536,6 +548,7 @@ def search_intelligence(root, client=None):
         "striking_distance": _striking_distance(gsc),
         "gsc_correlation": _gsc_correlation(gsc),
         "daily_trend": daily_trend(root, client),
+        "geo_grid": geo_grid_view(root, client),
         "keyword_rankings": kr,
     }
 

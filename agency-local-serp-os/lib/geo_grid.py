@@ -26,7 +26,9 @@ def build_grid_from_coordinate(coordinate, size=3, step=0.01):
     """Build a grid from a 'lat,lng[,zoom]' string (e.g. a locations.yaml *_coordinate)."""
     parts = str(coordinate).split(",")
     lat, lng = float(parts[0]), float(parts[1])
-    zoom = int(float(parts[2])) if len(parts) > 2 and parts[2].strip() else 14
+    # zoom may carry a trailing 'z' (Google-style "12z") — strip non-numeric before parsing
+    zpart = parts[2].strip().rstrip("zZ").strip() if len(parts) > 2 else ""
+    zoom = int(float(zpart)) if zpart else 14
     return build_grid(lat, lng, size=size, step=step, zoom=zoom)
 
 

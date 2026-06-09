@@ -336,6 +336,10 @@
           <div id="si-trend" style="min-height:320px"></div>
         </div>
         <div class="panel" style="margin-top:13px">
+          <h3>Local map-pack geo-grid <span style="font-weight:400;color:var(--dim);font-size:11px;" id="si-geo-meta">— Share of Local Voice across a rank grid</span> <span class="h-accent"></span></h3>
+          <div id="si-geogrid"></div>
+        </div>
+        <div class="panel" style="margin-top:13px">
           <h3>GSC metric correlation matrix <span class="h-accent"></span></h3>
           <div class="sub" style="margin-bottom:8px">How your GSC metrics relate across queries — diagonal = each metric's distribution, off-diagonal = scatter with Pearson r.</div>
           <div class="corr-legend" id="si-corr-legend"></div>
@@ -379,8 +383,29 @@
     $("si-ranks").innerHTML = `<div class="sub-h">Local Finder</div>${rk(kr.local_finder)}
       <div class="sub-h">Organic Mobile</div>${rk(kr.organic_mobile)}`;
     renderDailyTrend(d.daily_trend);
+    renderGeoGrid(d.geo_grid);
     renderCorrelation(d.gsc_correlation);
   };
+  function renderGeoGrid(g) {
+    const host = $("si-geogrid"), meta = $("si-geo-meta");
+    if (!host) return;
+    if (!g || !g.available || !(g.matrix || []).length) {
+      host.innerHTML = `<div class="mc-empty">No geo-grid pull yet — run <code>automations/geo-grid</code>.</div>`;
+      if (meta) meta.textContent = "— Share of Local Voice across a rank grid"; return;
+    }
+    const rankColor = v => v == null ? "#3a1d24" : v <= 3 ? "#34d399" : v <= 7 ? "#38bdf8" : v <= 10 ? "#fbbf24" : "#f87171";
+    const s = g.solv || {};
+    const kpis = [["SoLV", (s.solv != null ? Math.round(s.solv * 100) + "%" : "—")],
+                  ["Ranked points", `${s.points_ranked ?? "—"}/${s.points_total ?? "—"}`],
+                  ["Top-3 points", s.top3_points ?? "—"], ["Avg rank", s.avg_rank ?? "—"]];
+    const cells = g.matrix.map(row => `<div class="geo-row">` + row.map(v =>
+      `<div class="geo-cell" style="background:${rankColor(v)}" title="rank ${v == null ? "absent" : v}">${v == null ? "·" : v}</div>`).join("") + `</div>`).join("");
+    host.innerHTML = `<div class="mc-kpis" style="grid-template-columns:repeat(4,1fr);margin-bottom:12px">${
+      kpis.map(([l, v]) => `<div class="kpi"><div class="k-label">${esc(l)}</div><div class="k-val">${esc(v)}</div></div>`).join("")}</div>
+      <div class="geo-grid-wrap">${cells}</div>
+      <div class="legend-row" style="margin-top:8px"><span><i style="background:#34d399"></i>1–3</span><span><i style="background:#38bdf8"></i>4–7</span><span><i style="background:#fbbf24"></i>8–10</span><span><i style="background:#f87171"></i>11+</span><span><i style="background:#3a1d24"></i>absent</span></div>`;
+    if (meta) meta.textContent = `— “${g.keyword}” · ${g.size}×${g.size} grid · ${g.location || ""}`;
+  }
   function renderDailyTrend(dt) {
     const el = $("si-trend"), meta = $("si-trend-meta");
     if (!el) return;
