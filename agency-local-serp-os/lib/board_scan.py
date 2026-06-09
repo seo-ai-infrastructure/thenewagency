@@ -50,7 +50,9 @@ def collect(root):
                     "title": wo.get("workflow_id", "?"), "sub": sub_t, "period": wo.get("period", ""),
                     "age": age(p.stat().st_mtime), "reason": reason, "preview": "",
                     "kind": "wo", "automation": dirname, "filename": p.name,
-                    "wo_id": wo.get("work_order_id", ""), "manual": wo.get("manual", False)})
+                    "wo_id": wo.get("work_order_id", ""), "manual": wo.get("manual", False),
+                    "profile_id": wo.get("profile_id", ""),
+                    "order_index": wo.get("order_index", 0)})
     for area in ("rpa", "browser", "web"):
         for ap in sorted(root.glob(f"clients/*/{area}/approvals")):
             client = ap.parts[ap.parts.index("clients")+1]
@@ -98,6 +100,7 @@ def grouped(root):
     by = {c[0]: [x for x in cards if x["col"] == c[0]] for c in COLS}
     # oldest-first (smallest timestamp): the drafts most at risk of being forgotten.
     by["approval"].sort(key=lambda x: x.get("_ts", 0))
+    by["queued"].sort(key=lambda x: x.get("order_index", 0))
     return by
 
 
